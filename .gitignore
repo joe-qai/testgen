@@ -26,3 +26,14 @@ env/
 /logs/
 *.log
 nul
+# LangGraph checkpoints
+langgraph_checkpoints.db*
+
+# Demos (not part of project)
+demos/
+
+# Logs
+src/logs/
+
+# Site customize (sandbox only)
+sitecustomize.py

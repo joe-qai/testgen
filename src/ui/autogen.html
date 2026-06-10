@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoGen GroupChat - TestGen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root{--primary:#2563EB;--secondary:#3B82F6;--cta:#F97316;--background:#0F172A;--surface:#1E293B;--surface-light:#334155;--text-primary:#F1F5F9;--text-secondary:#94A3B8;--border:#475569;--success:#10B981;--warning:#F59E0B;--error:#EF4444;--info:#06B6D4;--phase1:#8B5CF6;--phase2:#3B82F6;--complete:#10B981}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--background);color:var(--text-primary);min-height:100vh;line-height:1.6}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 20% 20%,rgba(37,99,235,.1) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(139,92,246,.08) 0%,transparent 50%);pointer-events:none;z-index:0}
+    .container{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
+    .logo{font-family:'Space Grotesk',monospace;font-size:28px;font-weight:700;background:linear-gradient(135deg,var(--primary),var(--phase1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .logo-sub{font-size:14px;color:var(--text-secondary);margin-left:12px}
+    .nav-links{display:flex;gap:16px}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-size:14px;padding:8px 16px;border-radius:8px;transition:.2s}
+    .nav-link:hover{color:var(--text-primary);background:var(--surface-light)}
+    .nav-link.active{color:var(--primary);background:rgba(37,99,235,.15)}
+
+    /* Grid layout */
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+    .full-width{grid-column:1/-1}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;transition:.3s}
+    .card:hover{border-color:var(--secondary)}
+    .card-title{font-family:'Space Grotesk',monospace;font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .card-title .icon{font-size:20px}
+
+    /* Phase pipeline */
+    .pipeline{display:flex;gap:12px;align-items:center;padding:20px}
+    .phase-step{flex:1;text-align:center;padding:16px;border-radius:12px;background:var(--surface-light);border:2px solid var(--border);transition:.3s;position:relative}
+    .phase-step.active{border-color:var(--primary);background:rgba(37,99,235,.1);box-shadow:0 0 20px rgba(37,99,235,.2)}
+    .phase-step.done{border-color:var(--success);background:rgba(16,185,129,.1)}
+    .phase-step.error{border-color:var(--error);background:rgba(239,68,68,.1)}
+    .phase-step .step-icon{font-size:24px;margin-bottom:8px}
+    .phase-step .step-name{font-weight:600;font-size:14px}
+    .phase-step .step-desc{font-size:12px;color:var(--text-secondary)}
+    .phase-connector{width:40px;height:2px;background:var(--border);flex-shrink:0}
+    .phase-connector.done{background:var(--success)}
+
+    /* Agent cards */
+    .agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .agent-card{background:var(--surface-light);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;transition:.3s}
+    .agent-card.running{border-color:var(--primary);background:rgba(37,99,235,.08);animation:pulse 2s infinite}
+    .agent-card.done{border-color:var(--success);background:rgba(16,185,129,.08)}
+    .agent-emoji{font-size:28px;margin-bottom:4px}
+    .agent-name{font-size:12px;font-weight:600}
+    .agent-role{font-size:11px;color:var(--text-secondary)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+    /* Progress */
+    .progress-wrap{margin-bottom:16px}
+    .progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+    .progress-bar{height:8px;background:var(--surface-light);border-radius:4px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:4px;transition:width .5s;background:linear-gradient(90deg,var(--primary),var(--phase1))}
+    .progress-fill.complete{background:linear-gradient(90deg,var(--success),#34D399)}
+
+    /* Task list */
+    .task-item{background:var(--surface-light);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:16px;transition:.2s;cursor:pointer}
+    .task-item:hover{border-color:var(--secondary)}
+    .task-id{font-family:'Space Grotesk',monospace;font-size:12px;color:var(--text-secondary)}
+    .task-name{font-size:15px;font-weight:600;margin-bottom:4px}
+    .task-meta{font-size:12px;color:var(--text-secondary)}
+    .status-badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600}
+    .status-running{background:rgba(37,99,235,.15);color:var(--primary)}
+    .status-done{background:rgba(16,185,129,.15);color:var(--success)}
+    .status-waiting{background:rgba(139,92,246,.15);color:var(--phase1)}
+    .status-error{background:rgba(239,68,68,.15);color:var(--error)}
+
+    /* Human loop panel */
+    .review-panel{background:var(--surface);border:2px solid var(--phase1);border-radius:16px;padding:24px;display:none}
+    .review-panel.visible{display:block}
+    .review-title{font-family:'Space Grotesk',monospace;font-size:20px;font-weight:700;margin-bottom:16px;color:var(--phase1)}
+    .review-content{background:var(--surface-light);border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.2s}
+    .btn-primary{background:var(--primary);color:white}
+    .btn-primary:hover{background:#1D4ED8}
+    .btn-success{background:var(--success);color:white}
+    .btn-success:hover{background:#059669}
+    .btn-warning{background:var(--warning);color:white}
+    .btn-secondary{background:var(--surface-light);color:var(--text-primary);border:1px solid var(--border)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* New task form */
+    .form-group{margin-bottom:16px}
+    .form-label{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary)}
+    .form-select,.form-input{width:100%;padding:12px;background:var(--surface-light);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:14px}
+    .form-select:focus,.form-input:focus{border-color:var(--primary);outline:none}
+    .form-row{display:flex;gap:12px}
+    .form-row>*{flex:1}
+
+    /* Stats */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat-item{text-align:center;padding:16px;background:var(--surface-light);border-radius:10px}
+    .stat-value{font-family:'Space Grotesk',monospace;font-size:28px;font-weight:700}
+    .stat-label{font-size:12px;color:var(--text-secondary)}
+    .stat-value.blue{color:var(--primary)}
+    .stat-value.green{color:var(--success)}
+    .stat-value.purple{color:var(--phase1)}
+    .stat-value.orange{color:var(--cta)}
+
+    /* Toast */
+    .toast-container{position:fixed;bottom:24px;right:24px;z-index:1000}
+    .toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:8px;margin-top:8px;animation:slideIn .3s}
+    @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+    .toast.success{border-color:var(--success)}
+    .toast.error{border-color:var(--error)}
+    .toast.info{border-color:var(--primary)}
+
+    /* Live log */
+    .live-log{background:#0D1117;border-radius:10px;padding:16px;font-family:'Space Grotesk',monospace;font-size:12px;max-height:200px;overflow-y:auto;color:var(--text-secondary)}
+    .live-log .log-line{padding:2px 0}
+    .live-log .log-time{color:var(--text-secondary);margin-right:8px}
+    .live-log .log-msg{color:var(--text-primary)}
+    .live-log .log-phase1{color:var(--phase1)}
+    .live-log .log-phase2{color:var(--primary)}
+    .live-log .log-done{color:var(--success)}
+    .live-log .log-err{color:var(--error)}
+
+    @media(max-width:768px){.grid{grid-template-columns:1fr}.agent-grid{grid-template-columns:repeat(2,1fr)}.stats-grid{grid-template-columns:repeat(2,1fr)}.pipeline{flex-wrap:wrap}.phase-connector{display:none}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display:flex;align-items:center">
+        <span class="logo">TestGen</span>
+        <span class="logo-sub">AutoGen GroupChat</span>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">仪表盘</a>
+        <a href="requirements.html" class="nav-link">需求管理</a>
+        <a href="cases.html" class="nav-link">测试用例</a>
+        <a href="/autogen" class="nav-link active">AutoGen</a>
+        <a href="config.html" class="nav-link">配置</a>
+      </nav>
+    </header>
+
+    <!-- Stats -->
+    <div class="card full-width" style="margin-bottom:24px">
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-value blue" id="statTotal">0</div><div class="stat-label">总用例数</div></div>
+        <div class="stat-item"><div class="stat-value green" id="statAutogen">0</div><div class="stat-label">AutoGen用例</div></div>
+        <div class="stat-item"><div class="stat-value purple" id="statTasks">0</div><div class="stat-label">任务数</div></div>
+        <div class="stat-item"><div class="stat-value orange" id="statAvgTime">-</div><div class="stat-label">平均耗时</div></div>
+      </div>
+    </div>
+
+    <!-- New task form -->
+    <div class="card full-width">
+      <div class="card-title"><span class="icon">⚡</span> 启动 AutoGen GroupChat</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">选择需求</label>
+          <select class="form-select" id="reqSelect"><option value="">加载中...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">运行模式</label>
+          <select class="form-select" id="modeSelect">
+            <option value="full">完整流程（Phase1 → Phase2 自动）</option>
+            <option value="human_loop">人机回路（Phase1完成后暂停评审）</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" id="startBtn" onclick="startGeneration()">🚀 启动生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline visualization -->
+    <div class="card full-width" id="pipelineCard" style="display:none">
+      <div class="card-title"><span class="icon">🔄</span> Agent 协作流程</div>
+      <div class="pipeline" id="pipeline">
+        <div class="phase-step" id="phase-analyst"><div class="step-icon">🔍</div><div class="step-name">需求分析</div><div class="step-desc">Analyst Agent</div></div>
+        <div class="phase-connector" id="conn1"></div>
+        <div class="phase-step" id="phase-planner"><div class="step-icon">📋</div><div class="step-name">策略设计</div><div class="step-desc">PlanDesigner Agent</div></div>
+        <div class="phase-connector" id="conn2"></div>
+        <div class="phase-step" id="phase-generator"><div class="step-icon">✍️</div><div class="step-name">用例生成</div><div class="step-desc">Generator Agent</div></div>
+        <div class="phase-connector" id="conn3"></div>
+        <div class="phase-step" id="phase-reviewer"><div class="step-icon">🧐</div><div class="step-name">用例评审</div><div class="step-desc">Reviewer Agent</div></div>
+        <div class="phase-connector" id="conn4"></div>
+        <div class="phase-step" id="phase-complete"><div class="step-icon">✅</div><div class="step-name">入库完成</div><div class="step-desc">持久化存储</div></div>
+      </div>
+
+      <!-- Agent status cards -->
+      <div class="agent-grid" id="agentGrid">
+        <div class="agent-card" id="agent-analyst"><div class="agent-emoji">🔍</div><div class="agent-name">Analyst</div><div class="agent-role">需求分析</div></div>
+        <div class="agent-card" id="agent-planner"><div class="agent-emoji">📋</div><div class="agent-name">PlanDesigner</div><div class="agent-role">策略设计</div></div>
+        <div class="agent-card" id="agent-generator"><div class="agent-emoji">✍️</div><div class="agent-name">Generator</div><div class="agent-role">用例生成</div></div>
+        <div class="agent-card" id="agent-reviewer"><div class="agent-emoji">🧐</div><div class="agent-name">Reviewer</div><div class="agent-role">用例评审</div></div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap">
+        <div class="progress-label"><span id="progressText">等待启动...</span><span id="progressPct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Live log -->
+      <div class="live-log" id="liveLog"><div class="log-line"><span class="log-msg">等待任务启动...</span></div></div>
+    </div>
+
+    <!-- Human loop review panel -->
+    <div class="review-panel" id="reviewPanel">
+      <div class="review-title">🛑 Phase 1 完成 — 等待人工评审</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Phase 1 进度</span><span>40%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:40%;background:var(--phase1)"></div></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">需求分析结果</label>
+        <div class="review-content" id="analysisResult">加载中...</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">测试策略（可编辑后继续）</label>
+        <div class="review-content" id="planResult" contenteditable="true" style="min-height:150px">加载中...</div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-success" onclick="continuePhase2()">✅ 评审通过，继续 Phase 2</button>
+        <button class="btn btn-warning" onclick="continuePhase2(true)">📝 使用编辑后策略继续</button>
+        <button class="btn btn-secondary" onclick="cancelTask()">❌ 取消任务</button>
+      </div>
+    </div>
+
+    <!-- Completed tasks -->
+    <div class="card full-width">
+      <div class="card-title"><span class="icon">📊</span> 已完成的生成任务</div>
+      <div id="completedList"><div style="color:var(--text-secondary);text-align:center;padding:20px">暂无已完成任务</div></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '/api';
+    let socket = null;
+    let currentTask = null;
+    let requirements = [];
+
+    // Init
+    async function init() {
+      loadRequirements();
+      loadStats();
+      loadCompletedTasks();
+      connectSocket();
+    }
+
+    // SocketIO
+    function connectSocket() {
+      socket = io('/progress', {transports:['websocket','polling']});
+      socket.on('connect', () => addLog('SocketIO 连接成功', 'info'));
+      socket.on('progress', (data) => {
+        if (currentTask && data.task_id === currentTask.task_id) {
+          updateProgress(data);
+          addLog(data.message || `Phase: ${data.phase}, Progress: ${data.progress}%`, data.phase?.includes('done') ? 'done' : data.phase?.includes('phase1') ? 'phase1' : 'phase2');
+        }
+      });
+      socket.on('phase1_done', (data) => {
+        if (currentTask && data.task_id === currentTask.task_id) {
+          showReviewPanel(data);
+        }
+      });
+      socket.on('complete', (data) => {
+        if (currentTask && data.task_id === currentTask.task_id) {
+          onTaskComplete(data);
+        }
+      });
+      socket.on('error', (data) => {
+        if (currentTask && data.task_id === currentTask.task_id) {
+          addLog('Error: ' + data.error, 'err');
+          showToast('error', '生成失败: ' + data.error);
+        }
+      });
+    }
+
+    // Load requirements
+    async function loadRequirements() {
+      try {
+        const res = await fetch(`${API}/requirements`);
+        const data = await res.json();
+        requirements = data;
+        const sel = document.getElementById('reqSelect');
+        sel.innerHTML = data.filter(r=>r.status===1 || r.status===3).map(r=>`<option value="${r.id}">${r.id}: ${r.title}</option>`).join('');
+        if (!sel.innerHTML) sel.innerHTML = '<option value="">无可用需求</option>';
+      } catch(e) { console.error(e); }
+    }
+
+    // Load stats
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API}/cases`);
+        const cases = await res.json();
+        document.getElementById('statTotal').textContent = cases.length || 0;
+        document.getElementById('statAutogen').textContent = cases.filter(c=>c.case_id?.startsWith('TC_AG_')).length || 0;
+      } catch(e) {}
+    }
+
+    // Load completed tasks
+    async function loadCompletedTasks() {
+      // Future: load from persistent storage
+    }
+
+    // Start generation
+    async function startGeneration() {
+      const reqId = parseInt(document.getElementById('reqSelect').value);
+      const mode = document.getElementById('modeSelect').value;
+      if (!reqId) { showToast('error', '请选择需求'); return; }
+
+      try {
+        let res;
+        if (mode === 'human_loop') {
+          // Phase 1 only
+          res = await fetch(`${API}/autogen/phase1`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({requirement_id: reqId})
+          });
+        } else {
+          // Full flow
+          res = await fetch(`${API}/autogen/generate`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({requirement_id: reqId})
+          });
+        }
+
+        const data = await res.json();
+        if (data.error) { showToast('error', data.error); return; }
+
+        currentTask = {task_id: data.task_id, requirement_id: reqId, mode: mode};
+        document.getElementById('pipelineCard').style.display = 'block';
+        document.getElementById('reviewPanel').classList.remove('visible');
+        resetPipeline();
+        addLog(`任务已启动: ${data.task_id} (模式: ${mode})`, 'phase1');
+        showToast('info', '生成任务已启动');
+        document.getElementById('startBtn').disabled = true;
+
+        // Poll for progress
+        pollTask(data.task_id);
+      } catch(e) { showToast('error', '启动失败: ' + e.message); }
+    }
+
+    // Poll task status
+    async function pollTask(taskId) {
+      const poll = async () => {
+        if (!currentTask) return;
+        try {
+          const res = await fetch(`${API}/autogen/task/${taskId}`);
+          const data = await res.json();
+          if (data.error) return;
+
+          updateProgress({phase: data.phase, progress: data.progress, message: data.message});
+
+          if (data.phase === 'phase1_done' && currentTask.mode === 'human_loop') {
+            showReviewPanel({plan_data: data.plan_data, analysis_data: data.analysis_data});
+            return; // Stop polling, wait for human
+          }
+          if (data.status === 2) { onTaskComplete({cases: data.case_count || data.cases?.length || 0, message: data.message}); return; }
+          if (data.status === 3) { addLog('任务失败: ' + (data.error_message || ''), 'err'); showToast('error', '任务失败'); return; }
+          setTimeout(poll, 5000);
+        } catch(e) { setTimeout(poll, 5000); }
+      };
+      setTimeout(poll, 3000);
+    }
+
+    // Update progress
+    function updateProgress(data) {
+      const pct = data.progress || 0;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressFill').className = pct >= 100 ? 'progress-fill complete' : 'progress-fill';
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressText').textContent = data.message || `Phase: ${data.phase}`;
+
+      // Update pipeline steps
+      const phase = data.phase || '';
+      if (phase === 'phase1') {
+        setPhaseState('phase-analyst', 'active'); setPhaseState('phase-planner', '');
+        setAgentState('agent-analyst', 'running');
+      } else if (phase === 'phase1_done') {
+        setPhaseState('phase-analyst', 'done'); setPhaseState('phase-planner', 'done');
+        document.getElementById('conn1').className = 'phase-connector done';
+        setAgentState('agent-analyst', 'done'); setAgentState('agent-planner', 'done');
+      } else if (phase === 'phase2') {
+        setPhaseState('phase-analyst', 'done'); setPhaseState('phase-planner', 'done');
+        setPhaseState('phase-generator', 'active');
+        document.getElementById('conn1').className = 'phase-connector done';
+        document.getElementById('conn2').className = 'phase-connector done';
+        setAgentState('agent-analyst', 'done'); setAgentState('agent-planner', 'done');
+        setAgentState('agent-generator', 'running');
+      } else if (phase === 'complete') {
+        setPhaseState('phase-analyst', 'done'); setPhaseState('phase-planner', 'done');
+        setPhaseState('phase-generator', 'done'); setPhaseState('phase-reviewer', 'done');
+        setPhaseState('phase-complete', 'done');
+        document.querySelectorAll('.phase-connector').forEach(c=>c.className='phase-connector done');
+        document.querySelectorAll('.agent-card').forEach(a=>{a.className='agent-card done'});
+      }
+    }
+
+    function setPhaseState(id, state) {
+      const el = document.getElementById(id);
+      if (el) el.className = 'phase-step' + (state ? ' ' + state : '');
+    }
+    function setAgentState(id, state) {
+      const el = document.getElementById(id);
+      if (el) el.className = 'agent-card' + (state ? ' ' + state : '');
+    }
+    function resetPipeline() {
+      ['phase-analyst','phase-planner','phase-generator','phase-reviewer','phase-complete'].forEach(id=>setPhaseState(id,''));
+      document.querySelectorAll('.phase-connector').forEach(c=>c.className='phase-connector');
+      document.querySelectorAll('.agent-card').forEach(a=>{a.className='agent-card'});
+      document.getElementById('progressFill').style.width = '0%';
+      document.getElementById('progressPct').textContent = '0%';
+      document.getElementById('progressText').textContent = '等待启动...';
+      document.getElementById('liveLog').innerHTML = '<div class="log-line"><span class="log-msg">等待任务启动...</span></div>';
+    }
+
+    // Show review panel (human loop)
+    function showReviewPanel(data) {
+      const panel = document.getElementById('reviewPanel');
+      panel.classList.add('visible');
+      document.getElementById('analysisResult').textContent = JSON.stringify(data.analysis_data || data.plan_data?.analysis || {}, null, 2);
+      document.getElementById('planResult').textContent = JSON.stringify(data.plan_data || {}, null, 2);
+      addLog('Phase 1 完成，等待人工评审', 'done');
+      showToast('info', 'Phase 1 完成，请评审后继续');
+    }
+
+    // Continue to Phase 2 (human loop)
+    async function continuePhase2(useEdited = false) {
+      if (!currentTask) return;
+      let editedPlan = null;
+      if (useEdited) {
+        try { editedPlan = JSON.parse(document.getElementById('planResult').textContent); } catch(e) {
+          showToast('error', '策略格式错误，请确保是有效JSON');
+          return;
+        }
+      }
+      try {
+        const res = await fetch(`${API}/autogen/phase2/${currentTask.task_id}`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(useEdited ? {edited_plan: editedPlan} : {})
+        });
+        const data = await res.json();
+        if (data.error) { showToast('error', data.error); return; }
+
+        document.getElementById('reviewPanel').classList.remove('visible');
+        addLog('Phase 2 已启动', 'phase2');
+        showToast('info', 'Phase 2 已启动');
+        pollTask(currentTask.task_id);
+      } catch(e) { showToast('error', '启动Phase2失败: ' + e.message); }
+    }
+
+    // Cancel task
+    function cancelTask() {
+      currentTask = null;
+      document.getElementById('reviewPanel').classList.remove('visible');
+      document.getElementById('pipelineCard').style.display = 'none';
+      document.getElementById('startBtn').disabled = false;
+      showToast('info', '任务已取消');
+    }
+
+    // On task complete
+    function onTaskComplete(data) {
+      const cases = data.cases || 0;
+      document.getElementById('progressFill').style.width = '100%';
+      document.getElementById('progressFill').className = 'progress-fill complete';
+      document.getElementById('progressPct').textContent = '100%';
+      document.getElementById('progressText').textContent = data.message || `生成完成！${cases} 条用例`;
+      updateProgress({phase: 'complete', progress: 100});
+      addLog(`生成完成！${cases} 条用例入库`, 'done');
+      showToast('success', `生成完成！${cases} 条用例入库`);
+      document.getElementById('startBtn').disabled = false;
+
+      // Add to completed list
+      const list = document.getElementById('completedList');
+      if (list.querySelector('div[style]')) list.innerHTML = '';
+      const item = document.createElement('div');
+      item.className = 'task-item';
+      item.innerHTML = `
+        <div style="flex:1"><div class="task-name">需求 ${currentTask?.requirement_id}</div><div class="task-meta">${cases} 条用例 | AutoGen GroupChat</div></div>
+        <span class="status-badge status-done">已完成</span>
+        <a href="cases.html" class="btn btn-success">查看用例</a>
+      `;
+      list.prepend(item);
+
+      loadStats();
+      currentTask = null;
+    }
+
+    // Add log line
+    function addLog(msg, type='') {
+      const log = document.getElementById('liveLog');
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span class="log-time">${time}</span><span class="log-msg log-${type}">${msg}</span>`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Toast
+    function showToast(type, msg) {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      const icon = type==='success'?'✅':type==='error'?'❌':'ℹ️';
+      t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+      c.appendChild(t);
+      setTimeout(()=>t.remove(), 3000);
+    }
+
+    init();
+  </script>
+</body>
+</html>

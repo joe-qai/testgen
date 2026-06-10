@@ -197,7 +197,7 @@ def create_app():
     app.socketio = socketio
 
     # ==================== 注册API蓝图 ====================
-    init_services(db_session, llm_manager, vector_store, generation_service)
+    init_services(db_session, llm_manager, vector_store, generation_service, socketio)
     app.register_blueprint(api_bp)
 
     # ==================== WebSocket事件处理 ====================
@@ -250,6 +250,14 @@ def create_app():
     def defects_page():
         return send_from_directory(app.config["UI_FOLDER"], "defects.html")
 
+    @app.route("/autogen")
+    def autogen_page():
+        return send_from_directory(app.config["UI_FOLDER"], "autogen.html")
+
+    @app.route("/langgraph")
+    def langgraph_page():
+        return send_from_directory(app.config["UI_FOLDER"], "langgraph.html")
+
     @app.route("/<path:path>")
     def static_files(path):
         return send_from_directory(app.config["UI_FOLDER"], path)
@@ -275,4 +283,4 @@ if __name__ == "__main__":
     logging.info("基于PRD需求规格说明书 v0.1")
     logging.info("=" * 60)
     # 禁用 reloader 避免日志重复输出
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000, use_reloader=False)
+    socketio.run(app, debug=True, host="0.0.0.0", port=5000, use_reloader=False, allow_unsafe_werkzeug=True)

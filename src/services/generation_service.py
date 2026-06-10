@@ -7,7 +7,7 @@
 import uuid
 import json
 import threading
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, Tuple
 from datetime import datetime
 from dataclasses import dataclass, asdict
 
@@ -35,6 +35,7 @@ class GenerationTask:
     created_at: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -2221,6 +2222,38 @@ class GenerationService:
                 # 解析测试计划
                 test_plan_data = reviewed_plan or {}
                 items = test_plan_data.get("items", [])
+
+                # 如果没有 items，从 modules + test_points 自动构建
+                if not items:
+                    modules = test_plan_data.get("modules", [])
+                    test_points = test_plan_data.get("test_points", [])
+                    if modules and test_points:
+                        print(f"[执行阶段2] items 为空，从 {len(modules)} 个模块 + {len(test_points)} 个测试点自动构建")
+                        for mod in modules:
+                            mod_name = mod.get("name", mod.get("Name", "未知模块"))
+                            mod_points = [tp.get("name", "") for tp in test_points if tp.get("module", "") == mod_name]
+                            if not mod_points:
+                                # 尝试模糊匹配
+                                mod_points = [tp.get("name", "") for tp in test_points if mod_name in tp.get("module", "") or tp.get("module", "") in mod_name]
+                            items.append({
+                                "title": mod_name,
+                                "description": mod.get("description", ""),
+                                "points": mod_points,
+                                "priority": "P0" if any(tp.get("risk_level") == "High" for tp in test_points if tp.get("module", "") == mod_name) else "P1"
+                            })
+                        test_plan_data["items"] = items
+                        print(f"[执行阶段2] 自动构建 {len(items)} 个测试项")
+                    elif modules:
+                        # 只有 modules 没有 test_points
+                        for mod in modules:
+                            mod_name = mod.get("name", mod.get("Name", "未知模块"))
+                            items.append({
+                                "title": mod_name,
+                                "description": mod.get("description", ""),
+                                "points": [],
+                                "priority": "P1"
+                            })
+                        test_plan_data["items"] = items
 
                 # 过滤每个模块只保留属于该模块的测试点
                 for item in items:
@@ -4774,6 +4807,18 @@ class GenerationService:
             test_plan += "- 测试点：边界值测试\n"
             test_plan += "- 测试点：异常流程测试\n\n"
         else:
+            # 标准化模块名称字段（LLM可能返回Name或name）
+            normalized_modules = []
+            for m in modules:
+                if isinstance(m, dict):
+                    nm = {k.lower() if k.lower() in ("name", "description") else k: v for k, v in m.items()}
+                    if "name" not in nm and "Name" in m:
+                        nm["name"] = m["Name"]
+                    normalized_modules.append(nm)
+                else:
+                    normalized_modules.append(m)
+            modules = normalized_modules
+
             # 完整性检查
             test_plan += f"**完整性**: 识别到 {len(modules)} 个功能模块\n\n"
 

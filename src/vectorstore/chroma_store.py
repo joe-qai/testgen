@@ -8,9 +8,47 @@ ChromaDB向量数据库封装
 import os
 import time
 from typing import List, Dict, Any, Optional
-import chromadb
-from chromadb.config import Settings
-from chromadb.utils import embedding_functions
+
+# Monkey-patch numpy 2.x for chromadb compatibility
+import numpy as np
+for _attr, _fallback in [('float_', np.float64), ('int_', np.int64), ('uint', np.uint64), ('bool_', np.bool_)]:
+    if not hasattr(np, _attr):
+        setattr(np, _attr, _fallback)
+
+# Pre-patch chromadb's DefaultEmbeddingFunction to avoid onnxruntime dependency
+# This must happen BEFORE chromadb is imported, because Collection.py calls
+# DefaultEmbeddingFunction() at module level as a default value.
+import importlib
+try:
+    _ef_mod = importlib.import_module('chromadb.utils.embedding_functions')
+    _original_init = _ef_mod.ONNXMiniLM_L6_V2.__init__
+    def _patched_init(self, *args, **kwargs):
+        # Skip onnxruntime check — we use OpenAI embedding, not local ONNX
+        self.ort = None
+    _ef_mod.ONNXMiniLM_L6_V2.__init__ = _patched_init
+except (ImportError, AttributeError, ValueError, ModuleNotFoundError):
+    pass  # chromadb not available, skip patch
+
+# ChromaDB 可选依赖
+_CHROMADB_AVAILABLE = False
+chromadb = None
+Settings = None
+embedding_functions = None
+
+try:
+    import chromadb
+    from chromadb.config import Settings
+    _CHROMADB_AVAILABLE = True
+    try:
+        from chromadb.utils import embedding_functions
+    except (AttributeError, ImportError, ValueError):
+        embedding_functions = None
+except (ImportError, AttributeError, ModuleNotFoundError, ValueError):
+    pass
+
+from src.utils import get_logger
+logger = get_logger(__name__)
+
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -33,8 +71,21 @@ class ChromaVectorStore:
         self.enable_chunking = enable_chunking
         os.makedirs(persist_directory, exist_ok=True)
 
-        # 使用默认的embedding函数
-        self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
+        # 使用OpenAI兼容的embedding函数（走lockin网关）
+        if embedding_functions is not None:
+            try:
+                self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
+                    api_key="sk-no3vqkfHFiPt2PBZAHsFLxVA5aI--KubBTuikSH0JQ-zYLkaLcj8Ng",
+                    api_base="https://test-info-ai-gateway-api.lockin.com/v1",
+                    model_name="embedding-3",
+                )
+                logger.info("使用OpenAI兼容embedding函数（lockin网关）")
+            except Exception as e:
+                logger.info(f"OpenAI embedding初始化失败: {e}")
+                self.embedding_function = None
+        else:
+            logger.info("chromadb.utils.embedding_functions不可用，embedding功能禁用")
+            self.embedding_function = None
 
         # 分块器（延迟初始化）
         self._chunker = None
@@ -44,8 +95,9 @@ class ChromaVectorStore:
             self._init_client()
             self._init_collections()
         except Exception as e:
-            logger.info(f"ChromaDB初始化失败，尝试重建: {e}")
-            self._rebuild_database()
+            logger.warning(f"ChromaDB初始化失败（RAG功能降级）: {e}")
+            self.client = None
+            self._collections_ready = False
 
     def _init_client(self):
         """初始化客户端"""
