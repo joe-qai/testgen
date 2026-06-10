@@ -9,25 +9,10 @@ import os
 import time
 from typing import List, Dict, Any, Optional
 
-# Monkey-patch numpy 2.x for chromadb compatibility
-import numpy as np
-for _attr, _fallback in [('float_', np.float64), ('int_', np.int64), ('uint', np.uint64), ('bool_', np.bool_)]:
-    if not hasattr(np, _attr):
-        setattr(np, _attr, _fallback)
+# numpy 已降级到 1.x，不需要 monkey-patch
 
-# Pre-patch chromadb's DefaultEmbeddingFunction to avoid onnxruntime dependency
-# This must happen BEFORE chromadb is imported, because Collection.py calls
-# DefaultEmbeddingFunction() at module level as a default value.
-import importlib
-try:
-    _ef_mod = importlib.import_module('chromadb.utils.embedding_functions')
-    _original_init = _ef_mod.ONNXMiniLM_L6_V2.__init__
-    def _patched_init(self, *args, **kwargs):
-        # Skip onnxruntime check — we use OpenAI embedding, not local ONNX
-        self.ort = None
-    _ef_mod.ONNXMiniLM_L6_V2.__init__ = _patched_init
-except (ImportError, AttributeError, ValueError, ModuleNotFoundError):
-    pass  # chromadb not available, skip patch
+# chromadb 1.5.9: onnxruntime 已安装，不需要 monkey-patch
+# 如果需要禁用 onnxruntime，使用降级运行模式
 
 # ChromaDB 可选依赖
 _CHROMADB_AVAILABLE = False
@@ -71,20 +56,13 @@ class ChromaVectorStore:
         self.enable_chunking = enable_chunking
         os.makedirs(persist_directory, exist_ok=True)
 
-        # 使用OpenAI兼容的embedding函数（走lockin网关）
-        if embedding_functions is not None:
-            try:
-                self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
-                    api_key="sk-no3vqkfHFiPt2PBZAHsFLxVA5aI--KubBTuikSH0JQ-zYLkaLcj8Ng",
-                    api_base="https://test-info-ai-gateway-api.lockin.com/v1",
-                    model_name="embedding-3",
-                )
-                logger.info("使用OpenAI兼容embedding函数（lockin网关）")
-            except Exception as e:
-                logger.info(f"OpenAI embedding初始化失败: {e}")
-                self.embedding_function = None
-        else:
-            logger.info("chromadb.utils.embedding_functions不可用，embedding功能禁用")
+        # 使用ChromaDB本地ONNX embedding函数
+        try:
+            from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
+            self.embedding_function = ONNXMiniLM_L6_V2()
+            logger.info("使用ChromaDB ONNX本地embedding函数")
+        except Exception as e:
+            logger.info(f"ONNX embedding初始化失败: {e}")
             self.embedding_function = None
 
         # 分块器（延迟初始化）
@@ -158,8 +136,9 @@ class ChromaVectorStore:
     def _validate_collections(self):
         """验证集合是否正常工作"""
         try:
-            # 尝试查询以验证hnsw索引是否正常
-            self.case_collection.query(query_texts=["test"], n_results=1)
+            # 空集合不需要query验证，只检查count是否可调用
+            count = self.case_collection.count()
+            logger.info(f"集合验证通过，用例数: {count}")
         except Exception as e:
             error_msg = str(e)
             if (
