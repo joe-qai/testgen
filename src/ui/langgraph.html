@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LangGraph StateGraph - TestGen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--primary:#8B5CF6;--secondary:#A78BFA;--cta:#F97316;--background:#0F172A;--surface:#1E293B;--surface-light:#334155;--text-primary:#F1F5F9;--text-secondary:#94A3B8;--border:#475569;--success:#10B981;--warning:#F59E0B;--error:#EF4444;--info:#06B6D4;--lg:#8B5CF6}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--background);color:var(--text-primary);min-height:100vh;line-height:1.6}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(139,92,246,.12) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(249,115,22,.06) 0%,transparent 50%);pointer-events:none}
+    .container{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
+    .logo{font-family:'Space Grotesk',monospace;font-size:24px;font-weight:700;background:linear-gradient(135deg,var(--lg),var(--cta));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .badge{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(139,92,246,.2);color:var(--secondary);font-weight:600}
+    .nav-links{display:flex;gap:12px}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:8px;transition:.2s}
+    .nav-link:hover{color:var(--text-primary);background:var(--surface-light)}
+    .nav-link.active{color:var(--lg);background:rgba(139,92,246,.15)}
+
+    /* StateGraph pipeline */
+    .pipeline{display:flex;gap:8px;align-items:center;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:20px;overflow-x:auto}
+    .node{padding:12px 16px;border-radius:10px;border:2px solid var(--border);background:var(--surface-light);text-align:center;min-width:100px;transition:.3s;white-space:nowrap}
+    .node.active{border-color:var(--lg);background:rgba(139,92,246,.12);box-shadow:0 0 16px rgba(139,92,246,.25);animation:nodePulse 2s infinite}
+    .node.done{border-color:var(--success);background:rgba(16,185,129,.1)}
+    .node .emoji{font-size:22px;display:block;margin-bottom:4px}
+    .node .label{font-size:12px;font-weight:600}
+    .node .sub{font-size:10px;color:var(--text-secondary)}
+    .arrow{color:var(--border);font-size:18px;flex-shrink:0}
+    .arrow.done{color:var(--success)}
+    .arrow.conditional{color:var(--warning);font-size:12px}
+    @keyframes nodePulse{0%,100%{box-shadow:0 0 16px rgba(139,92,246,.25)}50%{box-shadow:0 0 24px rgba(139,92,246,.4)}}
+
+    /* Control panel */
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+    .card-title{font-family:'Space Grotesk',monospace;font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .select-wrap select{width:100%;padding:10px 12px;background:var(--surface-light);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;appearance:none;cursor:pointer}
+    .btn{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;width:100%}
+    .btn-primary{background:linear-gradient(135deg,var(--lg),#7C3AED);color:#fff}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(139,92,246,.4)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-phase{background:var(--surface-light);color:var(--text-primary);border:1px solid var(--border)}
+    .btn-phase:hover{border-color:var(--lg);background:rgba(139,92,246,.1)}
+    .btn-phase:disabled{opacity:.4;cursor:not-allowed}
+    .btn-row{display:flex;gap:10px;margin-top:12px}
+
+    /* Status */
+    .status-bar{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .status-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;flex:1;min-width:120px}
+    .status-item .val{font-size:20px;font-weight:700;font-family:'Space Grotesk',monospace}
+    .status-item .val.success{color:var(--success)}
+    .status-item .val.warning{color:var(--warning)}
+    .status-item .val.info{color:var(--info)}
+
+    /* Cases table */
+    .cases-table{width:100%;border-collapse:collapse;font-size:13px}
+    .cases-table th{text-align:left;padding:10px 12px;background:var(--surface-light);border-bottom:1px solid var(--border);font-weight:600;font-size:12px;color:var(--text-secondary)}
+    .cases-table td{padding:10px 12px;border-bottom:1px solid rgba(71,85,105,.3)}
+    .cases-table tr:hover{background:rgba(139,92,246,.05)}
+    .priority{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+    .priority.p0{background:rgba(239,68,68,.2);color:#EF4444}
+    .priority.p1{background:rgba(249,115,22,.2);color:#F97316}
+    .priority.p2{background:rgba(37,99,235,.2);color:#3B82F6}
+    .priority.p3{background:rgba(107,114,128,.2);color:#6B7280}
+
+    /* Log */
+    .log-area{background:#0D1117;border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'Space Grotesk',monospace;font-size:12px;max-height:300px;overflow-y:auto;line-height:1.8}
+    .log-line{color:var(--text-secondary)}
+    .log-line .time{color:var(--text-secondary);opacity:.6;margin-right:8px}
+    .log-line.info{color:var(--info)}
+    .log-line.success{color:var(--success)}
+    .log-line.warn{color:var(--warning)}
+    .log-line.error{color:var(--error)}
+
+    /* Comparison banner */
+    .compare{background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(249,115,22,.1));border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;font-size:13px}
+    .compare .vs{font-family:'Space Grotesk',monospace;font-weight:700;font-size:18px;color:var(--lg)}
+    .compare kbd{background:var(--surface-light);padding:2px 6px;border-radius:4px;font-size:11px;border:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="logo">LangGraph StateGraph</span>
+      <span class="badge">TestGen v2</span>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" href="/">首页</a>
+      <a class="nav-link" href="/autogen">AutoGen</a>
+      <a class="nav-link active" href="/langgraph">LangGraph</a>
+    </nav>
+  </header>
+
+  <!-- Comparison banner -->
+  <div class="compare">
+    <span class="vs">LangGraph</span>
+    <div>
+      <strong>vs AutoGen</strong>：代码量 <kbd>-50%</kbd> | 人机回路 <kbd>interrupt</kbd> 替代两阶段API | 自动 <kbd>Checkpoint</kbd> | <kbd>BSP并行</kbd>
+    </div>
+  </div>
+
+  <!-- StateGraph Pipeline -->
+  <div class="pipeline" id="pipeline">
+    <div class="node" id="node-start"><span class="emoji">🚀</span><span class="label">START</span></div>
+    <span class="arrow">→</span>
+    <div class="node" id="node-orchestrator"><span class="emoji">🎯</span><span class="label">Orchestrator</span><span class="sub">协调器</span></div>
+    <span class="arrow">→</span>
+    <div class="node" id="node-analyst"><span class="emoji">🔍</span><span class="label">Analyst</span><span class="sub">需求分析</span></div>
+    <span class="arrow">→</span>
+    <div class="node" id="node-designer"><span class="emoji">📋</span><span class="label">Designer</span><span class="sub">测试规划</span></div>
+    <span class="arrow">→</span>
+    <div class="node" id="node-generator"><span class="emoji">⚡</span><span class="label">Generator</span><span class="sub">用例生成</span></div>
+    <span class="arrow">→</span>
+    <div class="node" id="node-reviewer"><span class="emoji">🔎</span><span class="label">Reviewer</span><span class="sub">用例评审</span></div>
+    <span class="arrow conditional" id="cond-arrow">↩/→</span>
+    <div class="node" id="node-end"><span class="emoji">✅</span><span class="label">END</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="card">
+      <div class="card-title">⚡ 一键生成</div>
+      <div class="select-wrap">
+        <select id="req-select"><option value="">选择需求...</option></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-generate" onclick="startGenerate()">生成用例</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 人机回路</div>
+      <div class="select-wrap">
+        <select id="req-select-phase1"><option value="">选择需求...</option></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-phase" onclick="startPhase1()">Phase 1（分析+策略）</button>
+        <button class="btn btn-phase" id="btn-phase2" onclick="startPhase2()" disabled>Phase 2（生成+评审）</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="status-bar" style="display:none">
+    <div class="status-item"><div style="color:var(--text-secondary)">状态</div><div class="val" id="st-status">-</div></div>
+    <div class="status-item"><div style="color:var(--text-secondary)">用例数</div><div class="val info" id="st-cases">0</div></div>
+    <div class="status-item"><div style="color:var(--text-secondary)">评审结论</div><div class="val" id="st-review">-</div></div>
+    <div class="status-item"><div style="color:var(--text-secondary)">耗时</div><div class="val" id="st-duration">0s</div></div>
+  </div>
+
+  <!-- Cases -->
+  <div class="card" id="cases-card" style="display:none;margin-bottom:20px">
+    <div class="card-title">📋 生成用例</div>
+    <table class="cases-table">
+      <thead><tr><th>ID</th><th>优先级</th><th>标题</th><th>类型</th></tr></thead>
+      <tbody id="cases-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">📝 执行日志</div>
+    <div class="log-area" id="log-area"><div class="log-line"><span class="time">--:--:--</span>等待开始...</div></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let currentPhase2ReqId = null;
+
+// Load requirements
+async function loadRequirements() {
+  try {
+    const res = await fetch(`${API}/requirements?limit=100`);
+    const data = await res.json();
+    const opts = data.items.map(r => `<option value="${r.id}">[${r.id}] ${r.title}</option>`).join('');
+    document.getElementById('req-select').innerHTML = '<option value="">选择需求...</option>' + opts;
+    document.getElementById('req-select-phase1').innerHTML = '<option value="">选择需求...</option>' + opts;
+  } catch(e) { console.error(e); }
+}
+
+// Logging
+function log(msg, type='info') {
+  const area = document.getElementById('log-area');
+  const now = new Date().toLocaleTimeString();
+  area.innerHTML += `<div class="log-line ${type}"><span class="time">${now}</span>${msg}</div>`;
+  area.scrollTop = area.scrollHeight;
+}
+
+// Update pipeline nodes
+const nodes = ['start','orchestrator','analyst','designer','generator','reviewer','end'];
+function setNodeState(name, state) {
+  const el = document.getElementById('node-' + name);
+  if (!el) return;
+  el.className = 'node' + (state ? ' ' + state : '');
+}
+
+function resetPipeline() {
+  nodes.forEach(n => setNodeState(n, ''));
+  document.querySelectorAll('.arrow').forEach(a => a.classList.remove('done'));
+}
+
+// One-click generate
+async function startGenerate() {
+  const reqId = document.getElementById('req-select').value;
+  if (!reqId) return alert('请选择需求');
+
+  resetPipeline();
+  document.getElementById('btn-generate').disabled = true;
+  document.getElementById('status-bar').style.display = 'flex';
+  document.getElementById('cases-card').style.display = 'none';
+  document.getElementById('st-status').textContent = '运行中';
+  document.getElementById('st-status').className = 'val warning';
+
+  log('🚀 LangGraph Pipeline 启动', 'info');
+  setNodeState('start', 'done');
+
+  // Simulate progress based on typical timing
+  const steps = [
+    {node:'orchestrator', delay:2000, msg:'🎯 Orchestrator 运行中...'},
+    {node:'analyst', delay:8000, msg:'🔍 Analyst 运行中...'},
+    {node:'designer', delay:20000, msg:'📋 Designer 运行中...'},
+    {node:'generator', delay:30000, msg:'⚡ Generator 运行中...'},
+    {node:'reviewer', delay:45000, msg:'🔎 Reviewer 运行中...'},
+  ];
+  steps.forEach(s => {
+    setTimeout(() => { setNodeState(s.node, 'active'); log(s.msg, 'info'); }, s.delay);
+  });
+
+  try {
+    const res = await fetch(`${API}/langgraph/generate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requirement_id: parseInt(reqId)})
+    });
+    const data = await res.json();
+
+    nodes.forEach(n => setNodeState(n, 'done'));
+
+    document.getElementById('st-status').textContent = data.status || '完成';
+    document.getElementById('st-status').className = 'val ' + (data.status === 'APPROVE' ? 'success' : 'warning');
+    document.getElementById('st-cases').textContent = data.case_count || 0;
+    document.getElementById('st-review').textContent = data.review_decision || '-';
+    document.getElementById('st-review').className = 'val ' + (data.review_decision === 'APPROVE' ? 'success' : 'warning');
+    document.getElementById('st-duration').textContent = (data.duration_seconds || 0) + 's';
+
+    if (data.case_count > 0) {
+      loadCases(reqId);
+    }
+
+    log(`✅ 完成！${data.case_count}条用例，评审=${data.review_decision}，耗时=${data.duration_seconds}s`, 'success');
+  } catch(e) {
+    nodes.forEach(n => { const el = document.getElementById('node-'+n); if(el && el.classList.contains('active')) setNodeState(n, 'error'); });
+    document.getElementById('st-status').textContent = '失败';
+    document.getElementById('st-status').className = 'val error';
+    log(`❌ 错误: ${e.message}`, 'error');
+  } finally {
+    document.getElementById('btn-generate').disabled = false;
+  }
+}
+
+// Phase 1
+async function startPhase1() {
+  const reqId = document.getElementById('req-select-phase1').value;
+  if (!reqId) return alert('请选择需求');
+
+  resetPipeline();
+  log('🔄 Phase 1 启动（分析+策略，interrupt在Generator前）', 'info');
+  setNodeState('start', 'done');
+
+  try {
+    const res = await fetch(`${API}/langgraph/phase1`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requirement_id: parseInt(reqId)})
+    });
+    const data = await res.json();
+
+    ['start','orchestrator','analyst','designer'].forEach(n => setNodeState(n, 'done'));
+    setNodeState('generator', 'active');
+    log(`🛑 Phase 1 完成！已暂停在Generator前`, 'success');
+    log(`📋 设计结论: ${data.review_conclusion}`, 'info');
+    log(`→ 点击 Phase 2 继续生成`, 'info');
+
+    currentPhase2ReqId = reqId;
+    document.getElementById('btn-phase2').disabled = false;
+  } catch(e) {
+    log(`❌ Phase 1 错误: ${e.message}`, 'error');
+  }
+}
+
+// Phase 2
+async function startPhase2() {
+  if (!currentPhase2ReqId) return;
+  log('🔄 Phase 2 启动（Command.resume → Generator + Reviewer）', 'info');
+
+  try {
+    const res = await fetch(`${API}/langgraph/phase2/${currentPhase2ReqId}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+
+    setNodeState('generator', 'done');
+    setNodeState('reviewer', 'done');
+    setNodeState('end', 'done');
+
+    log(`✅ Phase 2 完成！${data.case_count}条用例，评审=${data.review_decision}`, 'success');
+
+    if (data.case_count > 0) loadCases(currentPhase2ReqId);
+    document.getElementById('btn-phase2').disabled = true;
+    currentPhase2ReqId = null;
+  } catch(e) {
+    log(`❌ Phase 2 错误: ${e.message}`, 'error');
+  }
+}
+
+// Load cases
+async function loadCases(reqId) {
+  try {
+    const res = await fetch(`${API}/requirements/${reqId}/test-cases`);
+    const data = await res.json();
+    const cases = (data.cases || data.items || []).filter(c => c.case_id && c.case_id.startsWith('TC_LG'));
+    const tbody = document.getElementById('cases-tbody');
+    tbody.innerHTML = cases.map(c => `
+      <tr>
+        <td style="font-family:'Space Grotesk',monospace;font-size:12px">${c.case_id}</td>
+        <td><span class="priority p${(c.priority||'p2').replace('P','').toLowerCase()}">${c.priority}</span></td>
+        <td>${c.name || c.title || ''}</td>
+        <td>${c.case_type || c.test_type || '-'}</td>
+      </tr>
+    `).join('');
+    document.getElementById('cases-card').style.display = 'block';
+  } catch(e) { console.error(e); }
+}
+
+// Init
+loadRequirements();
+</script>
+</body>
+</html>

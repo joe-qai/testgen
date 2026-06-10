@@ -4,9 +4,28 @@
 
 TestGen 是一个基于 Flask 的 Python 应用，使用 AI 驱动的 LLM 和 RAG（检索增强生成）架构自动从需求文档生成测试用例。
 
-该平台实现了一个**两阶段生成管道**：
-- **Phase 1（同步）**：文档上传 → 需求分析 → 测试计划 → 等待人工评审
-- **Phase 2（异步）**：RAG 召回 → LLM 生成 → 保存结果（暂存内存，需手动入库）
+该平台提供**三种生成模式**：
+
+| 模式 | 说明 | 访问地址 |
+|------|------|----------|
+| **Legacy**（两阶段管道） | Phase 1 分析 + Phase 2 生成，RAG增强 | `/requirements` |
+| **AutoGen GroupChat** | 多Agent协作，两阶段API，SocketIO实时推送 | `/autogen` |
+| **LangGraph StateGraph** ⭐ | 5个纯函数node + 条件路由 + interrupt + checkpoint | `/langgraph` |
+
+### LangGraph 模式（推荐）
+
+基于 LangGraph StateGraph 的多Agent生成流程，相比 AutoGen：
+- **代码量 -50%**（400行 vs 806行）
+- **API 更简洁**（3个 vs 4个）
+- **人机回路一行 interrupt** 替代两阶段拆分
+- **自动 Checkpoint**（SqliteSaver）
+- **条件路由**（REJECT → 重试 Generator）
+
+```
+START → Orchestrator → Analyst → Designer → Generator → Reviewer → END
+                                              ↑                    ↓
+                                              └─── REJECT (retry) ──┘
+```
 
 ## 项目特点
 
@@ -169,7 +188,10 @@ auto_generator_testcase/
 │   ├── llm/
 │   │   └── adapter.py              # 多提供商 LLM 适配器
 │   ├── services/                   # 核心业务服务
-│   │   ├── generation_service.py   # 两阶段生成管道
+│   │   ├── generation_service.py   # 两阶段生成管道（Legacy）
+│   │   ├── multi_agent_service.py   # 5 Agent串行Pipeline（第2周）
+│   │   ├── autogen_groupchat_service.py # AutoGen GroupChat服务（第3周）
+│   │   ├── langgraph_service.py     # ⭐ LangGraph StateGraph（第5周推荐）
 │   │   ├── hybrid_retriever.py     # 混合检索（向量+关键词）
 │   │   ├── dynamic_retriever.py    # 自适应检索策略
 │   │   ├── query_optimizer.py      # 查询优化
@@ -190,7 +212,9 @@ auto_generator_testcase/
 │   │   ├── config.html
 │   │   ├── prompts.html
 │   │   ├── rag.html
-│   │   └── chat.html
+│   │   ├── chat.html
+│   │   ├── autogen.html              # AutoGen GroupChat 页面
+│   │   └── langgraph.html            # ⭐ LangGraph StateGraph 页面
 │   └── vectorstore/
 │       └── chroma_store.py         # ChromaDB 向量存储
 ├── testgen_frontend/               # 前端页面备用目录
@@ -359,6 +383,22 @@ Phase 2 生成的用例保存在内存中，用户需调用 `POST /api/tasks/{ta
 | DELETE | `/api/prompts/{id}` | 删除模板 |
 | GET | `/api/prompts/{id}/versions` | 获取版本历史 |
 | POST | `/api/prompts/{id}/rollback` | 回滚到指定版本 |
+
+### AutoGen GroupChat
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/autogen/generate` | 一键生成（GroupChat模式） |
+| GET | `/api/autogen/task/<task_id>` | 查询生成任务状态 |
+| POST | `/api/autogen/phase1` | Phase 1（分析+策略） |
+
+### LangGraph StateGraph ⭐
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/langgraph/generate` | 一键生成（StateGraph模式） |
+| POST | `/api/langgraph/phase1/<req_id>` | Phase 1（分析+策略，interrupt在Generator前） |
+| POST | `/api/langgraph/phase2/<req_id>` | Phase 2（Command.resume → Generator+Reviewer） |
 
 ### 其他
 

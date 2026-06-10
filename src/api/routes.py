@@ -7,6 +7,7 @@ API路由定义 - RESTful接口
 
 import os
 import sys
+import uuid
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -40,13 +41,14 @@ vector_store = None
 generation_service = None
 
 
-def init_services(db, llm, vector, gen_service):
+def init_services(db, llm, vector, gen_service, socketio=None):
     """初始化服务依赖"""
-    global db_session, llm_manager, vector_store, generation_service
+    global db_session, llm_manager, vector_store, generation_service, app_socketio
     db_session = db
     llm_manager = llm
     vector_store = vector
     generation_service = gen_service
+    app_socketio = socketio
 
 
 # ==================== 需求管理接口 ====================
@@ -538,36 +540,60 @@ def review_requirement(requirement_id):
         # 记录模块评审结果
         logger.info(f"[模块评审] 模块评审通过 - 需求ID={requirement_id}")
 
-        # 创建生成任务
-        task_id = generation_service.create_task(requirement_id)
-        requirement.status = RequirementStatus.GENERATING
-        db_session.commit()
-        logger.info(f"[模块评审] 创建生成任务, task_id={task_id}")
+        # 决定生成模式：默认 AutoGen GroupChat，legacy 为串行 Pipeline
+        mode = data.get("mode", "autogen")  # "autogen" | "legacy"
 
-        # 使用用户评审后的数据，或回退到数据库中的原始数据
-        reviewed_plan = data.get("reviewed_plan")
-        logger.info(
-            f"[模块评审] 使用数据: {'用户编辑后' if reviewed_plan else '原始分析'}"
-        )
-        generation_data = reviewed_plan if reviewed_plan else requirement.analysis_data
+        if mode == "autogen":
+            # ===== AutoGen GroupChat 模式（默认） =====
+            from src.services.autogen_groupchat_service import get_autogen_service
+            ag_service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+            ag_task_id = ag_service.create_task(requirement_id)
+            requirement.status = RequirementStatus.GENERATING
+            db_session.commit()
+            ag_service.run_async(ag_task_id, requirement_id)
+            logger.info(f"[模块评审] AutoGen GroupChat 任务, task_id={ag_task_id}")
 
-        generation_service.start_task(task_id)
-        logger.info(f"[模块评审] 启动生成任务, task_id={task_id}")
+            return (
+                jsonify(
+                    {
+                        "requirement_id": requirement_id,
+                        "task_id": ag_task_id,
+                        "mode": "autogen",
+                        "status": 1,
+                        "message": "已创建 AutoGen GroupChat 生成任务",
+                    }
+                ),
+                202,
+            )
 
-        # 异步执行
-        generation_service.execute_phase2_generation(task_id, generation_data)
-        logger.info(f"[模块评审] 触发异步生成完成 - task_id={task_id}")
+        else:
+            # ===== 串行 Pipeline 模式（fallback） =====
+            task_id = generation_service.create_task(requirement_id)
+            requirement.status = RequirementStatus.GENERATING
+            db_session.commit()
+            logger.info(f"[模块评审] 创建串行任务, task_id={task_id}")
 
-        return (
-            jsonify(
-                {
-                    "requirement_id": requirement_id,
-                    "task_id": task_id,
-                    "status": int(TaskStatus.RUNNING),
-                    "message": "已创建生成任务",
-                }
-            ),
-            202,
+            reviewed_plan = data.get("reviewed_plan")
+            logger.info(
+                f"[模块评审] 使用数据: {'用户编辑后' if reviewed_plan else '原始分析'}"
+            )
+            generation_data = reviewed_plan if reviewed_plan else requirement.analysis_data
+
+            generation_service.start_task(task_id)
+            generation_service.execute_phase2_generation(task_id, generation_data)
+            logger.info(f"[模块评审] 触发串行生成, task_id={task_id}")
+
+            return (
+                jsonify(
+                    {
+                        "requirement_id": requirement_id,
+                        "task_id": task_id,
+                        "mode": "legacy",
+                        "status": int(TaskStatus.RUNNING),
+                        "message": "已创建串行 Pipeline 生成任务",
+                    }
+                ),
+                202,
         )
 
     except Exception as e:
@@ -3883,15 +3909,14 @@ def chat_with_llm():
 
                     # 发送完成事件
                     yield f"event: done\n"
-                    yield f"data: {
-                        json.dumps(
-                            {
-                                'model': config_info.get('model_id', adapter.model_id),
-                                'config_name': config_info.get('name', ''),
-                            },
-                            ensure_ascii=False,
-                        )
-                    }\n\n"
+                    done_data = json.dumps(
+                        {
+                            'model': config_info.get('model_id', adapter.model_id),
+                            'config_name': config_info.get('name', ''),
+                        },
+                        ensure_ascii=False,
+                    )
+                    yield f"data: {done_data}\n\n"
                 except Exception as e:
                     yield f"event: error\n"
                     yield f"data: {json.dumps({'error': f'LLM调用失败: {str(e)}'}, ensure_ascii=False)}\n\n"
@@ -4197,5 +4222,353 @@ def get_task_review_results(task_id):
                 "total": len(items),
             }
         ), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== 多 Agent 协作生成接口 ====================
+# 基于 testcase-generator SKILL 整合的 5 Agent 串行 Pipeline
+# 与现有 /generate 路由并存：保留单 Agent 流程，新增多 Agent 流程
+
+
+@api_bp.route("/requirements/<int:requirement_id>/multi-agent-generate", methods=["POST"])
+def trigger_multi_agent_generation(requirement_id):
+    """
+    触发多 Agent 协作生成测试用例（5 Agent 串行 Pipeline）
+
+    POST /api/requirements/<requirement_id>/multi-agent-generate
+
+    流程（基于 testcase-generator SKILL 7 阶段）：
+    1. Orchestrator：方法论+模式+策略
+    2. RequirementAnalyst：需求解析
+    3. TestPlanDesigner：模块评审
+    4. CaseGenerator：用例生成（可重试）
+    5. Reviewer：引导错误过滤+六大维度
+
+    Request Body（可选）:
+    {
+        "max_attempts": 2  # 评审不通过最大重试次数
+    }
+
+    Returns:
+    {
+        "task_id": 123,
+        "status": "PASS" | "CONDITIONAL" | "FAIL",
+        "case_count": 8,
+        "duration_seconds": 123.4,
+        "agent_outputs": {
+            "orchestrator": "...",
+            "requirement_analyst": "...",
+            ...
+        },
+        "review_decision": "PASS"
+    }
+    """
+    try:
+        from src.services.multi_agent_service import MultiAgentCaseService
+
+        if not llm_manager:
+            return jsonify({"error": "LLM Manager 未初始化"}), 500
+
+        if not db_session:
+            return jsonify({"error": "DB Session 未初始化"}), 500
+
+        # 解析请求参数
+        data = request.json or {}
+        max_attempts = int(data.get("max_attempts", 2))
+
+        # 初始化多 Agent 服务
+        multi_agent_service = MultiAgentCaseService(
+            db_session=db_session,
+            llm_manager=llm_manager,
+        )
+
+        # 同步执行（5 Agent 串行 LLM 调用，耗时 2-3 分钟）
+        result = multi_agent_service.generate_cases_sync(requirement_id)
+
+        return jsonify(result), 200
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.error(f"[MultiAgent API] 失败: {e}")
+        return jsonify({"error": f"多 Agent 生成失败: {str(e)}"}), 500
+
+
+@api_bp.route("/multi-agent/health", methods=["GET"])
+def multi_agent_health():
+    """
+    多 Agent 服务健康检查
+
+    GET /api/multi-agent/health
+    """
+    try:
+        from src.services.multi_agent_service import (
+            MultiAgentCaseService,
+            AGENT_PROMPTS,
+        )
+
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "MultiAgentCaseService",
+                "version": "1.0.0",
+                "agents": list(AGENT_PROMPTS.keys()),
+                "pipeline": "5-agent-serial (Orchestrator → Analyst → Designer → Generator → Reviewer)",
+                "skill_base": "testcase-generator v1.0",
+                "llm_ready": llm_manager is not None,
+                "db_ready": db_session is not None,
+            }
+        ), 200
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+# ==================== AutoGen GroupChat 接口 ====================
+
+@api_bp.route("/autogen/generate", methods=["POST"])
+def autogen_generate():
+    """
+    使用 AutoGen GroupChat 生成用例（实验性）
+    POST /api/autogen/generate
+    
+    Request Body:
+    {
+        "requirement_id": 1
+    }
+    """
+    try:
+        data = request.json or {}
+        requirement_id = data.get("requirement_id")
+        if not requirement_id:
+            return jsonify({"error": "requirement_id 必填"}), 400
+
+        from src.database.models import Requirement, RequirementStatus
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        from src.services.autogen_groupchat_service import get_autogen_service
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        task_id = service.create_task(requirement_id)
+        service.run_async(task_id, requirement_id)
+
+        return jsonify({
+            "message": "AutoGen GroupChat 生成任务已创建",
+            "task_id": task_id,
+            "requirement_id": requirement_id,
+        }), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/autogen/task/<task_id>", methods=["GET"])
+def autogen_task_status(task_id):
+    """查询 AutoGen 生成任务状态"""
+    try:
+        from src.services.autogen_groupchat_service import get_autogen_service
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        task = service.get_task(task_id)
+        if not task:
+            return jsonify({"error": "任务不存在"}), 404
+        return jsonify(task.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== AutoGen 人机回路接口 ====================
+
+@api_bp.route("/autogen/phase1", methods=["POST"])
+def autogen_phase1():
+    """
+    AutoGen Phase 1: 分析 + 策略（完成后暂停等人工评审）
+    POST /api/autogen/phase1
+    
+    Request Body:
+    {
+        "requirement_id": 1
+    }
+    """
+    try:
+        data = request.json or {}
+        requirement_id = data.get("requirement_id")
+        if not requirement_id:
+            return jsonify({"error": "requirement_id 必填"}), 400
+
+        from src.database.models import Requirement
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        from src.services.autogen_groupchat_service import get_autogen_service
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        task_id = service.create_task(requirement_id)
+        
+        # 只运行 Phase 1
+        service.run_async_phase1(task_id, requirement_id)
+
+        return jsonify({
+            "message": "AutoGen Phase 1 任务已创建，完成后需人工评审",
+            "task_id": task_id,
+            "requirement_id": requirement_id,
+            "next_step": f"/api/autogen/phase2/{task_id}",
+        }), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/autogen/phase2/<task_id>", methods=["POST"])
+def autogen_phase2(task_id):
+    """
+    AutoGen Phase 2: 人工评审后继续生成用例
+    POST /api/autogen/phase2/<task_id>
+    
+    Request Body (optional):
+    {
+        "edited_plan": {...}  # 人工编辑后的测试策略（可选）
+    }
+    """
+    try:
+        from src.services.autogen_groupchat_service import get_autogen_service
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        task = service.get_task(task_id)
+        if not task:
+            return jsonify({"error": "任务不存在"}), 404
+        if task.phase != "phase1_done":
+            return jsonify({"error": f"任务当前阶段为 {task.phase}，需要 phase1_done 才能继续"}), 400
+
+        data = request.json or {}
+        edited_plan = data.get("edited_plan")
+        
+        # 继续 Phase 2
+        service.run_async_phase2(task_id, edited_plan)
+
+        return jsonify({
+            "message": "Phase 2 任务已启动",
+            "task_id": task_id,
+            "requirement_id": task.requirement_id,
+        }), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== LangGraph StateGraph 接口 ====================
+
+@api_bp.route("/langgraph/generate", methods=["POST"])
+def langgraph_generate():
+    """
+    使用 LangGraph StateGraph 生成用例（推荐）
+    POST /api/langgraph/generate
+    """
+    try:
+        data = request.json or {}
+        requirement_id = data.get("requirement_id")
+        if not requirement_id:
+            return jsonify({"error": "requirement_id 必填"}), 400
+
+        from src.database.models import Requirement
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        from src.services.langgraph_service import LangGraphTestGenService
+        service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+        result = service.generate_cases(requirement_id)
+
+        return jsonify({"message": "LangGraph 生成完成", **result}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/langgraph/phase1", methods=["POST"])
+def langgraph_phase1():
+    """
+    LangGraph Phase 1: 分析+策略（interrupt在generator前暂停）
+    POST /api/langgraph/phase1
+    """
+    try:
+        data = request.json or {}
+        requirement_id = data.get("requirement_id")
+        if not requirement_id:
+            return jsonify({"error": "requirement_id 必填"}), 400
+
+        from src.database.models import Requirement
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        from src.services.langgraph_service import LangGraphTestGenService
+        service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+        req = {"title": requirement.title, "content": requirement.content}
+        requirement_text = f"# {req['title']}\n\n{req['content']}"
+
+        import uuid
+        config = {
+            "configurable": {
+                "thread_id": f"testgen-{requirement_id}",
+                "llm_manager": llm_manager,
+            }
+        }
+        initial_state = {
+            "requirement_id": requirement_id, "requirement_text": requirement_text,
+            "orchestrator_output": "", "analyst_output": "",
+            "modules": [], "rules": [], "test_points": [],
+            "designer_output": "", "review_conclusion": "",
+            "cases_raw": "", "cases": [], "review_output": "",
+            "review_decision": "", "retry_count": 0,
+            "task_id": f"lg_{uuid.uuid4().hex[:16]}", "case_ids": [],
+            "duration_seconds": 0, "error": "",
+        }
+        result = service.graph.invoke(initial_state, config=config)
+
+        return jsonify({
+            "message": "Phase 1 完成，已暂停等待人工评审",
+            "requirement_id": requirement_id,
+            "thread_id": config["configurable"]["thread_id"],
+            "analyst_output": result.get("analyst_output", "")[:500],
+            "designer_output": result.get("designer_output", "")[:500],
+            "review_conclusion": result.get("review_conclusion", ""),
+            "next_step": f"/api/langgraph/phase2/{requirement_id}",
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/langgraph/phase2/<int:requirement_id>", methods=["POST"])
+def langgraph_phase2(requirement_id):
+    """
+    LangGraph Phase 2: 人工评审后继续生成用例
+    POST /api/langgraph/phase2/<requirement_id>
+    """
+    try:
+        from src.services.langgraph_service import LangGraphTestGenService
+        service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+
+        data = request.json or {}
+        edited_data = data.get("edited_data", {"retry_count": 0})
+
+        config = {
+            "configurable": {
+                "thread_id": f"testgen-{requirement_id}",
+                "llm_manager": llm_manager,
+            }
+        }
+        result = service.graph.invoke(Command(resume=edited_data), config=config)
+
+        cases = result.get("cases", [])
+        case_ids = service._save_test_cases(requirement_id, cases) if cases else []
+
+        return jsonify({
+            "message": "Phase 2 完成",
+            "requirement_id": requirement_id,
+            "case_count": len(case_ids),
+            "review_decision": result.get("review_decision", ""),
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
