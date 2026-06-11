@@ -276,8 +276,11 @@ def route_after_review(state: TestGenState) -> str:
 
 # ============ 构建 StateGraph ============
 
-def build_testgen_graph(checkpoint_path: str = "/tmp/testgen/langgraph_checkpoints.db"):
+def build_testgen_graph(checkpoint_path: str = "data/langgraph_checkpoints.db"):
     """构建 TestGen LangGraph StateGraph"""
+
+    # 确保 data 目录存在
+    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
 
     # Checkpoint
     conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
