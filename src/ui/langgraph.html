@@ -242,6 +242,10 @@ async function startGenerate() {
       document.getElementById('st-status').textContent = '失败';
       document.getElementById('st-status').className = 'val error';
       log(`❌ API错误: ${data.error || res.statusText}`, 'error');
+      // Designer FAIL 时显示详情
+      if (data.designer_detail) {
+        log(`📋 Designer评审详情: ${data.designer_detail}`, 'warning');
+      }
       document.getElementById('btn-generate').disabled = false;
       return;
     }
@@ -296,7 +300,12 @@ async function startPhase1() {
     setNodeState('generator', 'active');
     log(`🛑 Phase 1 完成！已暂停在Generator前`, 'success');
     log(`📋 设计结论: ${data.review_conclusion}`, 'info');
-    log(`→ 点击 Phase 2 继续生成`, 'info');
+    if (data.review_conclusion === 'FAIL') {
+      log(`⚠️ Designer评审不通过！详情: ${data.designer_output || '无详情'}`, 'warning');
+      log(`→ 建议修改需求后重新生成`, 'warning');
+    } else {
+      log(`→ 点击 Phase 2 继续生成`, 'info');
+    }
 
     currentPhase2ReqId = reqId;
     document.getElementById('btn-phase2').disabled = false;

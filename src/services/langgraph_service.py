@@ -219,12 +219,15 @@ def designer_node(state: TestGenState) -> dict:
 
     # 解析评审结论
     conclusion = "CONDITIONAL"
+    conclusion_detail = ""
     if "通过" in output and "不通过" not in output:
         conclusion = "PASS"
     elif "不通过" in output:
         conclusion = "FAIL"
+    # 提取评审详情（取前200字）
+    conclusion_detail = output[:200]
 
-    logger.info(f"[LangGraph] ✅ Designer 完成，结论={conclusion}")
+    logger.info(f"[LangGraph] ✅ Designer 完成，结论={conclusion}, 详情={conclusion_detail[:50]}")
     return {"designer_output": output, "review_conclusion": conclusion}
 
 
@@ -519,11 +522,31 @@ class LangGraphTestGenService:
             logger.info(f"[LangGraph] Phase 1 启动 - 需求ID={requirement_id}")
             result = self.graph.invoke(initial_state, config=config)
 
-            # 检查是否在 interrupt 处暂停
-            # 如果有 checkpoint 且暂停在 generator 前，自动继续
-            logger.info("[LangGraph] Phase 1 完成，继续 Phase 2")
+            # 检查 Designer 结论
+            designer_conclusion = result.get("review_conclusion", "CONDITIONAL")
+            designer_output = result.get("designer_output", "")
+            logger.info(f"[LangGraph] Phase 1 完成，Designer结论={designer_conclusion}")
+
+            # FAIL 时终止流程，返回失败原因
+            if designer_conclusion == "FAIL":
+                logger.warning(f"[LangGraph] Designer FAIL，终止生成。详情: {designer_output[:200]}")
+                task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
+                if task:
+                    task.status = TaskStatus.FAILED
+                    task.error_message = f"Designer评审不通过: {designer_output[:500]}"
+                    self.db_session.commit()
+                return {
+                    "task_id": task.task_id,
+                    "status": "FAILED",
+                    "error": "Designer评审不通过，请修改需求后重试",
+                    "designer_conclusion": designer_conclusion,
+                    "designer_detail": designer_output[:500],
+                    "case_count": 0,
+                    "duration_seconds": round(time.time() - start_time, 1),
+                }
 
             # Phase 2: 生成+评审（自动继续）
+            logger.info("[LangGraph] 继续 Phase 2")
             result = self.graph.invoke(Command(resume={"retry_count": result.get("retry_count", 0)}), config=config)
 
             # 4. 保存用例
