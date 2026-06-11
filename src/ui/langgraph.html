@@ -237,6 +237,15 @@ async function startGenerate() {
     });
     const data = await res.json();
 
+    if (!res.ok || data.error) {
+      nodes.forEach(n => setNodeState(n, 'error')); // mark all as error
+      document.getElementById('st-status').textContent = '失败';
+      document.getElementById('st-status').className = 'val error';
+      log(`❌ API错误: ${data.error || res.statusText}`, 'error');
+      document.getElementById('btn-generate').disabled = false;
+      return;
+    }
+
     nodes.forEach(n => setNodeState(n, 'done'));
 
     document.getElementById('st-status').textContent = data.status || '完成';
@@ -278,6 +287,11 @@ async function startPhase1() {
     });
     const data = await res.json();
 
+    if (!res.ok || data.error) {
+      log(`❌ Phase 1 错误: ${data.error || res.statusText}`, 'error');
+      return;
+    }
+
     ['start','orchestrator','analyst','designer'].forEach(n => setNodeState(n, 'done'));
     setNodeState('generator', 'active');
     log(`🛑 Phase 1 完成！已暂停在Generator前`, 'success');
@@ -303,6 +317,11 @@ async function startPhase2() {
       body: JSON.stringify({})
     });
     const data = await res.json();
+
+    if (!res.ok || data.error) {
+      log(`❌ Phase 2 错误: ${data.error || res.statusText}`, 'error');
+      return;
+    }
 
     setNodeState('generator', 'done');
     setNodeState('reviewer', 'done');
