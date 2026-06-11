@@ -549,22 +549,21 @@ class LangGraphTestGenService:
             logger.info("[LangGraph] 继续 Phase 2")
             result = self.graph.invoke(Command(resume={"retry_count": result.get("retry_count", 0)}), config=config)
 
-            # 4. 保存用例
+            # 4. 不自动入库 — 先返回用例数据，等用户确认后再入库
             cases = result.get("cases", [])
-            case_ids = self._save_test_cases(requirement_id, cases) if cases else []
 
-            # 5. 更新任务
+            # 5. 更新任务状态为待确认
             total_duration = time.time() - start_time
             task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
             if task:
-                task.status = TaskStatus.COMPLETED
+                task.status = TaskStatus.COMPLETED  # Pipeline完成，但用例待人工确认
                 task.completed_at = datetime.utcnow()
                 self.db_session.commit()
 
             return {
                 "task_id": task.task_id,
                 "status": result.get("review_decision", "UNKNOWN"),
-                "case_count": len(case_ids),
+                "case_count": len(cases),
                 "duration_seconds": round(total_duration, 1),
                 "review_decision": result.get("review_decision", ""),
                 # 每个node的输出摘要
@@ -573,6 +572,9 @@ class LangGraphTestGenService:
                 "designer_summary": result.get("designer_output", "")[:300],
                 "generator_summary": result.get("cases_raw", "")[:300],
                 "reviewer_summary": result.get("review_output", "")[:300],
+                # 返回完整用例数据，前端显示后用户确认再入库
+                "cases_preview": cases,
+                "need_confirm": True,  # 标记需要人工确认入库
             }
 
         except Exception as e:
@@ -619,3 +621,15 @@ class LangGraphTestGenService:
             case_ids.append(tc.case_id)
         self.db_session.commit()
         return case_ids
+
+    def confirm_and_save_cases(self, requirement_id: int, cases: List[Dict]) -> Dict[str, Any]:
+        """人工确认后入库用例"""
+        # 用更长的ID避免碰撞
+        for case_data in cases:
+            if not case_data.get("case_id"):
+                case_data["case_id"] = f"TC_LG_{uuid.uuid4().hex[:12]}"
+        case_ids = self._save_test_cases(requirement_id, cases)
+        return {
+            "saved_count": len(case_ids),
+            "case_ids": case_ids,
+        }
