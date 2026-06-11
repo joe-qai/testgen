@@ -4530,6 +4530,7 @@ def langgraph_phase1():
             "message": "Phase 1 完成，已暂停等待人工评审",
             "requirement_id": requirement_id,
             "thread_id": config["configurable"]["thread_id"],
+            "orchestrator_output": result.get("orchestrator_output", "")[:300],
             "analyst_output": result.get("analyst_output", "")[:500],
             "designer_output": result.get("designer_output", "")[:500],
             "review_conclusion": result.get("review_conclusion", ""),
