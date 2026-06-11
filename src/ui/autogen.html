@@ -279,13 +279,17 @@
     // Load requirements
     async function loadRequirements() {
       try {
-        const res = await fetch(`${API}/requirements`);
+        const res = await fetch(`${API}/requirements?limit=100`);
         const data = await res.json();
-        requirements = data;
+        // API返回 {items: [...], total: N}，需要取items
+        requirements = data.items || data || [];
         const sel = document.getElementById('reqSelect');
-        sel.innerHTML = data.filter(r=>r.status===1 || r.status===3).map(r=>`<option value="${r.id}">${r.id}: ${r.title}</option>`).join('');
+        sel.innerHTML = requirements.filter(r=>r.status===1 || r.status===3).map(r=>`<option value="${r.id}">${r.id}: ${r.title}</option>`).join('');
         if (!sel.innerHTML) sel.innerHTML = '<option value="">无可用需求</option>';
-      } catch(e) { console.error(e); }
+      } catch(e) {
+        console.error(e);
+        document.getElementById('reqSelect').innerHTML = '<option value="">加载失败</option>'; 
+      }
     }
 
     // Load stats
