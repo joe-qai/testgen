@@ -8,6 +8,7 @@ API路由定义 - RESTful接口
 import os
 import sys
 import uuid
+from langgraph.types import Command
 from src.utils import get_logger
 
 logger = get_logger(__name__)
