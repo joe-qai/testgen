@@ -567,6 +567,12 @@ class LangGraphTestGenService:
                 "case_count": len(case_ids),
                 "duration_seconds": round(total_duration, 1),
                 "review_decision": result.get("review_decision", ""),
+                # 每个node的输出摘要
+                "orchestrator_summary": result.get("orchestrator_output", "")[:300],
+                "analyst_summary": result.get("analyst_output", "")[:300],
+                "designer_summary": result.get("designer_output", "")[:300],
+                "generator_summary": result.get("cases_raw", "")[:300],
+                "reviewer_summary": result.get("review_output", "")[:300],
             }
 
         except Exception as e:

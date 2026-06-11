@@ -259,6 +259,13 @@ async function startGenerate() {
     document.getElementById('st-review').className = 'val ' + (data.review_decision === 'APPROVE' ? 'success' : 'warning');
     document.getElementById('st-duration').textContent = (data.duration_seconds || 0) + 's';
 
+    // 显示每个node的详细输出
+    if (data.orchestrator_summary) log(`🎯 Orchestrator: ${data.orchestrator_summary}`, 'info');
+    if (data.analyst_summary) log(`🔍 Analyst: ${data.analyst_summary}`, 'info');
+    if (data.designer_summary) log(`📋 Designer: ${data.designer_summary}`, 'info');
+    if (data.generator_summary) log(`⚡ Generator: ${data.generator_summary}`, 'info');
+    if (data.reviewer_summary) log(`🔎 Reviewer: ${data.reviewer_summary}`, 'info');
+
     if (data.case_count > 0) {
       loadCases(reqId);
     }
@@ -299,6 +306,10 @@ async function startPhase1() {
     ['start','orchestrator','analyst','designer'].forEach(n => setNodeState(n, 'done'));
     setNodeState('generator', 'active');
     log(`🛑 Phase 1 完成！已暂停在Generator前`, 'success');
+    // 显示每个node的详细输出
+    log(`🎯 Orchestrator: ${(data.orchestrator_output || '').substring(0, 200)}`, 'info');
+    log(`🔍 Analyst: ${(data.analyst_output || '').substring(0, 200)}`, 'info');
+    log(`📋 Designer: ${(data.designer_output || '').substring(0, 200)}`, 'info');
     log(`📋 设计结论: ${data.review_conclusion}`, 'info');
     if (data.review_conclusion === 'FAIL') {
       log(`⚠️ Designer评审不通过！详情: ${data.designer_output || '无详情'}`, 'warning');
