@@ -160,15 +160,25 @@ def call_llm(llm_manager, system_prompt: str, user_prompt: str, temperature: flo
         raise Exception(f"LLM 调用失败: {response.error_message}")
 
 
+# ============ 全局 LLM 管理器（兼容所有 langgraph 版本）============
+# LangGraph checkpoint 会序列化 state，LLMManager 不能被 msgpack 序列化
+# 所以用全局变量存储，node 函数从全局变量获取
+_current_llm_manager = None
+
+def set_llm_manager(llm_manager):
+    """设置当前 LLM 管理器"""
+    global _current_llm_manager
+    _current_llm_manager = llm_manager
+
 # ============ Node 函数（纯函数，从 state 读取，返回 partial state）============
 
-def orchestrator_node(state: TestGenState, config: dict) -> dict:
+def orchestrator_node(state: TestGenState) -> dict:
     """协调器：规划生成方案"""
     from src.utils import get_logger
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🎯 Orchestrator 启动")
 
-    llm_manager = config["configurable"]["llm_manager"]
+    llm_manager = _current_llm_manager
     output = call_llm(
         llm_manager,
         AGENT_PROMPTS["orchestrator"],
@@ -178,13 +188,13 @@ def orchestrator_node(state: TestGenState, config: dict) -> dict:
     return {"orchestrator_output": output}
 
 
-def analyst_node(state: TestGenState, config: dict) -> dict:
+def analyst_node(state: TestGenState) -> dict:
     """需求分析：解析模块/规则/测试点"""
     from src.utils import get_logger
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🔍 Analyst 启动")
 
-    llm_manager = config["configurable"]["llm_manager"]
+    llm_manager = _current_llm_manager
     output = call_llm(
         llm_manager,
         AGENT_PROMPTS["requirement_analyst"],
@@ -194,13 +204,13 @@ def analyst_node(state: TestGenState, config: dict) -> dict:
     return {"analyst_output": output}
 
 
-def designer_node(state: TestGenState, config: dict) -> dict:
+def designer_node(state: TestGenState) -> dict:
     """测试规划：评审分析结果"""
     from src.utils import get_logger
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 📋 Designer 启动")
 
-    llm_manager = config["configurable"]["llm_manager"]
+    llm_manager = _current_llm_manager
     output = call_llm(
         llm_manager,
         AGENT_PROMPTS["test_plan_designer"],
@@ -218,14 +228,14 @@ def designer_node(state: TestGenState, config: dict) -> dict:
     return {"designer_output": output, "review_conclusion": conclusion}
 
 
-def generator_node(state: TestGenState, config: dict) -> dict:
+def generator_node(state: TestGenState) -> dict:
     """用例生成：按模块生成测试用例"""
     from src.utils import get_logger
     logger = get_logger("langgraph_testgen")
     retry = state.get("retry_count", 0)
     logger.info(f"[LangGraph] ⚡ Generator 启动 (retry={retry})")
 
-    llm_manager = config["configurable"]["llm_manager"]
+    llm_manager = _current_llm_manager
     output = call_llm(
         llm_manager,
         AGENT_PROMPTS["case_generator"],
@@ -241,13 +251,13 @@ def generator_node(state: TestGenState, config: dict) -> dict:
     return {"cases_raw": output, "cases": cases, "retry_count": retry + 1}
 
 
-def reviewer_node(state: TestGenState, config: dict) -> dict:
+def reviewer_node(state: TestGenState) -> dict:
     """用例评审：6维度评分"""
     from src.utils import get_logger
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🔎 Reviewer 启动")
 
-    llm_manager = config["configurable"]["llm_manager"]
+    llm_manager = _current_llm_manager
     output = call_llm(
         llm_manager,
         AGENT_PROMPTS["reviewer"],
@@ -464,6 +474,9 @@ class LangGraphTestGenService:
         from src.utils import get_logger
         logger = get_logger("langgraph_testgen")
         start_time = time.time()
+
+        # 设置全局 LLM 管理器（node函数从全局变量获取，避免checkpoint序列化问题）
+        set_llm_manager(self.llm_manager)
 
         # 1. 加载需求
         req = self._load_requirement(requirement_id)

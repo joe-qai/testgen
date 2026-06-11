@@ -4501,8 +4501,9 @@ def langgraph_phase1():
         if not requirement:
             return jsonify({"error": "需求不存在"}), 404
 
-        from src.services.langgraph_service import LangGraphTestGenService
+        from src.services.langgraph_service import LangGraphTestGenService, set_llm_manager
         service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+        set_llm_manager(llm_manager)  # 设置全局LLM管理器
         req = {"title": requirement.title, "content": requirement.content}
         requirement_text = f"# {req['title']}\n\n{req['content']}"
 
@@ -4510,7 +4511,6 @@ def langgraph_phase1():
         config = {
             "configurable": {
                 "thread_id": f"testgen-{requirement_id}",
-                "llm_manager": llm_manager,
             }
         }
         initial_state = {
@@ -4546,8 +4546,9 @@ def langgraph_phase2(requirement_id):
     POST /api/langgraph/phase2/<requirement_id>
     """
     try:
-        from src.services.langgraph_service import LangGraphTestGenService
+        from src.services.langgraph_service import LangGraphTestGenService, set_llm_manager
         service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+        set_llm_manager(llm_manager)
 
         data = request.json or {}
         edited_data = data.get("edited_data", {"retry_count": 0})
@@ -4555,7 +4556,6 @@ def langgraph_phase2(requirement_id):
         config = {
             "configurable": {
                 "thread_id": f"testgen-{requirement_id}",
-                "llm_manager": llm_manager,
             }
         }
         result = service.graph.invoke(Command(resume=edited_data), config=config)
