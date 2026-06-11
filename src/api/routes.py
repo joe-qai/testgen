@@ -4563,13 +4563,42 @@ def langgraph_phase2(requirement_id):
         result = service.graph.invoke(Command(resume=edited_data), config=config)
 
         cases = result.get("cases", [])
-        case_ids = service._save_test_cases(requirement_id, cases) if cases else []
+
+        # Phase 2 不自动入库 — 先返回用例预览，等用户确认
+        return jsonify({
+            "message": "Phase 2 完成，请确认用例后入库",
+            "requirement_id": requirement_id,
+            "case_count": len(cases),
+            "review_decision": result.get("review_decision", ""),
+            "cases_preview": [{"title": c.get("title", ""), "priority": c.get("priority", ""), "module": c.get("module", "")} for c in cases],
+            "need_confirm": True,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api_bp.route("/langgraph/confirm-save", methods=["POST"])
+def langgraph_confirm_save():
+    """
+    人工确认后入库用例
+    POST /api/langgraph/confirm-save
+    Body: {requirement_id: int, cases: [...]}
+    """
+    try:
+        data = request.json or {}
+        requirement_id = data.get("requirement_id")
+        cases = data.get("cases", [])
+        if not requirement_id or not cases:
+            return jsonify({"error": "requirement_id 和 cases 必填"}), 400
+
+        from src.services.langgraph_service import LangGraphTestGenService
+        service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
+        result = service.confirm_and_save_cases(requirement_id, cases)
 
         return jsonify({
-            "message": "Phase 2 完成",
-            "requirement_id": requirement_id,
-            "case_count": len(case_ids),
-            "review_decision": result.get("review_decision", ""),
+            "message": "用例已入库",
+            "saved_count": result["saved_count"],
+            "case_ids": result["case_ids"],
         }), 200
 
     except Exception as e:

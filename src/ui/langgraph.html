@@ -169,6 +169,8 @@
 <script>
 const API = '/api';
 let currentPhase2ReqId = null;
+let pendingCases = [];  // 待确认入库的用例
+let pendingReqId = null;  // 待确认入库的需求ID
 
 // Load requirements
 async function loadRequirements() {
@@ -347,9 +349,31 @@ async function startPhase2() {
     setNodeState('reviewer', 'done');
     setNodeState('end', 'done');
 
-    log(`✅ Phase 2 完成！${data.case_count}条用例，评审=${data.review_decision}`, 'success');
-
-    if (data.case_count > 0) loadCases(currentPhase2ReqId);
+    if (data.need_confirm) {
+      // Phase 2完成但不自动入库，显示用例预览等用户确认
+      log(`✅ Phase 2 完成！${data.case_count}条用例，评审=${data.review_decision}`, 'success');
+      log(`⚡ Generator: ${(data.cases_preview || []).map(c => c.title).join(', ')}`, 'info');
+      log(`⚠️ 用例待确认 — 请查看后点击「确认入库」`, 'warning');
+      // 存储cases数据等确认后入库
+      pendingCases = data.cases_preview || [];
+      pendingReqId = currentPhase2ReqId;
+      // 显示确认入库按钮
+      const confirmBtn = document.getElementById('btn-confirm-save');
+      if (confirmBtn) confirmBtn.style.display = 'block';
+      else {
+        // 创建确认入库按钮
+        const btn = document.createElement('button');
+        btn.id = 'btn-confirm-save';
+        btn.className = 'btn btn-primary';
+        btn.textContent = '✅ 确认入库';
+        btn.onclick = confirmSaveCases;
+        btn.style.marginTop = '10px';
+        document.querySelector('.controls').appendChild(btn);
+      }
+    } else {
+      log(`✅ Phase 2 完成！${data.case_count}条用例，评审=${data.review_decision}`, 'success');
+      if (data.case_count > 0) loadCases(currentPhase2ReqId);
+    }
     document.getElementById('btn-phase2').disabled = true;
     currentPhase2ReqId = null;
   } catch(e) {
@@ -358,6 +382,36 @@ async function startPhase2() {
 }
 
 // Load cases
+// Confirm and save cases to database
+async function confirmSaveCases() {
+  if (!pendingReqId || !pendingCases.length) {
+    log('❌ 没有待确认的用例', 'error');
+    return;
+  }
+  log('🔄 正在入库用例...', 'info');
+  try {
+    const res = await fetch(`${API}/langgraph/confirm-save`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requirement_id: parseInt(pendingReqId), cases: pendingCases})
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      log(`❌ 入库失败: ${data.error || res.statusText}`, 'error');
+      return;
+    }
+    log(`✅ ${data.saved_count}条用例已入库！`, 'success');
+    // 隐藏确认按钮
+    const confirmBtn = document.getElementById('btn-confirm-save');
+    if (confirmBtn) confirmBtn.style.display = 'none';
+    // 加载入库后的用例
+    loadCases(pendingReqId);
+    pendingCases = []; pendingReqId = null;
+  } catch(e) {
+    log(`❌ 入库错误: ${e.message}`, 'error');
+  }
+}
+
 async function loadCases(reqId) {
   try {
     const res = await fetch(`${API}/requirements/${reqId}/test-cases`);
