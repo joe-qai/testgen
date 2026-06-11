@@ -14,11 +14,13 @@ requests==2.31.0        # HTTP请求
 SQLAlchemy==2.0.28      # ORM框架
 
 # 向量数据库
-chromadb==0.4.24        # ChromaDB向量库
+chromadb>=1.5.0         # ChromaDB向量库（升级版本，兼容numpy 1.x）
 sentence-transformers==2.5.1  # Embedding模型
+hnswlib>=0.8.0          # HNSW索引（chromadb依赖）
+onnxruntime>=1.17.0     # ONNX本地embedding（chromadb依赖）
 
 # 数据处理
-numpy==1.26.4           # 数值计算
+numpy==1.26.4           # 数值计算（chromadb兼容版本，不要用2.x）
 pandas==2.2.1           # 数据处理
 openpyxl==3.1.2         # Excel处理
 xmind==1.2.0            # XMind导出
@@ -27,6 +29,13 @@ xmind==1.2.0            # XMind导出
 opencv-python==4.9.0.80 # OpenCV
 pytesseract==0.3.10     # OCR识别
 pillow==10.2.0          # 图像处理
+
+# 多Agent框架
+langgraph>=0.2.0        # LangGraph StateGraph（核心生成模式）
+langgraph-checkpoint-sqlite>=3.0.0  # LangGraph SQLite checkpoint
+autogen-agentchat>=0.4  # AutoGen GroupChat（可选生成模式）
+autogen-core>=0.4       # AutoGen核心
+autogen-ext>=0.4        # AutoGen扩展
 
 # 开发依赖
 pytest==8.0.0           # 测试框架
