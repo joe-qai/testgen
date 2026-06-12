@@ -28,7 +28,7 @@ xmind==1.2.0            # XMind导出
 # 图像处理
 opencv-python==4.9.0.80 # OpenCV
 pytesseract==0.3.10     # OCR识别
-pillow==10.2.0          # 图像处理
+pillow>=11.0.0          # 图像处理（兼容autogen-core>=0.4）
 
 # 多Agent框架
 langgraph>=0.2.0        # LangGraph StateGraph（核心生成模式）

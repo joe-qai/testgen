@@ -214,7 +214,7 @@ def create_app():
     # ==================== 前端路由 ====================
     @app.route("/")
     def index():
-        return send_from_directory(app.config["UI_FOLDER"], "index.html")
+        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
 
     @app.route("/chat")
     def chat_page():
@@ -252,11 +252,11 @@ def create_app():
 
     @app.route("/autogen")
     def autogen_page():
-        return send_from_directory(app.config["UI_FOLDER"], "autogen.html")
+        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
 
     @app.route("/langgraph")
     def langgraph_page():
-        return send_from_directory(app.config["UI_FOLDER"], "langgraph.html")
+        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
 
     @app.route("/<path:path>")
     def static_files(path):

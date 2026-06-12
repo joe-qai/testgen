@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>需求分析编辑 - TestGen</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --neon-cyan: #00f5ff;
+            --neon-pink: #ff00ff;
+            --neon-purple: #b829dd;
+            --neon-green: #00ff88;
+            --dark-bg: #0a0a0f;
+            --dark-sidebar: #08080c;
+            --dark-card: #12121a;
+            --dark-border: #1e1e2e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, monospace;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 260px;
+            background: var(--dark-sidebar);
+            border-right: 1px solid var(--dark-border);
+            padding: 30px 0;
+        }
+        
+        .logo {
+            padding: 0 30px 30px;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+            letter-spacing: 4px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+        
+        .nav-item {
+            padding: 16px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(0, 245, 255, 0.05);
+            color: var(--text-primary);
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
+            color: var(--neon-cyan);
+            border-left-color: var(--neon-cyan);
+        }
+        
+        .nav-icon {
+            width: 24px;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .header h1::before {
+            content: '// ';
+            color: var(--neon-pink);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 245, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+        
+        .requirement-list {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .requirement-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .requirement-item:hover {
+            background: rgba(0, 245, 255, 0.05);
+            border-color: var(--dark-border);
+        }
+        
+        .requirement-item.selected {
+            background: rgba(0, 245, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+        
+        .edit-panel {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+        }
+        
+        .tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            color: var(--neon-cyan);
+            border-bottom-color: var(--neon-cyan);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .form-input:focus {
+            border-color: var(--neon-cyan);
+            outline: none;
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-array {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .array-item {
+            padding: 8px 12px;
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .array-item:hover {
+            border-color: var(--neon-cyan);
+        }
+        
+        .array-item .remove-btn {
+            margin-left: 8px;
+            color: var(--neon-pink);
+            cursor: pointer;
+        }
+        
+        .add-item-btn {
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px dashed var(--dark-border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .add-item-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+        
+        .save-btn {
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .error {
+            color: var(--neon-pink);
+            padding: 20px;
+            background: rgba(255, 0, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <div class="logo">TestGen</div>
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="window.location.href='index.html'">
+                    <span class="nav-icon">📊</span>
+                    <span>仪表盘</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='requirements.html'">
+                    <span class="nav-icon">📝</span>
+                    <span>需求管理</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='cases.html'">
+                    <span class="nav-icon">📋</span>
+                    <span>测试用例</span>
+                </li>
+                <li class="nav-item active">
+                    <span class="nav-icon">🔍</span>
+                    <span>需求分析编辑</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='rag.html'">
+                    <span class="nav-icon">📦</span>
+                    <span>RAG仓库</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='pending-cases.html'">
+                    <span class="nav-icon">⚠️</span>
+                    <span>用例待确认</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='autogen.html'">
+                    <span class="nav-icon">⚡</span>
+                    <span>AutoGen</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='langgraph.html'">
+                    <span class="nav-icon">🔄</span>
+                    <span>LangGraph</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='config.html'">
+                    <span class="nav-icon">⚙️</span>
+                    <span>配置</span>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <div class="header">
+                <h1>需求分析编辑</h1>
+                <button class="btn btn-secondary" onclick="loadRequirements()">刷新需求列表</button>
+            </div>
+            
+            <div class="content-grid">
+                <div class="requirement-list">
+                    <h3 style="margin-bottom: 20px; color: var(--neon-cyan);">需求列表</h3>
+                    <div id="requirement-list-content">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+                
+                <div class="edit-panel">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(0)">需求分析内容</div>
+                        <div class="tab" onclick="switchTab(1)">测试规划内容</div>
+                        <div class="tab" onclick="switchTab(2)">生成参数配置</div>
+                        <div class="tab" onclick="switchTab(3)">RAG检索参数</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="tab-0">
+                        <div class="form-group">
+                            <label class="form-label">功能模块清单</label>
+                            <div class="form-array" id="modules-array"></div>
+                            <button class="add-item-btn" onclick="addModule()">+ 添加模块</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">测试点列表</label>
+                            <div class="form-array" id="test-points-array"></div>
+                            <button class="add-item-btn" onclick="addTestPoint()">+ 添加测试点</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">业务规则</label>
+                            <div class="form-array" id="business-rules-array"></div>
+                            <button class="add-item-btn" onclick="addBusinessRule()">+ 添加业务规则</button>
+                        </div>
+                        
+                        <button class="btn save-btn" onclick="saveAnalysisContent()">保存分析内容</button>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-1">
+                        <div class="form-group">
+                            <label class="form-label">方法论</label>
+                            <input type="text" class="form-input" id="methodology" placeholder="如：ISO/IEC 29119标准结合20926 FPA">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">设计方法</label>
+                            <div class="form-array" id="design-methods-array"></div>
+                            <button class="add-item-btn" onclick="addDesignMethod()">+ 添加设计方法</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">测试类型</label>
+                            <div class="form-array" id="test-types-array"></div>
+                            <button class="add-item-btn" onclick="addTestType()">+ 添加测试类型</button>
+                        </div>
+                        
+                        <button class="btn save-btn" onclick="saveTestPlan()">保存测试规划</button>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-2">
+                        <div class="form-group">
+                            <label class="form-label">LLM温度 (0.0-1.0)</label>
+                            <input type="number" class="form-input" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">最大Token数</label>
+                            <input type="number" class="form-input" id="max-tokens" min="100" max="8000" value="4096">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Prompt模板ID</label>
+                            <input type="number" class="form-input" id="prompt-template-id" placeholder="可选">
+                        </div>
+                        
+                        <button class="btn save-btn" onclick="saveGenerationParams()">保存生成参数</button>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-3">
+                        <div class="form-group">
+                            <label class="form-label">相似度阈值 (0.0-1.0)</label>
+                            <input type="number" class="form-input" id="similarity-threshold" min="0" max="1" step="0.1" value="0.7">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">检索数量 (Top-K)</label>
+                            <input type="number" class="form-input" id="top-k" min="1" max="50" value="10">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">融合策略</label>
+                            <select class="form-input" id="fusion-strategy">
+                                <option value="rrf">RRF (Reciprocal Rank Fusion)</option>
+                                <option value="weighted">加权融合</option>
+                                <option value="max">最大值</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn save-btn" onclick="saveRAGParams()">保存RAG参数</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedRequirementId = null;
+        let analysisData = {};
+        
+        async function loadRequirements() {
+            try {
+                const response = await fetch('/api/requirements?status=3');
+                const data = await response.json();
+                
+                const listContent = document.getElementById('requirement-list-content');
+                if (data.requirements && data.requirements.length > 0) {
+                    listContent.innerHTML = data.requirements.map(req => `
+                        <div class="requirement-item" onclick="selectRequirement(${req.id})">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${req.title}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">ID: ${req.id}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContent.innerHTML = '<div class="loading">暂无已分析的需求</div>';
+                }
+            } catch (error) {
+                console.error('加载需求列表失败:', error);
+                document.getElementById('requirement-list-content').innerHTML = '<div class="error">加载失败</div>';
+            }
+        }
+        
+        async function selectRequirement(id) {
+            selectedRequirementId = id;
+            
+            document.querySelectorAll('.requirement-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.requirement-item').classList.add('selected');
+            
+            try {
+                const response = await fetch(`/api/requirements/${id}/analysis-detail`);
+                analysisData = await response.json();
+                
+                renderAnalysisContent();
+                renderTestPlan();
+                renderGenerationParams();
+                renderRAGParams();
+            } catch (error) {
+                console.error('加载分析详情失败:', error);
+                alert('加载分析详情失败');
+            }
+        }
+        
+        function renderAnalysisContent() {
+            const modules = analysisData.analysis?.modules || [];
+            const testPoints = analysisData.analysis?.test_points || [];
+            const businessRules = analysisData.analysis?.business_rules || [];
+            
+            renderArray('modules-array', modules, 'module');
+            renderArray('test-points-array', testPoints, 'testPoint');
+            renderArray('business-rules-array', businessRules, 'businessRule');
+        }
+        
+        function renderTestPlan() {
+            const methodology = analysisData.test_plan?.methodology || '';
+            const designMethods = analysisData.test_plan?.design_methods || [];
+            const testTypes = analysisData.test_plan?.test_types || [];
+            
+            document.getElementById('methodology').value = methodology;
+            renderArray('design-methods-array', designMethods, 'designMethod');
+            renderArray('test-types-array', testTypes, 'testType');
+        }
+        
+        function renderGenerationParams() {
+            const temperature = analysisData.generation_params?.temperature || 0.7;
+            const maxTokens = analysisData.generation_params?.max_tokens || 4096;
+            const promptTemplateId = analysisData.generation_params?.prompt_template_id || '';
+            
+            document.getElementById('temperature').value = temperature;
+            document.getElementById('max-tokens').value = maxTokens;
+            document.getElementById('prompt-template-id').value = promptTemplateId;
+        }
+        
+        function renderRAGParams() {
+            const similarityThreshold = analysisData.rag_params?.similarity_threshold || 0.7;
+            const topK = analysisData.rag_params?.top_k || 10;
+            const fusionStrategy = analysisData.rag_params?.fusion_strategy || 'rrf';
+            
+            document.getElementById('similarity-threshold').value = similarityThreshold;
+            document.getElementById('top-k').value = topK;
+            document.getElementById('fusion-strategy').value = fusionStrategy;
+        }
+        
+        function renderArray(containerId, items, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.map((item, index) => `
+                <div class="array-item">
+                    <span>${item}</span>
+                    <span class="remove-btn" onclick="removeItem('${containerId}', ${index}, '${type}')">×</span>
+                </div>
+            `).join('');
+        }
+        
+        function addModule() {
+            const input = prompt('请输入模块名称:');
+            if (input) {
+                const container = document.getElementById('modules-array');
+                const newItem = document.createElement('div');
+                newItem.className = 'array-item';
+                newItem.innerHTML = `<span>${input}</span><span class="remove-btn" onclick="this.parentElement.remove()">×</span>`;
+                container.appendChild(newItem);
+            }
+        }
+        
+        function addTestPoint() {
+            const input = prompt('请输入测试点:');
+            if (input) {
+                const container = document.getElementById('test-points-array');
+                const newItem = document.createElement('div');
+                newItem.className = 'array-item';
+                newItem.innerHTML = `<span>${input}</span><span class="remove-btn" onclick="this.parentElement.remove()">×</span>`;
+                container.appendChild(newItem);
+            }
+        }
+        
+        function addBusinessRule() {
+            const input = prompt('请输入业务规则:');
+            if (input) {
+                const container = document.getElementById('business-rules-array');
+                const newItem = document.createElement('div');
+                newItem.className = 'array-item';
+                newItem.innerHTML = `<span>${input}</span><span class="remove-btn" onclick="this.parentElement.remove()">×</span>`;
+                container.appendChild(newItem);
+            }
+        }
+        
+        function addDesignMethod() {
+            const input = prompt('请输入设计方法:');
+            if (input) {
+                const container = document.getElementById('design-methods-array');
+                const newItem = document.createElement('div');
+                newItem.className = 'array-item';
+                newItem.innerHTML = `<span>${input}</span><span class="remove-btn" onclick="this.parentElement.remove()">×</span>`;
+                container.appendChild(newItem);
+            }
+        }
+        
+        function addTestType() {
+            const input = prompt('请输入测试类型:');
+            if (input) {
+                const container = document.getElementById('test-types-array');
+                const newItem = document.createElement('div');
+                newItem.className = 'array-item';
+                newItem.innerHTML = `<span>${input}</span><span class="remove-btn" onclick="this.parentElement.remove()">×</span>`;
+                container.appendChild(newItem);
+            }
+        }
+        
+        function switchTab(index) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelectorAll('.tab')[index].classList.add('active');
+            document.getElementById(`tab-${index}`).classList.add('active');
+        }
+        
+        async function saveAnalysisContent() {
+            if (!selectedRequirementId) {
+                alert('请先选择需求');
+                return;
+            }
+            
+            const modules = getArrayItems('modules-array');
+            const testPoints = getArrayItems('test-points-array');
+            const businessRules = getArrayItems('business-rules-array');
+            
+            try {
+                const response = await fetch(`/api/requirements/${selectedRequirementId}/analysis-content`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        modules: modules,
+                        test_points: testPoints,
+                        business_rules: businessRules
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('分析内容保存成功');
+                } else {
+                    alert('保存失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('保存分析内容失败:', error);
+                alert('保存失败');
+            }
+        }
+        
+        async function saveTestPlan() {
+            if (!selectedRequirementId) {
+                alert('请先选择需求');
+                return;
+            }
+            
+            const methodology = document.getElementById('methodology').value;
+            const designMethods = getArrayItems('design-methods-array');
+            const testTypes = getArrayItems('test-types-array');
+            
+            try {
+                const response = await fetch(`/api/requirements/${selectedRequirementId}/test-plan`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        methodology: methodology,
+                        design_methods: designMethods,
+                        test_types: testTypes
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('测试规划保存成功');
+                } else {
+                    alert('保存失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('保存测试规划失败:', error);
+                alert('保存失败');
+            }
+        }
+        
+        async function saveGenerationParams() {
+            if (!selectedRequirementId) {
+                alert('请先选择需求');
+                return;
+            }
+            
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const maxTokens = parseInt(document.getElementById('max-tokens').value);
+            const promptTemplateId = document.getElementById('prompt-template-id').value || null;
+            
+            try {
+                const response = await fetch(`/api/requirements/${selectedRequirementId}/generation-params`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        temperature: temperature,
+                        max_tokens: maxTokens,
+                        prompt_template_id: promptTemplateId ? parseInt(promptTemplateId) : null
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('生成参数保存成功');
+                } else {
+                    alert('保存失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('保存生成参数失败:', error);
+                alert('保存失败');
+            }
+        }
+        
+        async function saveRAGParams() {
+            if (!selectedRequirementId) {
+                alert('请先选择需求');
+                return;
+            }
+            
+            const similarityThreshold = parseFloat(document.getElementById('similarity-threshold').value);
+            const topK = parseInt(document.getElementById('top-k').value);
+            const fusionStrategy = document.getElementById('fusion-strategy').value;
+            
+            try {
+                const response = await fetch(`/api/requirements/${selectedRequirementId}/rag-params`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        similarity_threshold: similarityThreshold,
+                        top_k: topK,
+                        fusion_strategy: fusionStrategy
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('RAG参数保存成功');
+                } else {
+                    alert('保存失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('保存RAG参数失败:', error);
+                alert('保存失败');
+            }
+        }
+        
+        function getArrayItems(containerId) {
+            const container = document.getElementById(containerId);
+            const items = [];
+            container.querySelectorAll('.array-item span:first-child').forEach(span => {
+                items.push(span.textContent);
+            });
+            return items;
+        }
+        
+        loadRequirements();
+    </script>
+</body>
+</html>
