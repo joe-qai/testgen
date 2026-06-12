@@ -8,8 +8,8 @@ API路由定义 - RESTful接口
 import os
 import sys
 import uuid
-from langgraph.types import Command
 from src.utils import get_logger
+from sqlalchemy.orm.attributes import flag_modified
 
 logger = get_logger(__name__)
 
@@ -4599,7 +4599,372 @@ def langgraph_confirm_save():
             "message": "用例已入库",
             "saved_count": result["saved_count"],
             "case_ids": result["case_ids"],
-        }), 200
+        }),200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/requirements/<int:requirement_id>/analysis-detail", methods=["GET"])
+def get_analysis_detail(requirement_id):
+    try:
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        analysis_data = requirement.analysis_data or {}
+        test_plan = requirement.test_plan or {}
+        generation_params = requirement.generation_params or {}
+        rag_params = requirement.rag_params or {}
+
+        return (
+            jsonify(
+                {
+                    "requirement": {
+                        "id": requirement.id,
+                        "title": requirement.title,
+                        "content": requirement.content,
+                        "status": int(requirement.status),
+                    },
+                    "analysis": {
+                        "modules": analysis_data.get("modules", []),
+                        "test_points": analysis_data.get("test_points", []),
+                        "business_rules": analysis_data.get("business_rules", []),
+                    },
+                    "test_plan": {
+                        "methodology": test_plan.get("methodology", ""),
+                        "design_methods": test_plan.get("design_methods", []),
+                        "test_types": test_plan.get("test_types", []),
+                    },
+                    "generation_params": {
+                        "temperature": generation_params.get("temperature", 0.7),
+                        "max_tokens": generation_params.get("max_tokens", 4096),
+                        "prompt_template_id": generation_params.get(
+                            "prompt_template_id", None
+                        ),
+                    },
+                    "rag_params": {
+                        "similarity_threshold": rag_params.get(
+                            "similarity_threshold", 0.7
+                        ),
+                        "top_k": rag_params.get("top_k", 10),
+                        "fusion_strategy": rag_params.get("fusion_strategy", "rrf"),
+                    },
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
+        logger.error(f"获取分析详情失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route(
+    "/requirements/<int:requirement_id>/analysis-content", methods=["PUT"]
+)
+def update_analysis_content(requirement_id):
+    try:
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        data = request.json
+        if not data:
+            return jsonify({"error": "缺少请求体"}), 400
+
+        analysis_data = requirement.analysis_data or {}
+
+        if "modules" in data:
+            analysis_data["modules"] = data["modules"]
+        if "test_points" in data:
+            analysis_data["test_points"] = data["test_points"]
+        if "business_rules" in data:
+            analysis_data["business_rules"] = data["business_rules"]
+
+        requirement.analysis_data = analysis_data
+        flag_modified(requirement, "analysis_data")
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": "分析内容更新成功",
+                    "analysis_data": analysis_data,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"更新分析内容失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/requirements/<int:requirement_id>/test-plan", methods=["PUT"])
+def update_test_plan(requirement_id):
+    try:
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        data = request.json
+        if not data:
+            return jsonify({"error": "缺少请求体"}), 400
+
+        test_plan = {
+            "methodology": data.get("methodology", ""),
+            "design_methods": data.get("design_methods", []),
+            "test_types": data.get("test_types", []),
+        }
+
+        requirement.test_plan = test_plan
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": "测试规划更新成功",
+                    "test_plan": test_plan,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"更新测试规划失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route(
+    "/requirements/<int:requirement_id>/generation-params", methods=["PUT"]
+)
+def update_generation_params(requirement_id):
+    try:
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        data = request.json
+        if not data:
+            return jsonify({"error": "缺少请求体"}), 400
+
+        generation_params = {
+            "temperature": data.get("temperature", 0.7),
+            "max_tokens": data.get("max_tokens", 4096),
+            "prompt_template_id": data.get("prompt_template_id", None),
+        }
+
+        requirement.generation_params = generation_params
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": "生成参数更新成功",
+                    "generation_params": generation_params,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"更新生成参数失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/requirements/<int:requirement_id>/rag-params", methods=["PUT"])
+def update_rag_params(requirement_id):
+    try:
+        requirement = db_session.query(Requirement).get(requirement_id)
+        if not requirement:
+            return jsonify({"error": "需求不存在"}), 404
+
+        data = request.json
+        if not data:
+            return jsonify({"error": "缺少请求体"}), 400
+
+        rag_params = {
+            "similarity_threshold": data.get("similarity_threshold", 0.7),
+            "top_k": data.get("top_k", 10),
+            "fusion_strategy": data.get("fusion_strategy", "rrf"),
+        }
+
+        requirement.rag_params = rag_params
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": "RAG参数更新成功",
+                    "rag_params": rag_params,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"更新RAG参数失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/cases/pending-review", methods=["GET"])
+def get_pending_review_cases():
+    try:
+        requirement_id = request.args.get("requirement_id", type=int)
+        task_id = request.args.get("task_id", type=str)
+        status = request.args.get("status", type=int)
+
+        query = db_session.query(TestCase).filter(
+            TestCase.status == CaseStatus.PENDING_REVIEW
+        )
+
+        if requirement_id:
+            query = query.filter(TestCase.requirement_id == requirement_id)
+
+        if task_id:
+            task = db_session.query(GenerationTaskModel).filter(
+                GenerationTaskModel.task_id == task_id
+            ).first()
+            if task:
+                query = query.filter(TestCase.requirement_id == task.requirement_id)
+
+        if status:
+            query = query.filter(TestCase.status == status)
+
+        cases = query.all()
+
+        cases_list = []
+        for case in cases:
+            cases_list.append(
+                {
+                    "id": case.id,
+                    "case_id": case.case_id,
+                    "module": case.module,
+                    "name": case.name,
+                    "priority": case.priority.value if case.priority else "P2",
+                    "status": int(case.status),
+                    "requirement_id": case.requirement_id,
+                    "created_at": (
+                        case.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                        if case.created_at
+                        else None
+                    ),
+                }
+            )
+
+        return (
+            jsonify(
+                {
+                    "cases": cases_list,
+                    "total": len(cases_list),
+                    "pending_count": len(
+                        [c for c in cases_list if c["status"] == CaseStatus.PENDING_REVIEW]
+                    ),
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"获取待确认用例失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/cases/batch-confirm", methods=["POST"])
+def batch_confirm_cases():
+    try:
+        data = request.json
+        if not data or "case_ids" not in data:
+            return jsonify({"error": "缺少case_ids字段"}), 400
+
+        case_ids = data["case_ids"]
+        action = data.get("action", "approve")
+
+        if not isinstance(case_ids, list) or len(case_ids) == 0:
+            return jsonify({"error": "case_ids必须是非空列表"}), 400
+
+        if action not in ["approve", "reject"]:
+            return jsonify({"error": "action必须是approve或reject"}), 400
+
+        new_status = CaseStatus.APPROVED if action == "approve" else CaseStatus.REJECTED
+
+        updated_count = 0
+        for case_id in case_ids:
+            case = db_session.query(TestCase).get(case_id)
+            if case:
+                case.status = new_status
+                updated_count += 1
+
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": f"批量确认成功，更新了{updated_count}条用例",
+                    "updated_count": updated_count,
+                    "action": action,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"批量确认用例失败: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/cases/batch-edit", methods=["POST"])
+def batch_edit_cases():
+    try:
+        data = request.json
+        if not data or "case_ids" not in data or "updates" not in data:
+            return jsonify({"error": "缺少case_ids或updates字段"}), 400
+
+        case_ids = data["case_ids"]
+        updates = data["updates"]
+
+        if not isinstance(case_ids, list) or len(case_ids) == 0:
+            return jsonify({"error": "case_ids必须是非空列表"}), 400
+
+        if not isinstance(updates, dict):
+            return jsonify({"error": "updates必须是字典"}), 400
+
+        updated_count = 0
+        for case_id in case_ids:
+            case = db_session.query(TestCase).get(case_id)
+            if case:
+                if "priority" in updates:
+                    priority_str = updates["priority"]
+                    try:
+                        case.priority = Priority(priority_str)
+                    except ValueError:
+                        pass
+                if "module" in updates:
+                    case.module = updates["module"]
+                if "name" in updates:
+                    case.name = updates["name"]
+                if "case_type" in updates:
+                    case.case_type = updates["case_type"]
+                updated_count += 1
+
+        db_session.commit()
+
+        return (
+            jsonify(
+                {
+                    "message": f"批量编辑成功，更新了{updated_count}条用例",
+                    "updated_count": updated_count,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"批量编辑用例失败: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500

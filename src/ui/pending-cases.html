@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用例待确认 - TestGen</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --neon-cyan: #00f5ff;
+            --neon-pink: #ff00ff;
+            --neon-purple: #b829dd;
+            --neon-green: #00ff88;
+            --neon-yellow: #ffee00;
+            --dark-bg: #0a0a0f;
+            --dark-sidebar: #08080c;
+            --dark-card: #12121a;
+            --dark-border: #1e1e2e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, monospace;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 260px;
+            background: var(--dark-sidebar);
+            border-right: 1px solid var(--dark-border);
+            padding: 30px 0;
+        }
+        
+        .logo {
+            padding: 0 30px 30px;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+            letter-spacing: 4px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+        
+        .nav-item {
+            padding: 16px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(0, 245, 255, 0.05);
+            color: var(--text-primary);
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
+            color: var(--neon-cyan);
+            border-left-color: var(--neon-cyan);
+        }
+        
+        .nav-icon {
+            width: 24px;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .header h1::before {
+            content: '// ';
+            color: var(--neon-pink);
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 150px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .filter-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .filter-input {
+            padding: 8px 12px;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .filter-input:focus {
+            border-color: var(--neon-cyan);
+            outline: none;
+        }
+        
+        .cases-table {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: var(--dark-bg);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--neon-cyan);
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+        
+        tr:hover {
+            background: rgba(0, 245, 255, 0.05);
+        }
+        
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .priority-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .priority-p0 {
+            background: rgba(255, 0, 255, 0.2);
+            color: var(--neon-pink);
+        }
+        
+        .priority-p1 {
+            background: rgba(255, 238, 0, 0.2);
+            color: var(--neon-yellow);
+        }
+        
+        .priority-p2 {
+            background: rgba(0, 245, 255, 0.2);
+            color: var(--neon-cyan);
+        }
+        
+        .priority-p3 {
+            background: rgba(136, 136, 136, 0.2);
+            color: var(--text-secondary);
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: rgba(255, 238, 0, 0.2);
+            color: var(--neon-yellow);
+        }
+        
+        .status-approved {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--neon-green);
+        }
+        
+        .status-rejected {
+            background: rgba(255, 0, 255, 0.2);
+            color: var(--neon-pink);
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--dark-border);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        
+        .action-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+        
+        .batch-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 245, 255, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--neon-green), #00cc6a);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--neon-pink), #cc0066);
+        }
+        
+        .btn-secondary {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <div class="logo">TestGen</div>
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="window.location.href='index.html'">
+                    <span class="nav-icon">📊</span>
+                    <span>仪表盘</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='requirements.html'">
+                    <span class="nav-icon">📝</span>
+                    <span>需求管理</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='cases.html'">
+                    <span class="nav-icon">📋</span>
+                    <span>测试用例</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='analysis-edit.html'">
+                    <span class="nav-icon">🔍</span>
+                    <span>需求分析编辑</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='rag.html'">
+                    <span class="nav-icon">📦</span>
+                    <span>RAG仓库</span>
+                </li>
+                <li class="nav-item active">
+                    <span class="nav-icon">⚠️</span>
+                    <span>用例待确认</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='autogen.html'">
+                    <span class="nav-icon">⚡</span>
+                    <span>AutoGen</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='langgraph.html'">
+                    <span class="nav-icon">🔄</span>
+                    <span>LangGraph</span>
+                </li>
+                <li class="nav-item" onclick="window.location.href='config.html'">
+                    <span class="nav-icon">⚙️</span>
+                    <span>配置</span>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <div class="header">
+                <h1>用例待确认</h1>
+                <button class="btn btn-secondary" onclick="loadPendingCases()">刷新列表</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-count">0</div>
+                    <div class="stat-label">总用例数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pending-count">0</div>
+                    <div class="stat-label">待确认数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="selected-count">0</div>
+                    <div class="stat-label">已选择</div>
+                </div>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">需求ID:</label>
+                    <input type="number" class="filter-input" id="filter-requirement" placeholder="全部">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">任务ID:</label>
+                    <input type="text" class="filter-input" id="filter-task" placeholder="全部">
+                </div>
+                <button class="btn btn-secondary" onclick="applyFilters()">筛选</button>
+                <button class="btn btn-secondary" onclick="clearFilters()">清除</button>
+            </div>
+            
+            <div class="cases-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" class="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+                            <th>用例ID</th>
+                            <th>标题</th>
+                            <th>模块</th>
+                            <th>优先级</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cases-table-body">
+                        <tr>
+                            <td colspan="8" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="batch-actions">
+                <button class="btn btn-success" onclick="batchApprove()">批量通过</button>
+                <button class="btn btn-danger" onclick="batchReject()">批量拒绝</button>
+                <button class="btn btn-secondary" onclick="batchEdit()">批量编辑</button>
+                <button class="btn btn-secondary" onclick="batchDelete()">批量删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">批量编辑用例</div>
+            <div class="modal-body">
+                <div class="filter-group">
+                    <label class="filter-label">优先级:</label>
+                    <select class="filter-input" id="edit-priority">
+                        <option value="">不修改</option>
+                        <option value="P0">P0</option>
+                        <option value="P1">P1</option>
+                        <option value="P2">P2</option>
+                        <option value="P3">P3</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="margin-top: 15px;">
+                    <label class="filter-label">模块:</label>
+                    <input type="text" class="filter-input" id="edit-module" placeholder="不修改">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                <button class="btn" onclick="applyBatchEdit()">应用</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let cases = [];
+        let selectedCases = [];
+        
+        async function loadPendingCases() {
+            try {
+                const response = await fetch('/api/cases/pending-review');
+                const data = await response.json();
+                
+                cases = data.cases || [];
+                updateStats(data);
+                renderCasesTable();
+            } catch (error) {
+                console.error('加载待确认用例失败:', error);
+                document.getElementById('cases-table-body').innerHTML = '<tr><td colspan="8" class="loading">加载失败</td></tr>';
+            }
+        }
+        
+        function updateStats(data) {
+            document.getElementById('total-count').textContent = data.total || 0;
+            document.getElementById('pending-count').textContent = data.pending_count || 0;
+            document.getElementById('selected-count').textContent = selectedCases.length;
+        }
+        
+        function renderCasesTable() {
+            const tbody = document.getElementById('cases-table-body');
+            
+            if (cases.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无待确认用例</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = cases.map(case => `
+                <tr>
+                    <td><input type="checkbox" class="checkbox case-checkbox" data-id="${case.id}" onchange="toggleCaseSelection(${case.id})"></td>
+                    <td>${case.case_id}</td>
+                    <td>${case.name}</td>
+                    <td>${case.module}</td>
+                    <td><span class="priority-badge priority-${case.priority.toLowerCase()}">${case.priority}</span></td>
+                    <td><span class="status-badge status-pending">待确认</span></td>
+                    <td>${case.created_at || '-'}</td>
+                    <td>
+                        <button class="action-btn" onclick="viewCase(${case.id})">查看</button>
+                        <button class="action-btn" onclick="approveCase(${case.id})">通过</button>
+                        <button class="action-btn" onclick="rejectCase(${case.id})">拒绝</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('select-all');
+            const checkboxes = document.querySelectorAll('.case-checkbox');
+            
+            if (selectAllCheckbox.checked) {
+                selectedCases = cases.map(c => c.id);
+                checkboxes.forEach(cb => cb.checked = true);
+            } else {
+                selectedCases = [];
+                checkboxes.forEach(cb => cb.checked = false);
+            }
+            
+            document.getElementById('selected-count').textContent = selectedCases.length;
+        }
+        
+        function toggleCaseSelection(caseId) {
+            const index = selectedCases.indexOf(caseId);
+            if (index > -1) {
+                selectedCases.splice(index, 1);
+            } else {
+                selectedCases.push(caseId);
+            }
+            
+            document.getElementById('selected-count').textContent = selectedCases.length;
+            
+            const checkboxes = document.querySelectorAll('.case-checkbox');
+            const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+            document.getElementById('select-all').checked = allChecked;
+        }
+        
+        async function applyFilters() {
+            const requirementId = document.getElementById('filter-requirement').value;
+            const taskId = document.getElementById('filter-task').value;
+            
+            let url = '/api/cases/pending-review';
+            const params = [];
+            
+            if (requirementId) params.push(`requirement_id=${requirementId}`);
+            if (taskId) params.push(`task_id=${taskId}`);
+            
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                cases = data.cases || [];
+                updateStats(data);
+                renderCasesTable();
+            } catch (error) {
+                console.error('筛选失败:', error);
+                alert('筛选失败');
+            }
+        }
+        
+        function clearFilters() {
+            document.getElementById('filter-requirement').value = '';
+            document.getElementById('filter-task').value = '';
+            loadPendingCases();
+        }
+        
+        async function batchApprove() {
+            if (selectedCases.length === 0) {
+                alert('请先选择用例');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cases/batch-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_ids: selectedCases,
+                        action: 'approve'
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    selectedCases = [];
+                    loadPendingCases();
+                } else {
+                    alert('批量通过失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('批量通过失败:', error);
+                alert('批量通过失败');
+            }
+        }
+        
+        async function batchReject() {
+            if (selectedCases.length === 0) {
+                alert('请先选择用例');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cases/batch-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_ids: selectedCases,
+                        action: 'reject'
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    selectedCases = [];
+                    loadPendingCases();
+                } else {
+                    alert('批量拒绝失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('批量拒绝失败:', error);
+                alert('批量拒绝失败');
+            }
+        }
+        
+        function batchEdit() {
+            if (selectedCases.length === 0) {
+                alert('请先选择用例');
+                return;
+            }
+            
+            document.getElementById('edit-modal').classList.add('active');
+        }
+        
+        async function applyBatchEdit() {
+            const priority = document.getElementById('edit-priority').value;
+            const module = document.getElementById('edit-module').value;
+            
+            const updates = {};
+            if (priority) updates.priority = priority;
+            if (module) updates.module = module;
+            
+            if (Object.keys(updates).length === 0) {
+                alert('请至少修改一个字段');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cases/batch-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_ids: selectedCases,
+                        updates: updates
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    closeEditModal();
+                    loadPendingCases();
+                } else {
+                    alert('批量编辑失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('批量编辑失败:', error);
+                alert('批量编辑失败');
+            }
+        }
+        
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            document.getElementById('edit-priority').value = '';
+            document.getElementById('edit-module').value = '';
+        }
+        
+        async function batchDelete() {
+            if (selectedCases.length === 0) {
+                alert('请先选择用例');
+                return;
+            }
+            
+            if (!confirm(`确定要删除 ${selectedCases.length} 条用例吗？此操作不可恢复！`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cases/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ case_ids: selectedCases })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message || '批量删除成功');
+                    selectedCases = [];
+                    loadPendingCases();
+                } else {
+                    alert('批量删除失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('批量删除失败:', error);
+                alert('批量删除失败');
+            }
+        }
+        
+        function viewCase(caseId) {
+            window.location.href = `cases.html?id=${caseId}`;
+        }
+        
+        async function approveCase(caseId) {
+            try {
+                const response = await fetch('/api/cases/batch-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_ids: [caseId],
+                        action: 'approve'
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('用例已通过');
+                    loadPendingCases();
+                } else {
+                    alert('通过失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('通过失败:', error);
+                alert('通过失败');
+            }
+        }
+        
+        async function rejectCase(caseId) {
+            try {
+                const response = await fetch('/api/cases/batch-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        case_ids: [caseId],
+                        action: 'reject'
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('用例已拒绝');
+                    loadPendingCases();
+                } else {
+                    alert('拒绝失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('拒绝失败:', error);
+                alert('拒绝失败');
+            }
+        }
+        
+        loadPendingCases();
+    </script>
+</body>
+</html>

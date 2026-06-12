@@ -107,6 +107,9 @@ class Requirement(Base):
         default=RequirementStatus.PENDING_ANALYSIS,
     )
     analysis_data = Column(JSON, default=None)  # 分析结果数据：modules, test_points等
+    test_plan = Column(JSON, default=None)  # 测试规划内容：methodology, design_methods, test_types
+    generation_params = Column(JSON, default=None)  # 生成参数配置：temperature, max_tokens, prompt_template_id
+    rag_params = Column(JSON, default=None)  # RAG检索参数：similarity_threshold, top_k, fusion_strategy
     version = Column(String(50), default="1.0")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
