@@ -95,7 +95,7 @@ class TestRagContextFormatting:
         service._query_optimizer = None
         service._retrieval_evaluator = MagicMock()
         service._retrieval_evaluator.generate_quality_report.return_value = {
-            "quality_alert": None
+            "quality_alert": "no_results"
         }
 
         result = service._perform_item_rag_recall(
@@ -174,12 +174,11 @@ class TestQualityAlertDegradation:
             "quality_alert": "low_similarity"
         }
         service._hybrid_retriever.retrieve.side_effect = [
-            {"results": [{"id": "C1", "content": "case1", "score": 0.3}]},
             {"results": [{"id": "D1", "content": "defect1", "score": 0.3}]},
             {
                 "results": [
-                    {"id": "C1", "content": "case1", "score": 0.3},
-                    {"id": "C2", "content": "case2", "score": 0.4},
+                    {"id": "D1", "content": "defect1", "score": 0.3},
+                    {"id": "D2", "content": "defect2", "score": 0.4},
                 ]
             },
         ]
@@ -188,6 +187,10 @@ class TestQualityAlertDegradation:
             item_title="登录", item_points=[], top_k=5
         )
         assert result["quality_alert"] == "low_similarity"
+        assert [
+            call.kwargs["top_k"]
+            for call in service._hybrid_retriever.retrieve.call_args_list
+        ] == [5, 10]
 
     def test_no_results_sets_degraded(self):
         from src.services.generation_service import GenerationService
