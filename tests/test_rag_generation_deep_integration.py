@@ -56,6 +56,29 @@ class TestPerformItemRagRecall:
         query_used = call_args[0][1]["query"]
         assert query_used == "支付模块"
 
+    def test_query_construction_normalizes_dict_points(self):
+        self.service._hybrid_retriever = MagicMock()
+        self.service._hybrid_retriever.retrieve.return_value = {"results": []}
+        self.service._init_rag_components = MagicMock()
+        self.service._retrieval_evaluator = MagicMock()
+        self.service._retrieval_evaluator.generate_quality_report.return_value = {
+            "quality_alert": "no_results"
+        }
+
+        result = self.service._perform_item_rag_recall(
+            "登录模块", [{"title": "密码输入"}, {"name": "验证码校验"}], 5
+        )
+
+        query = self.service._hybrid_retriever.retrieve.call_args.kwargs["query"]
+        assert query == "登录模块 密码输入 验证码校验"
+        assert set(result) >= {
+            "rag_context",
+            "results",
+            "quality_alert",
+            "degraded",
+            "stats",
+        }
+
     def test_no_hybrid_retriever_returns_empty(self):
         self.service._init_rag_components = MagicMock()
         result = self.service._perform_item_rag_recall(
@@ -63,6 +86,8 @@ class TestPerformItemRagRecall:
         )
         assert result["rag_context"] == ""
         assert result["quality_alert"] is None
+        assert result["results"] == {"defects": []}
+        assert result["degraded"] is False
 
     def test_query_optimizer_fallback(self):
         self.service._hybrid_retriever = MagicMock()

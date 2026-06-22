@@ -4314,6 +4314,109 @@ class GenerationService:
 
         return md
 
+    def _normalize_item_points(self, item_points: List[Any]) -> List[str]:
+        normalized = []
+        for point in item_points:
+            if isinstance(point, dict):
+                value = point.get("title", point.get("name", ""))
+            else:
+                value = str(point)
+            value = str(value).strip()
+            if value:
+                normalized.append(value)
+        return normalized
+
+    def _empty_item_rag_result(self, query: str) -> Dict[str, Any]:
+        return {
+            "rag_context": "",
+            "results": {"defects": []},
+            "quality_alert": None,
+            "degraded": False,
+            "stats": {"query": query, "result_count": 0, "retrieval_count": 0},
+        }
+
+    def _perform_item_rag_recall(
+        self, item_title: str, item_points: List[Any], top_k: int = 5
+    ) -> Dict[str, Any]:
+        self._init_rag_components()
+        raw_query = " ".join(
+            part
+            for part in [
+                item_title.strip(),
+                *self._normalize_item_points(item_points),
+            ]
+            if part
+        )
+        query = raw_query
+        if self._query_optimizer:
+            try:
+                keywords = self._query_optimizer.extract_keywords(raw_query)
+                if keywords:
+                    query = " ".join([raw_query, *[str(word) for word in keywords]])
+            except Exception as e:
+                logger.warning("ITEM RAG query optimization failed: %s", str(e))
+        empty = self._empty_item_rag_result(query)
+        if not self._hybrid_retriever:
+            return empty
+        return self._retrieve_item_rag(query, top_k, empty)
+
+    def _retrieve_item_rag(
+        self, query: str, top_k: int, empty: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        try:
+            response = self._hybrid_retriever.retrieve(
+                collection="defects", query=query, top_k=top_k
+            )
+            defects = (
+                response.get("results", [])
+                if isinstance(response, dict)
+                else response or []
+            )
+            retrieval_count = 1
+            quality_alert = None
+            if self._retrieval_evaluator:
+                report = self._retrieval_evaluator.generate_quality_report(
+                    defects, [], defects
+                )
+                quality_alert = report.get("quality_alert")
+            if quality_alert == "low_similarity":
+                expanded = self._hybrid_retriever.retrieve(
+                    collection="defects", query=query, top_k=top_k * 2
+                )
+                defects = (
+                    expanded.get("results", [])
+                    if isinstance(expanded, dict)
+                    else expanded or []
+                )
+                retrieval_count += 1
+            return {
+                "rag_context": self._format_item_rag_context(defects),
+                "results": {"defects": defects},
+                "quality_alert": quality_alert,
+                "degraded": quality_alert in {"no_results", "low_similarity"},
+                "stats": {
+                    "query": query,
+                    "result_count": len(defects),
+                    "retrieval_count": retrieval_count,
+                },
+            }
+        except Exception as e:
+            logger.warning("ITEM RAG retrieval failed: %s", str(e))
+            failed = dict(empty)
+            failed["degraded"] = True
+            failed["quality_alert"] = "retrieval_error"
+            return failed
+
+    def _format_item_rag_context(self, results: List[Dict[str, Any]]) -> str:
+        if not results:
+            return "无历史参考数据"
+        blocks = ["## 当前 ITEM 召回的历史资料"]
+        for index, result in enumerate(results, 1):
+            source_id = result.get("id", f"defect_{index}")
+            blocks.append(f"### 来源 {source_id}\n{result.get('content', '')}")
+        blocks.append("引用标注要求：如采用历史资料，请在结果中提供 citation。")
+        return "\n\n".join(blocks)
+
     def _perform_rag_recall(
         self,
         requirement_content: str,
