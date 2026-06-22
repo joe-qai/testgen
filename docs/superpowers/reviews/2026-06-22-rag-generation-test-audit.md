@@ -18,3 +18,9 @@
 - `python -m pytest tests/ -k "rag or retrieval" -v --tb=short`：74 passed，100 deselected。
 - `python -m pytest tests/ -v --tb=short`：174 passed，238 warnings。
 - 警告均为既有 SQLAlchemy、datetime、ChromaDB 与 pytest 收集/返回值警告，本次无新增测试失败。
+
+## 代码审查
+
+- 审查范围：`6f2b7df0aaedb55e8dd36af046e645ce41784714..8de1359`。
+- 未发现 CRITICAL 或 Important 问题。
+- 用户选择当前窗口执行，审查子代理不可调度；已按 Comet review gate 记录降级原因。
