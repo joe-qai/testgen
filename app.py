@@ -9,6 +9,10 @@ import os
 import sys
 import io
 import logging
+import uuid
+import time
+import threading
+import json
 
 # 修复 Windows 控制台编码问题
 if sys.platform == "win32":
@@ -23,9 +27,14 @@ from src.utils import init_global_logging
 
 init_global_logging()
 
-from flask import Flask, send_from_directory, make_response
+from flask import Flask, send_from_directory, make_response, g, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+
+from src.monitoring.error_response import ErrorResponse
+from src.monitoring.metrics_collector import MetricsCollector
+
+metrics_collector = MetricsCollector()
 
 # 导入新模块
 from src.database.models import init_database, get_session, init_scoped_session
@@ -261,6 +270,70 @@ def create_app():
     @app.route("/<path:path>")
     def static_files(path):
         return send_from_directory(app.config["UI_FOLDER"], path)
+
+    @app.before_request
+    def assign_request_id():
+        if 'X-Request-ID' in request.headers:
+            g.request_id = request.headers['X-Request-ID']
+        else:
+            g.request_id = str(uuid.uuid4())
+        g.start_time = time.time()
+
+    @app.errorhandler(Exception)
+    def handle_unhandled_exception(e):
+        request_id = getattr(g, 'request_id', str(uuid.uuid4()))
+        logging.error(f"Unhandled exception: {str(e)}", exc_info=True)
+
+        if db_session:
+            db_session.rollback()
+
+        error_response = ErrorResponse.create(
+            message="服务器内部错误",
+            code="INTERNAL_ERROR",
+            request_id=request_id
+        )
+        return jsonify(error_response), 500
+
+    @app.after_request
+    def normalize_error_response(response):
+        if not request.path.startswith('/api'):
+            return response
+
+        if response.status_code < 400:
+            if hasattr(g, 'start_time'):
+                latency_ms = (time.time() - g.start_time) * 1000
+                metrics_collector.record_request(response.status_code, latency_ms)
+            return response
+
+        try:
+            data = response.get_json()
+            if not data:
+                if hasattr(g, 'start_time'):
+                    latency_ms = (time.time() - g.start_time) * 1000
+                    metrics_collector.record_request(response.status_code, latency_ms)
+                return response
+
+            request_id = getattr(g, 'request_id', str(uuid.uuid4()))
+
+            if 'request_id' not in data:
+                data['request_id'] = request_id
+
+            if response.status_code >= 500 and 'error' in data:
+                data['error'] = "服务器内部错误"
+
+            if 'code' not in data:
+                data['code'] = f"HTTP_{response.status_code}"
+
+            response.data = json.dumps(data)
+            response.content_type = 'application/json'
+        except Exception:
+            pass
+
+        if hasattr(g, 'start_time'):
+            latency_ms = (time.time() - g.start_time) * 1000
+            metrics_collector.record_request(response.status_code, latency_ms)
+
+        return response
 
     # 存储全局服务实例（用于测试和调试）
     app.db_session = db_session
