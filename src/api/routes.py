@@ -33,7 +33,7 @@ from src.database.models import (
 from src.database.models import GenerationTask as GenerationTaskModel, TaskStatus
 
 # 创建蓝图
-api_bp = Blueprint("api", __name__, url_prefix="/api")
+api_bp = Bluelogger.info("api", __name__, url_prefix="/api")
 
 # 全局服务实例（将在应用初始化时注入）
 db_session = None
@@ -219,8 +219,7 @@ def analyze_requirement(requirement_id):
             RequirementStatus.COMPLETED,
             RequirementStatus.FAILED,
         ]:
-            print(
-                f"[需求分析] 需求ID={requirement_id} 状态不支持分析: {int(requirement.status)}"
+            logger.info(f"[需求分析] 需求ID={requirement_id} 状态不支持分析: {int(requirement.status)}"
             )
             return (
                 jsonify(
@@ -230,7 +229,7 @@ def analyze_requirement(requirement_id):
             )
 
         if not generation_service.llm_manager:
-            print(f"[需求分析] 需求ID={requirement_id} LLM管理器未初始化")
+            logger.info(f"[需求分析] 需求ID={requirement_id} LLM管理器未初始化")
             return jsonify({"error": "LLM管理器未初始化"}), 500
 
         import json
@@ -242,9 +241,7 @@ def analyze_requirement(requirement_id):
         content_preview = (
             requirement.content[:100].replace("\n", " ") if requirement.content else ""
         )
-        print(
-            f"[需求分析] 开始分析 - 需求ID={requirement_id}, 内容摘要: {content_preview}..."
-        )
+        logger.info(f"[需求分析] 开始分析 - 需求ID={requirement_id}, 内容摘要: {content_preview}...")
 
         requirement.status = RequirementStatus.ANALYZING
         db_session.commit()
@@ -258,7 +255,7 @@ def analyze_requirement(requirement_id):
             )
             prompt = render_result["prompt"]
             logger.info(f"[Analyze] Prompt length: {len(prompt)}")
-            print(f"[需求分析] Prompt模板渲染完成, 长度={len(prompt)}字符")
+            logger.info(f"[需求分析] Prompt模板渲染完成, 长度={len(prompt)}字符")
         except Exception as e:
             logger.info(f"[需求分析] Prompt模板渲染失败: {e}")
             logger.error(f"[Analyze] Prompt render failed: {e}")
@@ -268,8 +265,7 @@ def analyze_requirement(requirement_id):
 
         try:
             adapter = generation_service.llm_manager.get_adapter()
-            print(
-                f"[需求分析] 调用LLM: adapter={type(adapter).__name__}, temperature=0.3"
+            logger.info(f"[需求分析] 调用LLM: adapter={type(adapter).__name__}, temperature=0.3"
             )
             response = adapter.generate(
                 prompt,
@@ -302,12 +298,10 @@ def analyze_requirement(requirement_id):
             # 打印分析结果摘要
             modules = analysis_result.get("modules", [])
             points = analysis_result.get("test_points", [])
-            print(
-                f"[需求分析] 识别到 {len(modules)} 个功能模块, {len(points)} 个测试点"
+            logger.info(f"[需求分析] 识别到 {len(modules)} 个功能模块, {len(points)} 个测试点"
             )
             if modules:
-                print(
-                    f"[需求分析] 功能模块: {', '.join([m.get('name', '') for m in modules[:3]])}..."
+                logger.info(f"[需求分析] 功能模块: {', '.join([m.get('name', '') for m in modules[:3]])}..."
                 )
         except (json.JSONDecodeError, AttributeError) as e:
             logger.info(f"[需求分析] JSON解析失败: {e}")
@@ -325,11 +319,11 @@ def analyze_requirement(requirement_id):
         requirement.analyzed_content = response.content
         requirement.status = RequirementStatus.ANALYZED
         db_session.commit()
-        print(f"[需求分析] 分析完成 - 需求ID={requirement_id}, 状态=已分析")
+        logger.info(f"[需求分析] 分析完成 - 需求ID={requirement_id}, 状态=已分析")
 
         if generation_service.llm_manager and modules and points:
             try:
-                print(f"[模块评审] 开始评审模块和测试点...")
+                logger.info(f"[模块评审] 开始评审模块和测试点...")
                 from src.services.generation_service import GenerationService
 
                 review_gen_service = GenerationService(
@@ -370,11 +364,10 @@ def analyze_requirement(requirement_id):
                         if review_info and review_info.get("score")
                         else "N/A"
                     )
-                    print(
-                        f"[模块评审] 完成 - {len(reviewed_items)} 个测试项, {len(reviewed_points)} 个测试点, 评分: {score_str}"
+                    logger.info(f"[模块评审] 完成 - {len(reviewed_items)} 个测试项, {len(reviewed_points)} 个测试点, 评分: {score_str}"
                     )
             except Exception as e:
-                print(f"[模块评审] 失败: {e}，使用原始分析结果")
+                logger.info(f"[模块评审] 失败: {e}，使用原始分析结果")
 
         return (
             jsonify(
@@ -2462,10 +2455,10 @@ def import_requirements():
     导入需求文件（支持 .xlsx, .xls, .txt, .md, .markdown, .docx, .pdf）
     POST /api/import/requirements
     """
-    print("[导入需求] ========== 开始导入 ==========")
+    logger.info("[导入需求] ========== 开始导入 ==========")
     try:
         if "file" not in request.files:
-            print("[导入需求] 错误: 没有上传文件")
+            logger.info("[导入需求] 错误: 没有上传文件")
             return jsonify({"error": "没有上传文件"}), 400
 
         file = request.files["file"]
@@ -2473,7 +2466,7 @@ def import_requirements():
         logger.info(f"[导入需求] file.filename: {repr(file.filename)}")
 
         if file.filename == "":
-            print("[导入需求] 错误: 文件名为空")
+            logger.info("[导入需求] 错误: 文件名为空")
             return jsonify({"error": "文件名为空"}), 400
 
         # 获取原始文件名（这时就应该提取扩展名）
@@ -2494,7 +2487,7 @@ def import_requirements():
 
         # 如果提取的扩展名为空，给一个默认值
         if not file_ext:
-            print("[导入需求] 警告: 扩展名为空，使用默认值 .txt")
+            logger.info("[导入需求] 警告: 扩展名为空，使用默认值 .txt")
             file_ext = ".txt"
 
         logger.info(f"[导入需求] 最终使用的扩展名: '{file_ext}'")

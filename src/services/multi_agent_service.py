@@ -624,15 +624,14 @@ class MultiAgentCaseService:
 # ============ 模块自测 ============
 
 if __name__ == "__main__":
-    print("=== MultiAgentCaseService v2 模块自测 ===\n")
-    print("✅ 5 Agent Prompt 定义完毕")
+    logger.info("=== MultiAgentCaseService v2 模块自测 ===\n")
+    logger.info("✅ 5 Agent Prompt 定义完毕")
     for name, prompt in AGENT_PROMPTS.items():
         first_line = prompt.split("\n")[0][:50]
-        print(f"  - {name}: {first_line}...")
-    print()
-    print("v2 优化点:")
-    print("  - Generator: 标题禁止泛化词结尾 + 禁止变量占位符")
-    print("  - Reviewer: 标题泛化词从一票否决降级为扣分项")
-    print("  - Reviewer: 六大维度改为 100 分制评分")
-    print("  - _parse_review_decision(): 智能解析评审结论（区分否决级 vs 扣分级）")
-    print("  - _save_pipeline_log(): 用 result 字段替代 result_data（兼容原表结构）")
+        logger.info(f"  - {name}: {first_line}...")
+    logger.info("v2 优化点:")
+    logger.info("  - Generator: 标题禁止泛化词结尾 + 禁止变量占位符")
+    logger.info("  - Reviewer: 标题泛化词从一票否决降级为扣分项")
+    logger.info("  - Reviewer: 六大维度改为 100 分制评分")
+    logger.info("  - _parse_review_decision(): 智能解析评审结论（区分否决级 vs 扣分级）")
+    logger.info("  - _save_pipeline_log(): 用 result 字段替代 result_data（兼容原表结构）")
