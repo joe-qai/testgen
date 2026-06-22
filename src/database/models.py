@@ -16,6 +16,7 @@ from sqlalchemy import (
     Enum,
     JSON,
     Float,
+    Index,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, scoped_session
@@ -118,6 +119,12 @@ class Requirement(Base):
     test_cases = relationship("TestCase", back_populates="requirement")
     generation_tasks = relationship("GenerationTask", back_populates="requirement")
 
+    # 索引定义
+    __table_args__ = (
+        Index("idx_requirements_status", "status"),
+        Index("idx_requirements_created_at", "created_at"),
+    )
+
 
 class TestCase(Base):
     """测试用例表"""
@@ -166,6 +173,14 @@ class TestCase(Base):
     # 关联关系
     requirement = relationship("Requirement", back_populates="test_cases")
 
+    # 索引定义
+    __table_args__ = (
+        Index("idx_test_cases_requirement_id", "requirement_id"),
+        Index("idx_test_cases_status", "status"),
+        Index("idx_test_cases_priority", "priority"),
+        Index("idx_test_cases_confidence_level", "confidence_level"),
+    )
+
 
 class GenerationTask(Base):
     """用例生成任务表"""
@@ -212,6 +227,13 @@ class GenerationTask(Base):
     # 关联关系
     requirement = relationship("Requirement", back_populates="generation_tasks")
 
+    # 索引定义
+    __table_args__ = (
+        Index("idx_generation_tasks_status", "status"),
+        Index("idx_generation_tasks_requirement_id", "requirement_id"),
+        Index("idx_generation_tasks_created_at", "created_at"),
+    )
+
 
 class HistoricalCase(Base):
     """历史用例库表 - 用于Few-Shot学习"""
@@ -247,6 +269,13 @@ class RequirementAnalysisItem(Base):
 
     requirement = relationship("Requirement", backref="analysis_items")
 
+    # 索引定义
+    __table_args__ = (
+        Index("idx_requirement_analysis_items_requirement_id", "requirement_id"),
+        Index("idx_requirement_analysis_items_item_type", "item_type"),
+        Index("idx_requirement_analysis_items_status", "status"),
+    )
+
 
 class Defect(Base):
     """缺陷表"""
@@ -269,6 +298,14 @@ class Defect(Base):
     created_by = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # 索引定义
+    __table_args__ = (
+        Index("idx_defects_module", "module"),
+        Index("idx_defects_severity", "severity"),
+        Index("idx_defects_status", "status"),
+        Index("idx_defects_related_requirement_id", "related_requirement_id"),
+    )
+
 
 class LLMConfig(Base):
     """LLM配置表 - 支持多模型"""
@@ -285,6 +322,13 @@ class LLMConfig(Base):
     is_default = Column(Integer, default=0)  # 是否默认配置
     is_active = Column(Integer, default=1)  # 是否启用
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 索引定义
+    __table_args__ = (
+        Index("idx_llm_configs_is_default", "is_default"),
+        Index("idx_llm_configs_is_active", "is_active"),
+        Index("idx_llm_configs_provider", "provider"),
+    )
 
 
 class RequirementAnalysis(Base):
@@ -348,6 +392,12 @@ class CaseReviewRecord(Base):
     decision = Column(String(50))
     conclusion = Column(Text)
     reviewed_at = Column(DateTime, default=datetime.utcnow)
+
+    # 索引定义
+    __table_args__ = (
+        Index("idx_case_review_records_task_id", "task_id"),
+        Index("idx_case_review_records_case_id", "case_id"),
+    )
 
 
 # 数据库初始化函数
