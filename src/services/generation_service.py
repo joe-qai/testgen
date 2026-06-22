@@ -8,11 +8,12 @@ import uuid
 import json
 import threading
 from typing import Dict, Any, Optional, Callable, List, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
 
 from src.utils import get_logger
 from src.database.models import TaskStatus, RequirementStatus
+from src.llm.adapter import LLMResponse
 
 logger = get_logger(__name__)
 
@@ -761,7 +762,7 @@ class GenerationService:
             status=int(TaskStatus.RUNNING),
             progress=1.0,  # 初始进度为1%，避免显示0%
             message="🚀 任务已创建，即将开始生成...",
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
         )
 
         with self._lock:
@@ -782,7 +783,7 @@ class GenerationService:
         task = self.get_task(task_id)
         if task:
             task.status = int(TaskStatus.RUNNING)
-            task.started_at = datetime.utcnow().isoformat()
+            task.started_at = datetime.now(timezone.utc).isoformat()
             task.progress = 1.0  # 立即设置初始进度为1%，避免显示0%
             task.message = "🚀 正在启动生成任务..."
             # 同步到数据库
@@ -840,7 +841,7 @@ class GenerationService:
             # 提取用例数到task对象（用于前端显示）
             task.case_count = result.get("case_count", result.get("total_cases", 0))
             task.message = "生成完成"
-            task.completed_at = datetime.utcnow().isoformat()
+            task.completed_at = datetime.now(timezone.utc).isoformat()
             # 同步到数据库
             self._sync_task_to_db(task)
 
@@ -893,7 +894,7 @@ class GenerationService:
 
             # 计算耗时
             if task_model.started_at:
-                end_time = task_model.completed_at or datetime.utcnow()
+                end_time = task_model.completed_at or datetime.now(timezone.utc)
                 task_model.duration = (end_time - task_model.started_at).total_seconds()
                 task.duration = task_model.duration
 
@@ -912,7 +913,7 @@ class GenerationService:
             task.status = int(TaskStatus.FAILED)
             task.error_message = error_message
             task.message = f"生成失败: {error_message}"
-            task.completed_at = datetime.utcnow().isoformat()
+            task.completed_at = datetime.now(timezone.utc).isoformat()
             # 同步到数据库
             self._sync_task_to_db(task)
 
@@ -945,7 +946,7 @@ class GenerationService:
             # 更新任务状态
             task.status = int(TaskStatus.CANCELLED)
             task.message = "任务已取消"
-            task.completed_at = datetime.utcnow().isoformat()
+            task.completed_at = datetime.now(timezone.utc).isoformat()
 
             # 同步到数据库
             self._sync_task_to_db(task)
@@ -2196,7 +2197,7 @@ class GenerationService:
                 # 立即更新状态为running，避免显示为待评审
                 with self._lock:
                     task_obj.status = int(TaskStatus.RUNNING)
-                    task_obj.started_at = datetime.utcnow().isoformat()
+                    task_obj.started_at = datetime.now(timezone.utc).isoformat()
                     task_obj.message = "🚀 正在启动分批生成任务..."
                     self._sync_task_to_db(task_obj)
 
@@ -2692,7 +2693,7 @@ class GenerationService:
                 # 立即更新状态为running，避免显示为待评审
                 with self._lock:
                     task_obj.status = int(TaskStatus.RUNNING)
-                    task_obj.started_at = datetime.utcnow().isoformat()
+                    task_obj.started_at = datetime.now(timezone.utc).isoformat()
                     task_obj.message = "🚀 正在启动生成任务..."
                     self._sync_task_to_db(task_obj)
 
@@ -3259,7 +3260,7 @@ class GenerationService:
                     "rag_stats": rag_stats,
                     "analysis_result": structured_plan,
                     "quality_review": quality_review,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
                 self.complete_task(task_id, result)
@@ -3358,7 +3359,6 @@ class GenerationService:
         Returns:
             LLMResponse
         """
-        from src.llm.adapter import LLMResponse
 
         # 首先尝试使用主适配器（使用默认AI配置）
         try:
@@ -4251,7 +4251,7 @@ class GenerationService:
             Markdown格式的分析文档
         """
         md = "# 需求分析报告\n\n"
-        md += f"> 生成时间: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        md += f"> 生成时间: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
 
         # 1. 功能模块
         if analysis.get("modules"):
@@ -5931,7 +5931,7 @@ class GenerationService:
     def _log_llm_response(self, prompt: str, response):
         """记录LLM响应详细日志到文件"""
         import os
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         log_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs"

@@ -8,7 +8,7 @@
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from src.utils import get_logger
@@ -502,7 +502,7 @@ class MultiAgentCaseService:
         task = self.db_session.query(GenerationTask).filter_by(id=task_id).first()
         if task:
             task.status = TaskStatus.COMPLETED
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             # 用 result 字段存 pipeline 日志（原表有此列）
             task.result = {
                 "pipeline": "multi_agent_v2",
@@ -537,7 +537,7 @@ class MultiAgentCaseService:
             requirement_id=requirement_id,
             status=TaskStatus.RUNNING,
             phase=GenerationPhase.GENERATION,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
         )
         self.db_session.add(task)
         self.db_session.commit()

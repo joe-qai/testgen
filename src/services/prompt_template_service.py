@@ -6,7 +6,7 @@ Prompt模板服务 - 统一管理Prompt模板的加载、渲染和版本控制
 
 import re
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.database.models import PromptTemplate
 from src.utils import get_logger
@@ -168,7 +168,7 @@ class PromptTemplateService:
                 return False
 
             # 记录变更日志
-            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             old_version = template.version or 1
             new_version = old_version + 1
 
@@ -191,7 +191,7 @@ class PromptTemplateService:
             template.change_log = new_log
             if name:
                 template.name = name
-            template.updated_at = datetime.utcnow()
+            template.updated_at = datetime.now(timezone.utc)
 
             self.db_session.commit()
             logger.info(f"[Prompt更新] {resolved_type} 已更新到版本 {new_version}")

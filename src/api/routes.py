@@ -19,7 +19,7 @@ sys.path.append(
 
 from flask import Blueprint, request, jsonify, send_from_directory, send_file, Response
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import tempfile
 
@@ -202,7 +202,7 @@ def analyze_requirement(requirement_id):
     4. 解析分析结果 - 提取功能模块和测试点
     5. 保存分析结果 - 状态更新为已分析
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -351,9 +351,9 @@ def analyze_requirement(requirement_id):
                     analysis_result["items"] = reviewed_items
                     analysis_result["points"] = reviewed_points
                     if review_info:
-                        from datetime import datetime
+                        from datetime import datetime, timezone
 
-                        review_info["reviewed_at"] = datetime.utcnow().isoformat()
+                        review_info["reviewed_at"] = datetime.now(timezone.utc).isoformat()
                         review_info["reviewed_items_count"] = len(reviewed_items)
                         review_info["reviewed_points_count"] = len(reviewed_points)
                         review_info["original_items_count"] = len(
@@ -1011,9 +1011,9 @@ def continue_generation():
             return jsonify({"error": "任务不存在"}), 404
 
         # 设置任务开始时间
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        task.started_at = datetime.utcnow().isoformat()
+        task.started_at = datetime.now(timezone.utc).isoformat()
 
         # 异步执行阶段2：RAG检索+LLM生成
         generation_service.execute_phase2_generation(task_id, reviewed_plan)
@@ -3085,12 +3085,12 @@ def update_prompt(prompt_id):
             template.template_type = data["template_type"]
 
         # 版本号和变更日志自动更新
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         old_version = template.version or 1
         template.version = old_version + 1
 
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         change_entry = f"[{timestamp}] 版本 {old_version} -> {template.version}"
         if "name" in data and data["name"] != template.name:
             change_entry += f", 名称改为: {data['name']}"
@@ -3102,7 +3102,7 @@ def update_prompt(prompt_id):
         else:
             template.change_log = change_entry
 
-        template.updated_at = datetime.utcnow()
+        template.updated_at = datetime.now(timezone.utc)
 
         db_session.commit()
 
@@ -3226,7 +3226,7 @@ def rollback_prompt_version(prompt_id):
     """
     try:
         from src.database.models import PromptTemplate
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         template = db_session.query(PromptTemplate).get(prompt_id)
         if not template:
@@ -3240,7 +3240,7 @@ def rollback_prompt_version(prompt_id):
 
         # 简单回滚：记录日志，不实际恢复内容
         old_version = template.version or 1
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
         change_entry = f"[{timestamp}] 回滚: v{old_version} -> v{target_version}"
         if "note" in data:
@@ -3253,7 +3253,7 @@ def rollback_prompt_version(prompt_id):
             template.change_log = change_entry
 
         template.version = target_version
-        template.updated_at = datetime.utcnow()
+        template.updated_at = datetime.now(timezone.utc)
 
         db_session.commit()
 
@@ -3374,7 +3374,7 @@ def cancel_task(task_id):
             if task_model:
                 task_model.status = int(TaskStatus.CANCELLED)
                 task_model.message = "用户已终止生成"
-                task_model.completed_at = datetime.utcnow()
+                task_model.completed_at = datetime.now(timezone.utc)
 
             # 更新需求状态为已取消
             from src.database.models import Requirement, RequirementStatus
@@ -3479,7 +3479,7 @@ def regenerate_task(task_id):
                 task_model.message = "正在重新生成..."
                 task_model.error_message = None
                 task_model.result = {}
-                task_model.started_at = datetime.utcnow()
+                task_model.started_at = datetime.now(timezone.utc)
                 task_model.completed_at = None
                 db_session.commit()
 
@@ -3776,10 +3776,10 @@ def get_rag_evaluation_summary():
     """
     try:
         from src.database.models import GenerationTask
-        from datetime import datetime, timedelta
+        from datetime import datetime, timezone, timedelta
 
         days = request.args.get("days", 7, type=int)
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(timezone.utc) - timedelta(days=days)
 
         tasks = (
             db_session.query(GenerationTask)
@@ -4549,6 +4549,7 @@ def langgraph_phase2(requirement_id):
     """
     try:
         from src.services.langgraph_service import LangGraphTestGenService, set_llm_manager
+        from langgraph.types import Command
         service = LangGraphTestGenService(db_session=db_session, llm_manager=llm_manager)
         set_llm_manager(llm_manager)
 

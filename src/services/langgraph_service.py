@@ -21,7 +21,7 @@ import re
 import time
 import uuid
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, TypedDict, Dict, Any, List, Optional
 
 from langgraph.graph import StateGraph, END, START
@@ -492,7 +492,7 @@ class LangGraphTestGenService:
             requirement_id=requirement_id,
             status=TaskStatus.RUNNING,
             phase=GenerationPhase.GENERATION,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
         )
         self.db_session.add(task)
         self.db_session.commit()
@@ -557,7 +557,7 @@ class LangGraphTestGenService:
             task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
             if task:
                 task.status = TaskStatus.COMPLETED  # Pipeline完成，但用例待人工确认
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 self.db_session.commit()
 
             return {
