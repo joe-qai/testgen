@@ -40,19 +40,20 @@ from src.utils import get_logger
 
 logger = get_logger(__name__)
 
-# ==================== 常量 ====================
+# ==================== 提供商 model_info 映射 ====================
 
-LOCKIN_BASE_URL = "https://test-info-ai-gateway-api.lockin.com/v1"
-LOCKIN_API_KEY = "sk-no3vqkfHFiPt2PBZAHsFLxVA5aI--KubBTuikSH0JQ-zYLkaLcj8Ng"
-LOCKIN_MODEL = "glm-5.1"
-
-MODEL_INFO = {
-    "vision": False,
-    "function_calling": True,
-    "json_output": True,
-    "structured_output": False,
-    "family": "unknown",
+PROVIDER_MODEL_INFO = {
+    "openai": {"vision": True, "function_calling": True, "json_output": True, "structured_output": True, "family": "openai"},
+    "qwen": {"vision": True, "function_calling": True, "json_output": True, "structured_output": False, "family": "qwen"},
+    "deepseek": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "deepseek"},
+    "kimi": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "moonshot"},
+    "zhipu": {"vision": True, "function_calling": True, "json_output": True, "structured_output": False, "family": "zhipu"},
+    "minimax": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "minimax"},
+    "iflow": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"},
+    "uniaix": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"},
 }
+
+DEFAULT_MODEL_INFO = {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"}
 
 # ==================== Agent Prompts ====================
 
@@ -231,19 +232,41 @@ class AutogenTask:
 class AutogenGroupChatService:
     """AutoGen GroupChat 集成服务"""
 
-    def __init__(self, db_session=None, socketio=None):
+    def __init__(self, db_session=None, socketio=None, llm_manager=None):
         self.db_session = db_session
         self.socketio = socketio  # Flask-SocketIO 实例，用于流式推送
+        self.llm_manager = llm_manager  # LLMManager 实例，用于动态获取 LLM 配置
         self._tasks: Dict[str, AutogenTask] = {}
         self._lock = threading.Lock()
         self._rejection_counts: Dict[str, int] = {}
 
     def _create_model_client(self) -> OpenAIChatCompletionClient:
+        """从 LLMManager 动态获取默认配置创建 AutoGen 模型客户端"""
+        if not self.llm_manager:
+            raise RuntimeError("LLMManager 未初始化，无法创建模型客户端")
+
+        config_info = self.llm_manager.get_config_info()
+        if not config_info:
+            raise RuntimeError("无可用 LLM 配置，请先在 AI 配置中添加模型")
+
+        provider = config_info.get("provider", "").lower()
+        model_id = config_info.get("model_id", "")
+        base_url = config_info.get("base_url", "")
+
+        # 从适配器获取 api_key（config_info 中未包含，需从 adapter 实例读取）
+        adapter = self.llm_manager.get_adapter()
+        api_key = getattr(adapter, "api_key", "")
+
+        # 根据提供商动态构建 model_info
+        model_info = PROVIDER_MODEL_INFO.get(provider, DEFAULT_MODEL_INFO)
+
+        logger.info(f"[AutoGen] 动态获取 LLM 配置: provider={provider}, model={model_id}, base_url={base_url}")
+
         return OpenAIChatCompletionClient(
-            model=LOCKIN_MODEL,
-            base_url=LOCKIN_BASE_URL,
-            api_key=LOCKIN_API_KEY,
-            model_info=MODEL_INFO,
+            model=model_id,
+            base_url=base_url,
+            api_key=api_key,
+            model_info=model_info,
         )
 
     def _get_requirement(self, requirement_id: int) -> Optional[Any]:
@@ -794,13 +817,16 @@ class AutogenGroupChatService:
 _instance: Optional[AutogenGroupChatService] = None
 
 
-def get_autogen_service(db_session=None, socketio=None) -> AutogenGroupChatService:
+def get_autogen_service(db_session=None, socketio=None, llm_manager=None) -> AutogenGroupChatService:
     """获取全局单例"""
     global _instance
     if _instance is None:
-        _instance = AutogenGroupChatService(db_session=db_session, socketio=socketio)
-    elif socketio and not _instance.socketio:
-        _instance.socketio = socketio
+        _instance = AutogenGroupChatService(db_session=db_session, socketio=socketio, llm_manager=llm_manager)
+    else:
+        if socketio and not _instance.socketio:
+            _instance.socketio = socketio
+        if llm_manager and not _instance.llm_manager:
+            _instance.llm_manager = llm_manager
     return _instance
 
 

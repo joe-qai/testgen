@@ -547,7 +547,7 @@ def review_requirement(requirement_id):
         if mode == "autogen":
             # ===== AutoGen GroupChat 模式（默认） =====
             from src.services.autogen_groupchat_service import get_autogen_service
-            ag_service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+            ag_service = get_autogen_service(db_session=db_session, socketio=app_socketio, llm_manager=llm_manager)
             ag_task_id = ag_service.create_task(requirement_id)
             requirement.status = RequirementStatus.GENERATING
             db_session.commit()
@@ -4350,7 +4350,7 @@ def autogen_generate():
             return jsonify({"error": "需求不存在"}), 404
 
         from src.services.autogen_groupchat_service import get_autogen_service
-        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio, llm_manager=llm_manager)
         task_id = service.create_task(requirement_id)
         service.run_async(task_id, requirement_id)
 
@@ -4369,7 +4369,7 @@ def autogen_task_status(task_id):
     """查询 AutoGen 生成任务状态"""
     try:
         from src.services.autogen_groupchat_service import get_autogen_service
-        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio, llm_manager=llm_manager)
         task = service.get_task(task_id)
         if not task:
             return jsonify({"error": "任务不存在"}), 404
@@ -4403,7 +4403,7 @@ def autogen_phase1():
             return jsonify({"error": "需求不存在"}), 404
 
         from src.services.autogen_groupchat_service import get_autogen_service
-        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio, llm_manager=llm_manager)
         task_id = service.create_task(requirement_id)
         
         # 只运行 Phase 1
@@ -4433,7 +4433,7 @@ def autogen_phase2(task_id):
     """
     try:
         from src.services.autogen_groupchat_service import get_autogen_service
-        service = get_autogen_service(db_session=db_session, socketio=app_socketio)
+        service = get_autogen_service(db_session=db_session, socketio=app_socketio, llm_manager=llm_manager)
         task = service.get_task(task_id)
         if not task:
             return jsonify({"error": "任务不存在"}), 404
