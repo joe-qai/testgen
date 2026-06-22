@@ -2381,12 +2381,12 @@ class GenerationService:
                         )
 
                         # 为当前ITEM生成用例（传递RAG上下文）
-                        item_cases = self.generate_item_cases(
+                        item_cases = self._generate_item_cases_with_rag(
                             item=item,
                             global_context=global_context,
                             recent_cases=recent_cases,
                             task_id=task_id,
-                            rag_context=rag_context,
+                            global_rag_context=rag_context,
                         )
 
                         print(
@@ -4314,6 +4314,44 @@ class GenerationService:
 
         return md
 
+    def _generate_item_cases_with_rag(
+        self,
+        item: Dict[str, Any],
+        global_context: Dict[str, Any],
+        recent_cases: List[Dict[str, Any]],
+        task_id: str,
+        global_rag_context: str,
+    ) -> List[Dict[str, Any]]:
+        item_title = item.get("title", item.get("name", ""))
+        item_points = item.get("points", [])
+        item_rag_result = self._perform_item_rag_recall(
+            item_title=item_title, item_points=item_points, top_k=5
+        )
+        merged_rag_context = self._merge_rag_contexts(
+            global_rag_context, item_rag_result
+        )
+        return self.generate_item_cases(
+            item=item,
+            global_context=global_context,
+            recent_cases=recent_cases,
+            task_id=task_id,
+            rag_context=merged_rag_context,
+        )
+
+    def _merge_rag_contexts(
+        self, global_context: str, item_result: Dict[str, Any]
+    ) -> str:
+        item_context = str(item_result.get("rag_context", "")).strip()
+        blocks = []
+        seen = set()
+        for context in (item_context, global_context.strip()):
+            for block in context.split("\n\n"):
+                normalized = block.strip()
+                if normalized and normalized not in seen:
+                    seen.add(normalized)
+                    blocks.append(normalized)
+        return "\n\n".join(blocks)
+
     def _normalize_item_points(self, item_points: List[Any]) -> List[str]:
         normalized = []
         for point in item_points:
@@ -4513,20 +4551,6 @@ class GenerationService:
                         }
                         for i, d in enumerate(defect_results[:top_k_defects])
                     ]
-                defect_results = (
-                    defect_response.get("results", [])
-                    if isinstance(defect_response, dict)
-                    else defect_response or []
-                )
-                if defect_results:
-                    rag_context += "\n## 召回的历史缺陷场景（必须覆盖）\n"
-                    rag_context += "> 以下缺陷在历史项目中出现过，请在新用例设计中重点覆盖这些场景，避免重复问题。\n\n"
-                    for i, defect in enumerate(defect_results[:top_k_defects], 1):
-                        rag_context += (
-                            f"### 历史缺陷 {i}\n{defect.get('content', '')}\n\n"
-                        )
-                    rag_stats["defects"] = len(defect_results[:top_k_defects])
-
                 if isinstance(defect_response, dict) and defect_response.get(
                     "adjustment"
                 ):

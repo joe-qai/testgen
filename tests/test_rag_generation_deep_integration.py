@@ -149,6 +149,51 @@ class TestRagContextFormatting:
         assert "引用标注要求" in result["rag_context"]
         assert "citation" in result["rag_context"]
 
+    def test_merge_rag_contexts_prefers_item_and_deduplicates_exact_blocks(self):
+        from src.services.generation_service import GenerationService
+
+        service = GenerationService.__new__(GenerationService)
+        merged = service._merge_rag_contexts(
+            "共享段落\n\n全局段落",
+            {"rag_context": "局部段落\n\n共享段落"},
+        )
+
+        assert merged.index("局部段落") < merged.index("全局段落")
+        assert merged.count("共享段落") == 1
+
+    def test_generate_item_with_rag_passes_merged_context(self):
+        from src.services.generation_service import GenerationService
+
+        service = GenerationService.__new__(GenerationService)
+        service._perform_item_rag_recall = MagicMock(
+            return_value={"rag_context": "ITEM-RAG"}
+        )
+        service._merge_rag_contexts = MagicMock(
+            return_value="ITEM-RAG\n\nGLOBAL-RAG"
+        )
+        service.generate_item_cases = MagicMock(return_value=[{"title": "case"}])
+        item = {"title": "模块A", "points": ["点A"]}
+
+        cases = service._generate_item_cases_with_rag(
+            item=item,
+            global_context={"requirement_content": "需求"},
+            recent_cases=[],
+            task_id="task-1",
+            global_rag_context="GLOBAL-RAG",
+        )
+
+        service._perform_item_rag_recall.assert_called_once_with(
+            item_title="模块A", item_points=["点A"], top_k=5
+        )
+        service._merge_rag_contexts.assert_called_once_with(
+            "GLOBAL-RAG", {"rag_context": "ITEM-RAG"}
+        )
+        assert (
+            service.generate_item_cases.call_args.kwargs["rag_context"]
+            == "ITEM-RAG\n\nGLOBAL-RAG"
+        )
+        assert cases == [{"title": "case"}]
+
 
 class TestDefectNoDuplication:
     def test_defect_not_duplicated(self):
