@@ -14,6 +14,8 @@ import time
 import threading
 import json
 
+from sqlalchemy import text
+
 # 修复 Windows 控制台编码问题
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
@@ -270,6 +272,23 @@ def create_app():
     @app.route("/<path:path>")
     def static_files(path):
         return send_from_directory(app.config["UI_FOLDER"], path)
+
+    @app.route("/health/live")
+    def health_live():
+        return jsonify({"status": "alive"}), 200
+
+    @app.route("/health/ready")
+    def health_ready():
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return jsonify({"status": "ready", "database": "connected"}), 200
+        except Exception:
+            return jsonify({"status": "not_ready", "database": "disconnected"}), 503
+
+    @app.route("/metrics")
+    def metrics():
+        return jsonify(metrics_collector.get_metrics()), 200
 
     @app.before_request
     def assign_request_id():
