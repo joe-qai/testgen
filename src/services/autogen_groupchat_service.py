@@ -286,11 +286,11 @@ class AutogenGroupChatService:
     def create_task(self, requirement_id: int) -> str:
         import uuid
         task_id = f"ag_{uuid.uuid4().hex[:12]}"
-        from datetime import datetime
+        from datetime import datetime, timezone
         task = AutogenTask(
             task_id=task_id,
             requirement_id=requirement_id,
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             status=0,
             message="任务已创建",
         )
@@ -303,14 +303,14 @@ class AutogenGroupChatService:
 
     async def run_generation(self, task_id: str, requirement_id: int):
         """完整的两阶段生成流程"""
-        from datetime import datetime
+        from datetime import datetime, timezone
         task = self._tasks.get(task_id)
         if not task:
             return
 
         start_time = time.time()
         task.status = 1
-        task.started_at = datetime.utcnow().isoformat()
+        task.started_at = datetime.now(timezone.utc).isoformat()
 
         try:
             requirement = self._get_requirement(requirement_id)
@@ -326,7 +326,7 @@ class AutogenGroupChatService:
             task.phase = "phase1"
             task.progress = 10.0
             task.message = "📋 Phase 1: 需求分析 + 策略设计"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
             self._emit(task_id, "progress", {"phase": task.phase, "progress": task.progress, "message": task.message})
 
             phase1_result = await self._run_phase1(requirement_text)
@@ -339,7 +339,7 @@ class AutogenGroupChatService:
             task.plan_data = phase1_result.get("plan")
             task.progress = 40.0
             task.message = "✅ Phase 1 完成，进入 Phase 2"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
             self._emit(task_id, "progress", {"phase": task.phase, "progress": task.progress, "message": task.message})
 
             # ========== Phase 2: 生成 + 评审 ==========
@@ -369,7 +369,7 @@ class AutogenGroupChatService:
             self._emit(task_id, "complete", {"phase": "complete", "progress": 100, "cases": len(task.cases), "message": task.message})
             task.status = 2
             task.phase = "complete"
-            task.completed_at = datetime.utcnow().isoformat()
+            task.completed_at = datetime.now(timezone.utc).isoformat()
             task.duration = time.time() - start_time
 
         except Exception as e:
@@ -709,7 +709,7 @@ class AutogenGroupChatService:
     def run_async_phase1(self, task_id: str, requirement_id: int):
         """只运行 Phase 1，完成后暂停等人工评审"""
         async def _phase1():
-            from datetime import datetime
+            from datetime import datetime, timezone
             task = self._tasks.get(task_id)
             if not task:
                 return
@@ -725,7 +725,7 @@ class AutogenGroupChatService:
             task.phase = "phase1"
             task.progress = 10.0
             task.message = "Phase 1: 需求分析 + 策略设计"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
             self._emit(task_id, "progress", {"phase": "phase1", "progress": 10})
 
             phase1_result = await self._run_phase1(requirement.content)
@@ -740,7 +740,7 @@ class AutogenGroupChatService:
             task.phase = "phase1_done"
             task.progress = 40.0
             task.message = "Phase 1 完成，等待人工评审"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
             self._emit(task_id, "phase1_done", {"phase": "phase1_done", "progress": 40, "plan_data": task.plan_data})
 
         def _run():
@@ -757,7 +757,7 @@ class AutogenGroupChatService:
     def run_async_phase2(self, task_id: str, edited_plan: Optional[Dict] = None):
         """人工评审后继续 Phase 2"""
         async def _phase2():
-            from datetime import datetime
+            from datetime import datetime, timezone
             task = self._tasks.get(task_id)
             if not task or task.phase != "phase1_done":
                 return
@@ -765,7 +765,7 @@ class AutogenGroupChatService:
             task.phase = "phase2"
             task.progress = 40.0
             task.message = "Phase 2: 用例生成 + 评审"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
             self._emit(task_id, "progress", {"phase": "phase2", "progress": 40})
 
             requirement = self._get_requirement(task.requirement_id)
@@ -789,7 +789,7 @@ class AutogenGroupChatService:
             task.cases = cases
             task.progress = 80.0
             task.message = f"生成完成：{len(cases)} 条用例"
-            task.updated_at = datetime.utcnow().isoformat()
+            task.updated_at = datetime.now(timezone.utc).isoformat()
 
             saved = self._save_cases(task.requirement_id, cases)
             if saved > 0:
@@ -797,7 +797,7 @@ class AutogenGroupChatService:
             task.progress = 100.0
             task.status = 2
             task.phase = "complete"
-            task.completed_at = datetime.utcnow().isoformat()
+            task.completed_at = datetime.now(timezone.utc).isoformat()
             task.duration = time.time() - time.mktime(datetime.fromisoformat(task.created_at).timetuple())
             self._emit(task_id, "complete", {"phase": "complete", "progress": 100, "cases": len(cases)})
 

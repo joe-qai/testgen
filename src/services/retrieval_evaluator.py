@@ -10,7 +10,7 @@
 """
 
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from src.utils import get_logger
 
 logger = get_logger(__name__)
@@ -101,7 +101,7 @@ class RetrievalEvaluator:
             "similarity_distribution": distribution,
             "diversity_index": round(diversity, 4),
             "quality_alert": quality_alert,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def calculate_diversity_index(self, results: List[Dict[str, Any]]) -> float:
