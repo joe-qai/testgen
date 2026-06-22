@@ -89,11 +89,10 @@ class GenerationService:
         # 调试：输出llm_manager的默认配置
         if llm_manager:
             default_info = llm_manager.get_config_info()
-            print(
-                f"初始化完成，LLM默认配置: {default_info.get('name', '无')} ({default_info.get('provider', '未知')})"
+            logger.info(f"初始化完成，LLM默认配置: {default_info.get('name', '无')} ({default_info.get('provider', '未知')})"
             )
-            print(f"LLM适配器列表: {list(llm_manager.adapters.keys())}")
-            print(f"默认适配器: {llm_manager.default_adapter}")
+            logger.info(f"LLM适配器列表: {list(llm_manager.adapters.keys())}")
+            logger.info(f"默认适配器: {llm_manager.default_adapter}")
 
         # 从数据库加载未完成的任务
         self._load_pending_tasks_from_db()
@@ -118,9 +117,9 @@ class GenerationService:
                 from src.services.dynamic_retriever import DynamicRetriever
 
                 self._dynamic_retriever = DynamicRetriever()
-                print("[RAG组件] DynamicRetriever 初始化完成")
+                logger.info("[RAG组件] DynamicRetriever 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] DynamicRetriever 初始化失败: {e}")
+                logger.info(f"[RAG组件] DynamicRetriever 初始化失败: {e}")
 
         if self._hybrid_retriever is None:
             try:
@@ -134,9 +133,9 @@ class GenerationService:
                     rrf_k=self.rrf_k,
                     dynamic_retriever=self._dynamic_retriever,
                 )
-                print("[RAG组件] HybridRetriever 初始化完成")
+                logger.info("[RAG组件] HybridRetriever 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] HybridRetriever 初始化失败: {e}")
+                logger.info(f"[RAG组件] HybridRetriever 初始化失败: {e}")
 
         if self._query_optimizer is None and self.llm_manager:
             try:
@@ -146,18 +145,18 @@ class GenerationService:
                     llm_manager=self.llm_manager,
                     vector_store=self.vector_store,
                 )
-                print("[RAG组件] QueryOptimizer 初始化完成")
+                logger.info("[RAG组件] QueryOptimizer 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] QueryOptimizer 初始化失败: {e}")
+                logger.info(f"[RAG组件] QueryOptimizer 初始化失败: {e}")
 
         if self._confidence_calculator is None:
             try:
                 from src.services.confidence_calculator import ConfidenceCalculator
 
                 self._confidence_calculator = ConfidenceCalculator()
-                print("[RAG组件] ConfidenceCalculator 初始化完成")
+                logger.info("[RAG组件] ConfidenceCalculator 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] ConfidenceCalculator 初始化失败: {e}")
+                logger.info(f"[RAG组件] ConfidenceCalculator 初始化失败: {e}")
 
         if self._citation_parser is None:
             try:
@@ -166,23 +165,23 @@ class GenerationService:
                 self._citation_parser = CitationParser(
                     vector_store=self.vector_store,
                 )
-                print("[RAG组件] CitationParser 初始化完成")
+                logger.info("[RAG组件] CitationParser 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] CitationParser 初始化失败: {e}")
+                logger.info(f"[RAG组件] CitationParser 初始化失败: {e}")
 
         if self._retrieval_evaluator is None:
             try:
                 from src.services.retrieval_evaluator import RetrievalEvaluator
 
                 self._retrieval_evaluator = RetrievalEvaluator()
-                print("[RAG组件] RetrievalEvaluator 初始化完成")
+                logger.info("[RAG组件] RetrievalEvaluator 初始化完成")
             except Exception as e:
-                print(f"[RAG组件] RetrievalEvaluator 初始化失败: {e}")
+                logger.info(f"[RAG组件] RetrievalEvaluator 初始化失败: {e}")
 
     def _load_pending_tasks_from_db(self):
         """从数据库加载未完成的任务（status 为 pending/processing/awaiting_review）"""
         if not self.db_session:
-            print("[GenerationService] 数据库会话不可用，跳过任务恢复")
+            logger.info("[GenerationService] 数据库会话不可用，跳过任务恢复")
             return
 
         try:
@@ -196,8 +195,7 @@ class GenerationService:
             )
 
             if pending_tasks:
-                print(
-                    f"[GenerationService] 从数据库恢复 {len(pending_tasks)} 个未完成任务"
+                logger.info(f"[GenerationService] 从数据库恢复 {len(pending_tasks)} 个未完成任务"
                 )
                 for task_model in pending_tasks:
                     task = GenerationTask(
@@ -231,7 +229,7 @@ class GenerationService:
                     self._tasks[task_model.task_id] = task
 
         except Exception as e:
-            print(f"[GenerationService] 恢复未完成任务失败: {e}")
+            logger.info(f"[GenerationService] 恢复未完成任务失败: {e}")
 
     @staticmethod
     def init_default_prompts(db_session):
@@ -900,7 +898,7 @@ class GenerationService:
 
             session.commit()
         except Exception as e:
-            print(f"[GenerationService] 同步任务到数据库失败: {e}")
+            logger.info(f"[GenerationService] 同步任务到数据库失败: {e}")
             try:
                 session.rollback()
             except:
@@ -1117,9 +1115,9 @@ class GenerationService:
                     )
                     requirement.analyzed_content = analyzed_md
                     self.db_session.commit()
-                    print(f"已保存需求分析Markdown格式到需求ID: {requirement_id}")
+                    logger.info(f"已保存需求分析Markdown格式到需求ID: {requirement_id}")
             except Exception as e:
-                print(f"保存需求分析Markdown失败: {e}")
+                logger.info(f"保存需求分析Markdown失败: {e}")
 
         self.update_progress(
             task_id,
@@ -1373,7 +1371,7 @@ class GenerationService:
             生成的测试用例列表
         """
         if not self.llm_manager:
-            print("[生成服务] LLM管理器不可用，返回空用例列表")
+            logger.info("[生成服务] LLM管理器不可用，返回空用例列表")
             return []
 
         try:
@@ -1383,12 +1381,11 @@ class GenerationService:
             item_priority = item.get("priority", "P1")
 
             # [调试] 打印item信息
-            print(f"[调试][generate_item_cases] 开始生成 - title: {item_title}")
-            print(f"[调试][generate_item_cases]   - item keys: {list(item.keys())}")
-            print(
-                f"[调试][generate_item_cases]   - points: {len(item_points) if item_points else 0}"
+            logger.info(f"[调试][generate_item_cases] 开始生成 - title: {item_title}")
+            logger.info(f"[调试][generate_item_cases]   - item keys: {list(item.keys())}")
+            logger.info(f"[调试][generate_item_cases]   - points: {len(item_points) if item_points else 0}"
             )
-            print(f"[调试][generate_item_cases]   - priority: {item_priority}")
+            logger.info(f"[调试][generate_item_cases]   - priority: {item_priority}")
 
             # 格式化各部分
             plan_summary_str = self.format_plan_summary(
@@ -1425,12 +1422,10 @@ class GenerationService:
             prompt = render_result["prompt"]
 
             if render_result["used_fallback"]:
-                print("[generate_item_cases] 使用fallback默认模板")
+                logger.info("[generate_item_cases] 使用fallback默认模板")
 
             if render_result["missing_variables"]:
-                print(
-                    f"[generate_item_cases] 模板缺少变量: {render_result['missing_variables']}"
-                )
+                logger.info(f"[generate_item_cases] 模板缺少变量: {render_result['missing_variables']}")
 
             # 2. 调用LLM生成
             adapter = self.llm_manager.get_adapter()
@@ -1439,16 +1434,12 @@ class GenerationService:
                 self.update_progress(task_id, None, f"🤖 正在生成模块: {item_title}")
 
             # [调试] 打印LLM调用信息
-            print(
-                f"[调试][generate_item_cases] 调用LLM - adapter: {type(adapter).__name__}"
+            logger.info(f"[调试][generate_item_cases] 调用LLM - adapter: {type(adapter).__name__}"
             )
-            print(f"[调试][generate_item_cases]   - prompt长度: {len(prompt)} 字符")
-            print(
-                f"[调试][generate_item_cases]   - temperature: 0.7, max_tokens: 4096, timeout: 120"
-            )
+            logger.info(f"[调试][generate_item_cases]   - prompt长度: {len(prompt)} 字符")
+            logger.info(f"[调试][generate_item_cases]   - temperature: 0.7, max_tokens: 4096, timeout: 120")
 
-            print(
-                f"[用例生成] 调用LLM - adapter={type(adapter).__name__}, temperature=0.7"
+            logger.info(f"[用例生成] 调用LLM - adapter={type(adapter).__name__}, temperature=0.7"
             )
             response = adapter.generate(
                 prompt,
@@ -1461,11 +1452,10 @@ class GenerationService:
 
             # 打印LLM响应结果
             if response.success:
-                print(
-                    f"[用例生成] LLM响应成功 - 响应长度: {len(response.content) if response.content else 0}字符"
+                logger.info(f"[用例生成] LLM响应成功 - 响应长度: {len(response.content) if response.content else 0}字符"
                 )
             else:
-                print(f"[用例生成] LLM响应失败: {response.error_message}")
+                logger.info(f"[用例生成] LLM响应失败: {response.error_message}")
 
             if not response.success:
                 raise Exception(f"LLM生成失败: {response.error_message}")
@@ -1473,16 +1463,16 @@ class GenerationService:
             # 解析生成的用例
             try:
                 test_cases = self._parse_generated_cases(response.content)
-                print(f"[用例生成] 解析用例完成 - 生成 {len(test_cases)} 条用例")
+                logger.info(f"[用例生成] 解析用例完成 - 生成 {len(test_cases)} 条用例")
             except AttributeError as ae:
-                print(f"[用例生成] 解析方法AttributeError: {ae}")
-                print(f"[用例生成] 尝试备用解析方法...")
+                logger.info(f"[用例生成] 解析方法AttributeError: {ae}")
+                logger.info(f"[用例生成] 尝试备用解析方法...")
                 import traceback
 
                 traceback.print_exc()
                 test_cases = []
             except Exception as parse_err:
-                print(f"[用例生成] 解析失败: {parse_err}")
+                logger.info(f"[用例生成] 解析失败: {parse_err}")
                 import traceback
 
                 traceback.print_exc()
@@ -1494,15 +1484,15 @@ class GenerationService:
                 case["item_title"] = item_title
                 case["item_priority"] = item_priority
 
-            print(f"[用例生成] 模块 '{item_title}' 完成 - 共 {len(test_cases)} 条用例")
+            logger.info(f"[用例生成] 模块 '{item_title}' 完成 - 共 {len(test_cases)} 条用例")
             return test_cases
 
         except Exception as e:
             import traceback
 
-            print(f"[分批生成] 模块 '{item.get('title', '未知')}' 生成失败: {e}")
-            print(f"[分批生成] 异常类型: {type(e).__name__}")
-            print(f"[分批生成] 堆栈跟踪:")
+            logger.info(f"[分批生成] 模块 '{item.get('title', '未知')}' 生成失败: {e}")
+            logger.info(f"[分批生成] 异常类型: {type(e).__name__}")
+            logger.info(f"[分批生成] 堆栈跟踪:")
             traceback.print_exc()
             return []
 
@@ -1526,7 +1516,7 @@ class GenerationService:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics.pairwise import cosine_similarity
         except ImportError:
-            print("[质检] sklearn 未安装，跳过重复检测")
+            logger.info("[质检] sklearn 未安装，跳过重复检测")
             return []
 
         try:
@@ -1568,11 +1558,11 @@ class GenerationService:
                             }
                         )
 
-            print(f"[质检] 重复检测完成 - 发现 {len(duplicate_pairs)} 对重复用例")
+            logger.info(f"[质检] 重复检测完成 - 发现 {len(duplicate_pairs)} 对重复用例")
             return duplicate_pairs
 
         except Exception as e:
-            print(f"[质检] 重复检测失败: {e}")
+            logger.info(f"[质检] 重复检测失败: {e}")
             return []
 
     def filter_duplicates(
@@ -1634,14 +1624,13 @@ class GenerationService:
             duplicates = [c for idx, c in enumerate(cases) if idx in indices_to_remove]
 
             if duplicates:
-                print(
-                    f"[去重] 过滤完成 - 保留 {len(filtered)} 条, 移除 {len(duplicates)} 条重复用例"
+                logger.info(f"[去重] 过滤完成 - 保留 {len(filtered)} 条, 移除 {len(duplicates)} 条重复用例"
                 )
 
             return filtered, duplicates
 
         except Exception as e:
-            print(f"[去重] 过滤失败: {e}")
+            logger.info(f"[去重] 过滤失败: {e}")
             return cases, []
 
     def extract_point_id_from_case(self, case: Dict[str, Any]) -> Optional[str]:
@@ -1764,8 +1753,7 @@ class GenerationService:
                 if not coverage_map.get(point_id):
                     uncovered_points.append(point)
 
-            print(
-                f"[质检] 覆盖度检查完成 - {covered_points}/{total_points} ({coverage_rate:.2%})"
+            logger.info(f"[质检] 覆盖度检查完成 - {covered_points}/{total_points} ({coverage_rate:.2%})"
             )
 
             return {
@@ -1776,7 +1764,7 @@ class GenerationService:
             }
 
         except Exception as e:
-            print(f"[质检] 覆盖度检查失败: {e}")
+            logger.info(f"[质检] 覆盖度检查失败: {e}")
             return {
                 "total_points": 0,
                 "covered_points": 0,
@@ -1914,9 +1902,7 @@ class GenerationService:
         high_quality_count = sum(1 for s in scores if s >= 80)
         low_quality_count = sum(1 for s in scores if s < 60)
 
-        print(
-            f"[质检] 质量评分完成 - 平均分: {average_score:.1f}, 高质量: {high_quality_count}, 低质量: {low_quality_count}"
-        )
+        logger.info(f"[质检] 质量评分完成 - 平均分: {average_score:.1f}, 高质量: {high_quality_count}, 低质量: {low_quality_count}")
 
         return {
             "average_score": round(average_score, 2),
@@ -1940,7 +1926,7 @@ class GenerationService:
         Returns:
             质检报告字典
         """
-        print("[质检] 开始执行质量检查...")
+        logger.info("[质检] 开始执行质量检查...")
 
         if not cases:
             return {
@@ -1963,16 +1949,16 @@ class GenerationService:
             }
 
         # 1. 重复检测
-        print("[质检] Step 1: 重复检测...")
+        logger.info("[质检] Step 1: 重复检测...")
         duplicates = self.detect_duplicates(cases, threshold=0.85)
         duplicate_rate = len(duplicates) / len(cases) if len(cases) > 0 else 0.0
 
         # 2. 覆盖度检查
-        print("[质检] Step 2: 覆盖度检查...")
+        logger.info("[质检] Step 2: 覆盖度检查...")
         coverage = self.check_coverage(cases, test_plan)
 
         # 3. 质量评分
-        print("[质检] Step 3: 质量评分...")
+        logger.info("[质检] Step 3: 质量评分...")
         quality_score = self.calculate_quality_score(cases)
 
         # 4. 生成建议
@@ -2037,7 +2023,7 @@ class GenerationService:
             "recommendations": recommendations,
         }
 
-        print(f"[质检] 质量检查完成 - 生成 {len(recommendations)} 条建议")
+        logger.info(f"[质检] 质量检查完成 - 生成 {len(recommendations)} 条建议")
         return quality_report
 
     def generate_missing_cases(
@@ -2059,7 +2045,7 @@ class GenerationService:
             return []
 
         if not self.llm_manager:
-            print("[补充生成] LLM管理器不可用，跳过补充生成")
+            logger.info("[补充生成] LLM管理器不可用，跳过补充生成")
             return []
 
         supplement_cases = []
@@ -2070,7 +2056,7 @@ class GenerationService:
             point_title = point.get("point_title", "")
             item_title = point.get("item_title", "")
 
-            print(f"[补充生成] 为测试点 '{point_title}' 补充生成用例...")
+            logger.info(f"[补充生成] 为测试点 '{point_title}' 补充生成用例...")
 
             # 构建补充生成Prompt
             prompt = f"""你是资深的测试用例设计专家，请为以下未覆盖的测试点补充生成测试用例。
@@ -2139,18 +2125,15 @@ class GenerationService:
                         case["supplement_point"] = point_title
 
                     supplement_cases.extend(parsed_cases)
-                    print(
-                        f"[补充生成] 测试点 '{point_title}' 生成 {len(parsed_cases)} 条用例"
+                    logger.info(f"[补充生成] 测试点 '{point_title}' 生成 {len(parsed_cases)} 条用例"
                     )
                 else:
-                    print(
-                        f"[补充生成] 测试点 '{point_title}' 生成失败: {response.error_message}"
-                    )
+                    logger.info(f"[补充生成] 测试点 '{point_title}' 生成失败: {response.error_message}")
 
             except Exception as e:
-                print(f"[补充生成] 测试点 '{point_title}' 生成异常: {e}")
+                logger.info(f"[补充生成] 测试点 '{point_title}' 生成异常: {e}")
 
-        print(f"[补充生成] 补充生成完成 - 共生成 {len(supplement_cases)} 条用例")
+        logger.info(f"[补充生成] 补充生成完成 - 共生成 {len(supplement_cases)} 条用例")
         return supplement_cases
 
     def execute_phase2_generation(
@@ -2229,7 +2212,7 @@ class GenerationService:
                     modules = test_plan_data.get("modules", [])
                     test_points = test_plan_data.get("test_points", [])
                     if modules and test_points:
-                        print(f"[执行阶段2] items 为空，从 {len(modules)} 个模块 + {len(test_points)} 个测试点自动构建")
+                        logger.info(f"[执行阶段2] items 为空，从 {len(modules)} 个模块 + {len(test_points)} 个测试点自动构建")
                         for mod in modules:
                             mod_name = mod.get("name", mod.get("Name", "未知模块"))
                             mod_points = [tp.get("name", "") for tp in test_points if tp.get("module", "") == mod_name]
@@ -2243,7 +2226,7 @@ class GenerationService:
                                 "priority": "P0" if any(tp.get("risk_level") == "High" for tp in test_points if tp.get("module", "") == mod_name) else "P1"
                             })
                         test_plan_data["items"] = items
-                        print(f"[执行阶段2] 自动构建 {len(items)} 个测试项")
+                        logger.info(f"[执行阶段2] 自动构建 {len(items)} 个测试项")
                     elif modules:
                         # 只有 modules 没有 test_points
                         for mod in modules:
@@ -2265,14 +2248,12 @@ class GenerationService:
                         item["points"] = filtered
 
                 # 打印调试信息
-                print(
-                    f"[执行阶段2] reviewed_plan is not None: {reviewed_plan is not None}"
-                )
-                print(f"[执行阶段2] test_plan_data: {test_plan_data}")
-                print(f"[执行阶段2] test_plan_data keys: {list(test_plan_data.keys())}")
-                print(f"[执行阶段2] items count: {len(items)}")
+                logger.info(f"[执行阶段2] reviewed_plan is not None: {reviewed_plan is not None}")
+                logger.info(f"[执行阶段2] test_plan_data: {test_plan_data}")
+                logger.info(f"[执行阶段2] test_plan_data keys: {list(test_plan_data.keys())}")
+                logger.info(f"[执行阶段2] items count: {len(items)}")
                 if items:
-                    print(f"[执行阶段2] first item: {items[0]}")
+                    logger.info(f"[执行阶段2] first item: {items[0]}")
 
                 if not items:
                     self.fail_task(task_id, "测试计划中未找到测试项")
@@ -2282,17 +2263,17 @@ class GenerationService:
                 all_generated_cases = []
                 failed_items = []
 
-                print(f"[调试] 开始分批生成 - 总共 {total_items} 个ITEM")
+                logger.info(f"[调试] 开始分批生成 - 总共 {total_items} 个ITEM")
 
                 # ========== 步骤1: 准备全局上下文（执行一次）==========
                 self.update_progress(task_id, 30.0, "📋 正在准备生成上下文...")
-                print(f"[阶段2生成] ===== 开始生成任务 task_id={task_id} =====")
-                print(f"[阶段2生成] 需求内容摘要: {requirement.content[:80]}...")
+                logger.info(f"[阶段2生成] ===== 开始生成任务 task_id={task_id} =====")
+                logger.info(f"[阶段2生成] 需求内容摘要: {requirement.content[:80]}...")
 
                 global_context = self.prepare_generation_context(
                     requirement, test_plan_data, generation_strategy
                 )
-                print(f"[阶段2生成] 全局上下文准备完成")
+                logger.info(f"[阶段2生成] 全局上下文准备完成")
 
                 # 执行RAG召回（全局一次）
                 rag_context = ""
@@ -2303,8 +2284,7 @@ class GenerationService:
                         self.update_progress(
                             task_id, 32.0, "🔎 正在召回相似历史用例..."
                         )
-                        print(
-                            f"[RAG召回] 开始召回 - 查询需求内容长度: {len(global_context.get('requirement_content', ''))}"
+                        logger.info(f"[RAG召回] 开始召回 - 查询需求内容长度: {len(global_context.get('requirement_content', ''))}"
                         )
 
                         rag_context, rag_stats, rag_context_data = (
@@ -2320,29 +2300,27 @@ class GenerationService:
                         recall_summary = "✅ RAG召回完成 - "
                         if rag_stats["cases"] > 0:
                             recall_summary += f"用例:{rag_stats['cases']}条 "
-                            print(f"[RAG召回] 召回相似用例: {rag_stats['cases']}条")
+                            logger.info(f"[RAG召回] 召回相似用例: {rag_stats['cases']}条")
                         if rag_stats["defects"] > 0:
                             recall_summary += f"缺陷:{rag_stats['defects']}条 "
-                            print(f"[RAG召回] 召回历史缺陷: {rag_stats['defects']}条")
+                            logger.info(f"[RAG召回] 召回历史缺陷: {rag_stats['defects']}条")
                         if rag_stats["requirements"] > 0:
                             recall_summary += f"需求:{rag_stats['requirements']}条"
-                            print(
-                                f"[RAG召回] 召回相似需求: {rag_stats['requirements']}条"
-                            )
+                            logger.info(f"[RAG召回] 召回相似需求: {rag_stats['requirements']}条")
 
                         if (
                             rag_stats["cases"] == 0
                             and rag_stats["defects"] == 0
                             and rag_stats["requirements"] == 0
                         ):
-                            print(f"[RAG召回] 未召回任何相关内容")
+                            logger.info(f"[RAG召回] 未召回任何相关内容")
 
                         self.update_progress(task_id, 35.0, recall_summary)
                     except Exception as e:
-                        print(f"[RAG召回] 召回失败: {e}")
+                        logger.info(f"[RAG召回] 召回失败: {e}")
                         self.update_progress(task_id, 35.0, "⚠️ RAG召回失败，继续生成")
                 else:
-                    print(f"[RAG召回] 向量库未初始化，跳过RAG召回")
+                    logger.info(f"[RAG召回] 向量库未初始化，跳过RAG召回")
                     self.update_progress(task_id, 35.0, "⚠️ 向量库未初始化，跳过RAG召回")
 
                 # 检查任务是否已取消
@@ -2350,19 +2328,18 @@ class GenerationService:
                     return
 
                 # ========== 步骤2: 按ITEM分批生成 ==========
-                print(f"[用例生成] 开始按模块生成 - 共 {total_items} 个模块")
+                logger.info(f"[用例生成] 开始按模块生成 - 共 {total_items} 个模块")
                 for idx, item in enumerate(items, 1):
                     # 每个ITEM生成前检查取消状态
                     if self._check_task_cancelled(task_id):
-                        print(f"[用例生成] 任务已取消: task_id={task_id}")
+                        logger.info(f"[用例生成] 任务已取消: task_id={task_id}")
                         return
                     item_title = item.get("title", item.get("name", f"模块{idx}"))
                     item_points = item.get("points", [])
 
                     # 打印当前模块信息
                     point_names = [str(p) for p in item_points]
-                    print(
-                        f"[用例生成] 处理模块 {idx}/{total_items}: {item_title}, 测试点: {', '.join(point_names[:3])}"
+                    logger.info(f"[用例生成] 处理模块 {idx}/{total_items}: {item_title}, 测试点: {', '.join(point_names[:3])}"
                     )
 
                     # 更新进度: 30% + (idx / total_items) * 50%
@@ -2377,8 +2354,7 @@ class GenerationService:
                         # 获取最近5条用例（保持风格连贯）
                         recent_cases = all_generated_cases[-5:]
 
-                        print(
-                            f"[用例生成] 调用 generate_item_cases - 模块={item_title}, 测试点数={len(item_points)}"
+                        logger.info(f"[用例生成] 调用 generate_item_cases - 模块={item_title}, 测试点数={len(item_points)}"
                         )
 
                         # 为当前ITEM生成用例（传递RAG上下文）
@@ -2390,14 +2366,12 @@ class GenerationService:
                             global_rag_context=rag_context,
                         )
 
-                        print(
-                            f"[调试] generate_item_cases 返回 {len(item_cases) if item_cases else 0} 条用例"
+                        logger.info(f"[调试] generate_item_cases 返回 {len(item_cases) if item_cases else 0} 条用例"
                         )
 
                         if item_cases:
                             all_generated_cases.extend(item_cases)
-                            print(
-                                f"[分批生成] 模块 '{item_title}' 生成 {len(item_cases)} 条用例"
+                            logger.info(f"[分批生成] 模块 '{item_title}' 生成 {len(item_cases)} 条用例"
                             )
                         else:
                             failed_items.append(
@@ -2409,7 +2383,7 @@ class GenerationService:
                             )
 
                     except Exception as e:
-                        print(f"[分批生成] 模块 '{item_title}' 处理异常: {e}")
+                        logger.info(f"[分批生成] 模块 '{item_title}' 处理异常: {e}")
                         failed_items.append(
                             {"title": item_title, "error": str(e), "stage": "process"}
                         )
@@ -2463,7 +2437,7 @@ class GenerationService:
                     # 保存补充生成的用例
                     if supplement_cases:
                         all_generated_cases.extend(supplement_cases)
-                        print(f"[分批生成] 补充生成 {len(supplement_cases)} 条用例")
+                        logger.info(f"[分批生成] 补充生成 {len(supplement_cases)} 条用例")
 
                 # 重新计算质检报告（包含补充用例）
                 if supplement_cases:
@@ -2481,7 +2455,7 @@ class GenerationService:
                     88.0,
                     "🔍 正在执行AI评审...",
                 )
-                print(f"[用例评审] 开始评审 - 用例总数: {len(all_generated_cases)}")
+                logger.info(f"[用例评审] 开始评审 - 用例总数: {len(all_generated_cases)}")
 
                 review_result = None
                 review_passed = False
@@ -2489,48 +2463,44 @@ class GenerationService:
 
                 if self.case_review_agent and all_generated_cases:
                     try:
-                        print(f"[用例评审] 调用CaseReviewAgent评审...")
+                        logger.info(f"[用例评审] 调用CaseReviewAgent评审...")
                         review_result = self.case_review_agent.review_batch(
                             cases=all_generated_cases,
                             requirement_context=requirement_context,
                         )
-                        print(
-                            f"[用例评审] 评审结果: {review_result.get('decision', 'N/A')}"
+                        logger.info(f"[用例评审] 评审结果: {review_result.get('decision', 'N/A')}"
                         )
-                        print(
-                            f"[用例评审] 综合得分: {review_result.get('overall_score', 0)}"
+                        logger.info(f"[用例评审] 综合得分: {review_result.get('overall_score', 0)}"
                         )
 
                         decision = review_result.get("decision", "")
                         if decision == "AUTO_PASS":
                             review_passed = True
-                            print("[用例评审] AI评审通过")
+                            logger.info("[用例评审] AI评审通过")
                         elif decision == "NEEDS_REVIEW":
                             review_passed = False
-                            print("[用例评审] 需要人工复核")
+                            logger.info("[用例评审] 需要人工复核")
                         else:
                             review_passed = False
-                            print("[用例评审] 评审不通过")
+                            logger.info("[用例评审] 评审不通过")
 
                         # 打印评审问题摘要
                         issues = review_result.get("issues", [])
                         if issues:
-                            print(f"[用例评审] 发现 {len(issues)} 个问题")
+                            logger.info(f"[用例评审] 发现 {len(issues)} 个问题")
                             for issue in issues[:3]:
-                                print(
-                                    f"  - {issue.get('type')}: {issue.get('description', '')[:50]}"
+                                logger.info(f"  - {issue.get('type')}: {issue.get('description', '')[:50]}"
                                 )
                     except Exception as e:
-                        print(f"[用例评审] 评审失败: {e}，跳过评审直接保存")
+                        logger.info(f"[用例评审] 评审失败: {e}，跳过评审直接保存")
                 else:
-                    print("[用例评审] 跳过评审（无review agent或无用例）")
+                    logger.info("[用例评审] 跳过评审（无review agent或无用例）")
 
                 # 标记需要人工复核的用例
                 if not review_passed and all_generated_cases:
                     for case in all_generated_cases:
                         case["requires_human_review"] = True
-                    print(
-                        f"[用例评审] 标记 {len(all_generated_cases)} 条用例需要人工复核"
+                    logger.info(f"[用例评审] 标记 {len(all_generated_cases)} 条用例需要人工复核"
                     )
 
                 self.update_progress(
@@ -2547,13 +2517,11 @@ class GenerationService:
                             all_generated_cases, threshold=0.85
                         )
                         if duplicate_cases:
-                            print(
-                                f"[去重] 过滤掉 {len(duplicate_cases)} 条重复用例，保留 {len(filtered_cases)} 条"
+                            logger.info(f"[去重] 过滤掉 {len(duplicate_cases)} 条重复用例，保留 {len(filtered_cases)} 条"
                             )
 
                         rag_influenced = 1 if rag_stats.get("cases", 0) > 0 else 0
-                        print(
-                            f"[用例保存] 开始保存用例 - 需求ID={requirement_id}, 用例数={len(filtered_cases)}, RAG来源数={len(self._current_rag_sources.get(task_id, []))}"
+                        logger.info(f"[用例保存] 开始保存用例 - 需求ID={requirement_id}, 用例数={len(filtered_cases)}, RAG来源数={len(self._current_rag_sources.get(task_id, []))}"
                         )
                         self._save_test_cases(
                             requirement_id,
@@ -2561,11 +2529,10 @@ class GenerationService:
                             rag_influenced,
                             self._current_rag_sources.get(task_id, []),
                         )
-                        print(
-                            f"[用例保存] 保存完成 - 共 {len(filtered_cases)} 条用例, 需要人工复核: {len([c for c in filtered_cases if c.get('requires_human_review')])}"
+                        logger.info(f"[用例保存] 保存完成 - 共 {len(filtered_cases)} 条用例, 需要人工复核: {len([c for c in filtered_cases if c.get('requires_human_review')])}"
                         )
                     except Exception as save_error:
-                        print(f"[用例保存] 保存失败: {save_error}")
+                        logger.info(f"[用例保存] 保存失败: {save_error}")
 
                 self.update_progress(
                     task_id,
@@ -2617,21 +2584,19 @@ class GenerationService:
                     result_data["warning"] = (
                         f"以下模块生成失败: {', '.join(failed_titles)}"
                     )
-                    print(f"[任务完成] 失败模块: {', '.join(failed_titles)}")
+                    logger.info(f"[任务完成] 失败模块: {', '.join(failed_titles)}")
 
                 # 完成任务
                 if total_cases > 0:
                     self.update_progress(task_id, 100.0, "✅ 分批生成完成")
                     self.complete_task(task_id, result_data)
-                    print(
-                        f"[任务完成] task_id={task_id}, 生成用例数={total_cases}, 状态=成功"
-                    )
+                    logger.info(f"[任务完成] task_id={task_id}, 生成用例数={total_cases}, 状态=成功")
                 else:
                     error_msg = "未生成任何用例"
                     if failed_items:
                         error_msg += f"，失败模块: {', '.join([f['title'] for f in failed_items])}"
                     self.fail_task(task_id, error_msg)
-                    print(f"[任务完成] task_id={task_id}, 状态=失败, 原因={error_msg}")
+                    logger.info(f"[任务完成] task_id={task_id}, 状态=失败, 原因={error_msg}")
 
                 # 更新需求状态（使用线程安全的session）
                 bg_session = self._get_db_session()
@@ -2651,9 +2616,9 @@ class GenerationService:
                                 else:
                                     requirement.status = RequirementStatus.FAILED
                                 bg_session.commit()
-                                print(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
                     except Exception as e:
-                        print(f"更新需求状态失败: {e}")
+                        logger.info(f"更新需求状态失败: {e}")
 
             except Exception as e:
                 logger.info("[调试][run_phase2_batch] ===== 捕获到异常 =====")
@@ -2754,7 +2719,7 @@ class GenerationService:
 
                         self.update_progress(task_id, 40.0, recall_summary)
                     except Exception as e:
-                        print(f"RAG召回失败: {e}")
+                        logger.info(f"RAG召回失败: {e}")
                         self.update_progress(task_id, 40.0, "⚠️ RAG召回失败，继续生成")
                 else:
                     self.update_progress(task_id, 40.0, "⚠️ 向量库未初始化，跳过RAG召回")
@@ -2768,11 +2733,10 @@ class GenerationService:
 
                     # 输出当前使用的默认配置信息
                     default_config_info = self.llm_manager.get_config_info()
-                    print(
-                        f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
+                    logger.info(f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
                     )
-                    print(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
-                    print(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
+                    logger.info(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
+                    logger.info(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
 
                     adapter = self.llm_manager.get_adapter()
 
@@ -2806,12 +2770,12 @@ class GenerationService:
                     self.update_progress(task_id, 85.0, "🤖 正在解析LLM返回的响应...")
 
                     # 打印原始响应以便调试
-                    print(f"LLM原始响应长度: {len(response.content)}")
-                    print(f"LLM原始响应前1000字符: {response.content[:1000]}...")
+                    logger.info(f"LLM原始响应长度: {len(response.content)}")
+                    logger.info(f"LLM原始响应前1000字符: {response.content[:1000]}...")
 
                     # 解析生成的用例
                     test_cases = self._parse_generated_cases(response.content)
-                    print(f"解析到用例数量: {len(test_cases)}")
+                    logger.info(f"解析到用例数量: {len(test_cases)}")
                     if not test_cases:
                         self._log_llm_response(prompt, response)
                         raise Exception(
@@ -2867,11 +2831,9 @@ class GenerationService:
                         "by_level": confidence_levels,
                         "requires_review_count": requires_review_count,
                     }
-                    print(
-                        f"[置信度] 计算完成: {confidence_levels}, 需人工审核: {requires_review_count}条"
-                    )
+                    logger.info(f"[置信度] 计算完成: {confidence_levels}, 需人工审核: {requires_review_count}条")
                 except Exception as e:
-                    print(f"[置信度/引用] 计算失败，忽略继续: {e}")
+                    logger.info(f"[置信度/引用] 计算失败，忽略继续: {e}")
                     confidence_stats = {"error": str(e)}
                     citation_batch_stats = {"error": str(e)}
 
@@ -2889,8 +2851,7 @@ class GenerationService:
                             self._save_test_cases(
                                 task_obj.requirement_id, test_cases, 0, []
                             )
-                            print(
-                                f"[直接保存] 成功保存 {len(test_cases)} 条用例到数据库"
+                            logger.info(f"[直接保存] 成功保存 {len(test_cases)} 条用例到数据库"
                             )
 
                         self.update_progress(
@@ -2901,7 +2862,7 @@ class GenerationService:
                     else:
                         self.update_progress(task_id, 98.0, "⚠️ 没有生成任何用例")
                 except Exception as e:
-                    print(f"[直接保存] 保存用例失败: {e}")
+                    logger.info(f"[直接保存] 保存用例失败: {e}")
                     self.fail_task(task_id, f"保存用例失败: {str(e)}")
                     return
 
@@ -2932,9 +2893,9 @@ class GenerationService:
                             if requirement:
                                 requirement.status = RequirementStatus.COMPLETED
                                 bg_session.commit()
-                                print(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
                     except Exception as e:
-                        print(f"更新需求状态失败: {e}")
+                        logger.info(f"更新需求状态失败: {e}")
 
             except Exception as e:
                 self.fail_task(task_id, str(e))
@@ -3006,11 +2967,9 @@ class GenerationService:
                                 )
                                 requirement.analyzed_content = analyzed_md
                                 bg_session.commit()
-                                print(
-                                    f"已保存需求分析Markdown格式到需求ID: {requirement_id}"
-                                )
+                                logger.info(f"已保存需求分析Markdown格式到需求ID: {requirement_id}")
                         except Exception as e:
-                            print(f"保存需求分析Markdown失败: {e}")
+                            logger.info(f"保存需求分析Markdown失败: {e}")
                             # 不影响主流程，继续执行
 
                     self.update_progress(
@@ -3074,11 +3033,9 @@ class GenerationService:
                         if progress_callback:
                             progress_callback(30.0, recall_summary)
 
-                        print(
-                            f"RAG召回完成 - 用例:{rag_stats['cases']}, 缺陷:{rag_stats['defects']}, 需求:{rag_stats['requirements']}"
-                        )
+                        logger.info(f"RAG召回完成 - 用例:{rag_stats['cases']}, 缺陷:{rag_stats['defects']}, 需求:{rag_stats['requirements']}")
                     except Exception as e:
-                        print(f"RAG召回失败，继续生成: {e}")
+                        logger.info(f"RAG召回失败，继续生成: {e}")
                         rag_context = ""
                         self.update_progress(task_id, 30.0, "⚠️ RAG召回失败，继续生成")
                         if progress_callback:
@@ -3130,11 +3087,10 @@ class GenerationService:
 
                     # 输出当前使用的默认配置信息
                     default_config_info = self.llm_manager.get_config_info()
-                    print(
-                        f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
+                    logger.info(f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
                     )
-                    print(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
-                    print(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
+                    logger.info(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
+                    logger.info(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
 
                     adapter = self.llm_manager.get_adapter()
 
@@ -3180,12 +3136,12 @@ class GenerationService:
                         progress_callback(85.0, "🤖 正在解析LLM返回的响应...")
 
                     # 打印原始响应以便调试
-                    print(f"LLM原始响应长度: {len(response.content)}")
-                    print(f"LLM原始响应前1000字符: {response.content[:1000]}...")
+                    logger.info(f"LLM原始响应长度: {len(response.content)}")
+                    logger.info(f"LLM原始响应前1000字符: {response.content[:1000]}...")
 
                     # 解析生成的用例
                     test_cases = self._parse_generated_cases(response.content)
-                    print(f"解析到用例数量: {len(test_cases)}")
+                    logger.info(f"解析到用例数量: {len(test_cases)}")
                     if not test_cases:
                         # 记录详细日志到文件
                         self._log_llm_response(prompt, response)
@@ -3215,13 +3171,12 @@ class GenerationService:
                 if self.db_session:
                     task_obj = self.get_task(task_id)
                     if task_obj:
-                        print(
-                            f"开始保存用例，需求ID: {task_obj.requirement_id}, 用例数: {len(test_cases)}"
+                        logger.info(f"开始保存用例，需求ID: {task_obj.requirement_id}, 用例数: {len(test_cases)}"
                         )
                         self._save_test_cases(
                             task_obj.requirement_id, test_cases, 0, []
                         )
-                        print(f"用例保存完成")
+                        logger.info(f"用例保存完成")
 
                         self.update_progress(
                             task_id,
@@ -3248,7 +3203,7 @@ class GenerationService:
                         if progress_callback:
                             progress_callback(98.0, "✅ 质量评审完成")
                     except Exception as e:
-                        print(f"质量评审失败: {e}")
+                        logger.info(f"质量评审失败: {e}")
                         self.update_progress(task_id, 98.0, "⚠️ 质量评审失败，继续完成")
                         if progress_callback:
                             progress_callback(98.0, "⚠️ 质量评审失败，继续完成")
@@ -3282,9 +3237,9 @@ class GenerationService:
                             if requirement:
                                 requirement.status = RequirementStatus.COMPLETED
                                 bg_session.commit()
-                                print(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
                     except Exception as e:
-                        print(f"更新需求状态失败: {e}")
+                        logger.info(f"更新需求状态失败: {e}")
 
             except Exception as e:
                 self.fail_task(task_id, str(e))
@@ -3328,10 +3283,10 @@ class GenerationService:
                                 requirement.status = RequirementStatus.FAILED
                                 bg_session.commit()
                                 if deleted > 0:
-                                    print(f"已清除 {deleted} 条部分保存的测试用例")
-                                print(f"需求状态已更新为: {int(requirement.status)}")
+                                    logger.info(f"已清除 {deleted} 条部分保存的测试用例")
+                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
                     except Exception as cleanup_error:
-                        print(f"清理失败用例或更新状态失败: {cleanup_error}")
+                        logger.info(f"清理失败用例或更新状态失败: {cleanup_error}")
                         try:
                             bg_session.rollback()
                         except:
@@ -3375,8 +3330,8 @@ class GenerationService:
                 return response
 
             # 如果主适配器失败，尝试切换到第一个可用的备用模型（仅切换一次）
-            print(f"[故障切换] 主适配器失败: {response.error_message}")
-            print(f"[故障切换] 正在尝试切换备用模型...")
+            logger.info(f"[故障切换] 主适配器失败: {response.error_message}")
+            logger.info(f"[故障切换] 正在尝试切换备用模型...")
 
             self.update_progress(task_id, 68.0, "⚠️ 主模型失败，正在切换备用模型...")
 
@@ -3390,14 +3345,14 @@ class GenerationService:
                     continue  # 跳过当前已失败的
 
                 try:
-                    print(f"[故障切换] 尝试使用备用模型: {adapter_name}")
+                    logger.info(f"[故障切换] 尝试使用备用模型: {adapter_name}")
                     self.update_progress(
                         task_id, 70.0, f"🔄 正在切换到备用模型: {adapter_name}"
                     )
 
                     backup_adapter = self.llm_manager.get_adapter(adapter_name)
                     config_info = self.llm_manager.config_infos.get(adapter_name, {})
-                    print(f"[故障切换] 备用模型信息: {config_info}")
+                    logger.info(f"[故障切换] 备用模型信息: {config_info}")
 
                     # 使用备用适配器重试
                     response = backup_adapter.generate(
@@ -3410,20 +3365,18 @@ class GenerationService:
                     )
 
                     if response.success:
-                        print(f"[故障切换] 备用模型 {adapter_name} 成功！")
+                        logger.info(f"[故障切换] 备用模型 {adapter_name} 成功！")
                         self.update_progress(
                             task_id, 75.0, f"✅ 已切换到备用模型: {adapter_name}"
                         )
                         return response
                     else:
-                        print(
-                            f"[故障切换] 备用模型 {adapter_name} 也失败: {response.error_message}"
-                        )
+                        logger.info(f"[故障切换] 备用模型 {adapter_name} 也失败: {response.error_message}")
                         # 只尝试切换一次，失败即返回错误
                         break
 
                 except Exception as e:
-                    print(f"[故障切换] 切换到 {adapter_name} 异常: {e}")
+                    logger.info(f"[故障切换] 切换到 {adapter_name} 异常: {e}")
                     # 只尝试切换一次
                     break
 
@@ -3438,7 +3391,7 @@ class GenerationService:
 
         except Exception as e:
             # 异常情况也尝试切换一次
-            print(f"[故障切换] 主适配器异常: {e}")
+            logger.info(f"[故障切换] 主适配器异常: {e}")
             return self._generate_with_failover(
                 primary_adapter, prompt, task_id, max_retries
             )
@@ -3454,7 +3407,7 @@ class GenerationService:
         rag_sources_context: RAG检索的原始结果列表，用于计算用例与RAG来源的相似度
         """
         if not test_cases:
-            print("警告: 没有需要保存的测试用例")
+            logger.info("警告: 没有需要保存的测试用例")
             return
 
         session = self._get_db_session()
@@ -3474,14 +3427,13 @@ class GenerationService:
                 test_cases = calc_rag_influence(
                     test_cases, rag_sources_context, threshold=0.3
                 )
-                print(
-                    f"[RAG影响计算] 完成 - 检测到 {sum(1 for c in test_cases if c.get('rag_influenced'))} 条用例受RAG影响"
+                logger.info(f"[RAG影响计算] 完成 - 检测到 {sum(1 for c in test_cases if c.get('rag_influenced'))} 条用例受RAG影响"
                 )
 
             saved_count = 0
 
-            print(f"开始保存用例，需求ID: {requirement_id}, 用例数: {len(test_cases)}")
-            print(f"第一个用例数据: {test_cases[0]}")
+            logger.info(f"开始保存用例，需求ID: {requirement_id}, 用例数: {len(test_cases)}")
+            logger.info(f"第一个用例数据: {test_cases[0]}")
 
             # 先删除该需求的所有旧用例
             deleted_count = (
@@ -3491,7 +3443,7 @@ class GenerationService:
             )
 
             if deleted_count > 0:
-                print(f"已删除 {deleted_count} 条旧用例")
+                logger.info(f"已删除 {deleted_count} 条旧用例")
 
             session.commit()
 
@@ -3506,9 +3458,7 @@ class GenerationService:
                     # 提取序号部分
                     last_num = int(max_case.case_id[3:])
                     start_num = last_num + 1
-                    print(
-                        f"从全局最大用例序号 {last_num} 之后开始编号，起始: {start_num}"
-                    )
+                    logger.info(f"从全局最大用例序号 {last_num} 之后开始编号，起始: {start_num}")
                 except:
                     start_num = 1
             else:
@@ -3621,7 +3571,7 @@ class GenerationService:
                 saved_count += 1
 
             session.commit()
-            print(f"成功保存 {saved_count} 条测试用例")
+            logger.info(f"成功保存 {saved_count} 条测试用例")
 
             # 注意：不再自动写入RAG，需要用户手动审批通过后，通过"从数据库导入"按钮导入
             # RAG向量库只保存已评审通过的用例和已完成的需求
@@ -3668,20 +3618,19 @@ class GenerationService:
         # 尝试使用LLM进行深度分析
         if self.llm_manager:
             try:
-                print("[需求分析] 尝试使用LLM CoT进行深度需求分析...")
+                logger.info("[需求分析] 尝试使用LLM CoT进行深度需求分析...")
                 llm_analysis = self._llm_based_analysis(requirement_content)
                 if llm_analysis and llm_analysis.get("modules"):
-                    print(
-                        f"[需求分析] LLM分析成功 - 识别到 {len(llm_analysis['modules'])} 个模块"
+                    logger.info(f"[需求分析] LLM分析成功 - 识别到 {len(llm_analysis['modules'])} 个模块"
                     )
                     return llm_analysis
                 else:
-                    print("[需求分析] LLM分析结果为空，回退到规则解析")
+                    logger.info("[需求分析] LLM分析结果为空，回退到规则解析")
             except Exception as e:
-                print(f"[需求分析] LLM分析失败: {e}，回退到规则解析")
+                logger.info(f"[需求分析] LLM分析失败: {e}，回退到规则解析")
 
         # 回退到规则解析
-        print("[需求分析] 使用规则解析进行需求分析")
+        logger.info("[需求分析] 使用规则解析进行需求分析")
         return self._rule_based_analysis(requirement_content)
 
     def _llm_based_analysis(self, requirement_content: str) -> Dict[str, Any]:
@@ -3701,10 +3650,10 @@ class GenerationService:
         analysis_prompt = render_result["prompt"]
 
         if render_result["used_fallback"]:
-            print("[需求分析] 使用fallback默认模板")
+            logger.info("[需求分析] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            print(f"[需求分析] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(f"[需求分析] 模板缺少变量: {render_result['missing_variables']}")
 
         # 调用LLM
         adapter = self.llm_manager.get_adapter()
@@ -3750,8 +3699,8 @@ class GenerationService:
             raise Exception("无法从LLM响应中提取JSON")
 
         except Exception as e:
-            print(f"[LLM分析] JSON解析失败: {e}")
-            print(f"LLM原始响应: {content[:500]}...")
+            logger.info(f"[LLM分析] JSON解析失败: {e}")
+            logger.info(f"LLM原始响应: {content[:500]}...")
             raise
 
     def _normalize_llm_analysis(self, llm_result: Dict) -> Dict[str, Any]:
@@ -3786,9 +3735,7 @@ class GenerationService:
             if point_name in module_names:
                 # 自动重命名
                 point["name"] = f"{point_name}（操作验证）"
-                print(
-                    f"[需求分析] 测试点名称与模块重复，已重命名: {point_name} -> {point['name']}"
-                )
+                logger.info(f"[需求分析] 测试点名称与模块重复，已重命名: {point_name} -> {point['name']}")
 
         return defaults
 
@@ -4520,7 +4467,7 @@ class GenerationService:
                         case_response["adjustment"]
                     )
             except Exception as e:
-                print(f"[RAG召回] 混合检索用例失败: {e}")
+                logger.info(f"[RAG召回] 混合检索用例失败: {e}")
 
             # 缺陷检索
             try:
@@ -4558,7 +4505,7 @@ class GenerationService:
                         defect_response["adjustment"]
                     )
             except Exception as e:
-                print(f"[RAG召回] 混合检索缺陷失败: {e}")
+                logger.info(f"[RAG召回] 混合检索缺陷失败: {e}")
 
             # 需求检索
             try:
@@ -4586,7 +4533,7 @@ class GenerationService:
                         req_response["adjustment"]
                     )
             except Exception as e:
-                print(f"[RAG召回] 混合检索需求失败: {e}")
+                logger.info(f"[RAG召回] 混合检索需求失败: {e}")
         else:
             # 回退到原始向量检索
             return self._perform_rag_recall_fallback(
@@ -4629,7 +4576,7 @@ class GenerationService:
                 rag_stats["quality_report"] = quality_report
                 rag_context_data["quality_report"] = quality_report
             except Exception as e:
-                print(f"[RAG召回] 生成质量报告失败: {e}")
+                logger.info(f"[RAG召回] 生成质量报告失败: {e}")
 
         return rag_context, rag_stats, rag_context_data
 
@@ -4703,12 +4650,12 @@ class GenerationService:
 
         if self.llm_manager:
             try:
-                print("[模块评审] 尝试使用LLM进行模块评审...")
+                logger.info("[模块评审] 尝试使用LLM进行模块评审...")
                 llm_review = self._llm_module_review(
                     requirement_content, requirement_analysis
                 )
                 if llm_review:
-                    print("[模块评审] LLM评审成功，使用LLM评审结果")
+                    logger.info("[模块评审] LLM评审成功，使用LLM评审结果")
                     review_info = {
                         "score": llm_review.get("overall_score"),
                         "conclusion": llm_review.get("conclusion"),
@@ -4721,9 +4668,9 @@ class GenerationService:
                         llm_review, requirement_analysis
                     )
                 else:
-                    print("[模块评审] LLM评审结果为空，回退到规则评审")
+                    logger.info("[模块评审] LLM评审结果为空，回退到规则评审")
             except Exception as e:
-                print(f"[模块评审] LLM评审失败: {e}，回退到规则评审")
+                logger.info(f"[模块评审] LLM评审失败: {e}，回退到规则评审")
 
         if not test_plan:
             test_plan = self._rule_based_test_plan(
@@ -4760,10 +4707,10 @@ class GenerationService:
         review_prompt = render_result["prompt"]
 
         if render_result["used_fallback"]:
-            print("[模块评审] 使用fallback默认模板")
+            logger.info("[模块评审] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            print(f"[模块评审] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(f"[模块评审] 模板缺少变量: {render_result['missing_variables']}")
 
         # 调用LLM进行评审
         adapter = self.llm_manager.get_adapter()
@@ -4798,8 +4745,8 @@ class GenerationService:
                 else:
                     raise Exception("无法解析评审结果JSON")
 
-        print(f"[模块评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}")
-        print(f"[模块评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100")
+        logger.info(f"[模块评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}")
+        logger.info(f"[模块评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100")
 
         return review_result
 
@@ -5194,15 +5141,14 @@ class GenerationService:
             )
 
             if template:
-                print(
-                    f"[Prompt加载] 从数据库加载模板: {template.name} (类型: {template_type})"
+                logger.info(f"[Prompt加载] 从数据库加载模板: {template.name} (类型: {template_type})"
                 )
                 return template.template
             else:
-                print(f"[Prompt加载] 数据库中未找到模板: {template_type}")
+                logger.info(f"[Prompt加载] 数据库中未找到模板: {template_type}")
                 return None
         except Exception as e:
-            print(f"[Prompt加载] 加载模板失败: {e}")
+            logger.info(f"[Prompt加载] 加载模板失败: {e}")
             return None
 
     def validate_prompt_template(self, template: str) -> Dict[str, Any]:
@@ -5277,10 +5223,10 @@ class GenerationService:
                 prompt = prompt.replace("{rag_context}", rag_section)
                 prompt = prompt.replace("{test_plan}", test_plan_section)
 
-                print(f"[Prompt构建] 使用数据库模板生成prompt (类型: {prompt_type})")
+                logger.info(f"[Prompt构建] 使用数据库模板生成prompt (类型: {prompt_type})")
                 return prompt
             except Exception as e:
-                print(f"[Prompt构建] 数据库模板替换失败，使用默认模板: {e}")
+                logger.info(f"[Prompt构建] 数据库模板替换失败，使用默认模板: {e}")
                 # 回退到硬编码默认值
 
         # 默认硬编码模板（回退方案）
@@ -5348,7 +5294,7 @@ class GenerationService:
                 )
                 return render_result["prompt"]
         except Exception as e:
-            print(f"[RAG引用] 模板渲染失败，使用fallback: {e}")
+            logger.info(f"[RAG引用] 模板渲染失败，使用fallback: {e}")
 
         # 硬编码fallback
         rag_context = ""
@@ -5496,10 +5442,10 @@ class GenerationService:
                 )
                 prompt = prompt.replace("{rag_context}", rag_section)
 
-                print(f"[Prompt构建] 使用数据库基础版模板生成prompt")
+                logger.info(f"[Prompt构建] 使用数据库基础版模板生成prompt")
                 return prompt
             except Exception as e:
-                print(f"[Prompt构建] 基础版数据库模板替换失败，使用默认模板: {e}")
+                logger.info(f"[Prompt构建] 基础版数据库模板替换失败，使用默认模板: {e}")
 
         # 默认硬编码模板（回退方案）
         prompt = f"""你是一位资深的功能测试专家，拥有10年以上测试经验。请根据以下需求文档，生成高质量、高覆盖率的测试用例。
@@ -5595,7 +5541,7 @@ class GenerationService:
         if not content or not content.strip():
             return []
 
-        print("尝试Markdown格式解析...")
+        logger.info("尝试Markdown格式解析...")
 
         # 使用正则表达式匹配用例
         # 匹配模式：## [优先级] 标题\n[测试类型] xxx\n[前置条件] xxx\n[测试步骤] xxx\n[预期结果] xxx
@@ -5609,10 +5555,10 @@ class GenerationService:
             matches = re.findall(case_pattern_loose, content, re.DOTALL)
 
         if not matches:
-            print("未找到匹配的Markdown用例格式")
+            logger.info("未找到匹配的Markdown用例格式")
             return []
 
-        print(f"找到 {len(matches)} 个Markdown格式用例")
+        logger.info(f"找到 {len(matches)} 个Markdown格式用例")
 
         cases = []
         for idx, match in enumerate(matches):
@@ -5652,13 +5598,13 @@ class GenerationService:
                 }
 
                 cases.append(case)
-                print(f"  成功解析用例 {idx + 1}: {title[:50]}")
+                logger.info(f"  成功解析用例 {idx + 1}: {title[:50]}")
 
             except Exception as e:
-                print(f"  解析用例 {idx + 1} 失败: {e}")
+                logger.info(f"  解析用例 {idx + 1} 失败: {e}")
                 continue
 
-        print(f"Markdown解析成功，返回 {len(cases)} 条用例")
+        logger.info(f"Markdown解析成功，返回 {len(cases)} 条用例")
         return cases
 
     def _parse_step_or_result(self, text: str) -> list:
@@ -5716,7 +5662,7 @@ class GenerationService:
     def _parse_generated_cases(self, content: str) -> list:
         """解析LLM生成的用例"""
         if not content or not content.strip():
-            print("警告: LLM返回内容为空")
+            logger.info("警告: LLM返回内容为空")
             return []
 
         # 保存原始响应到日志文件以便调试
@@ -5734,24 +5680,24 @@ class GenerationService:
                 )
                 f.write(f"前2000字符:\n{content[:2000]}\n")
                 f.write(f"\n后2000字符:\n{content[-2000:]}\n")
-            print(f"LLM原始响应已保存到: {log_path}")
+            logger.info(f"LLM原始响应已保存到: {log_path}")
         except Exception as e:
-            print(f"保存LLM响应日志失败: {e}")
+            logger.info(f"保存LLM响应日志失败: {e}")
 
         # 尝试1: 直接解析JSON
         try:
             cases = json.loads(content)
             if isinstance(cases, list):
-                print(f"直接解析成功，返回 {len(cases)} 条用例")
+                logger.info(f"直接解析成功，返回 {len(cases)} 条用例")
                 return cases
             elif isinstance(cases, dict):
                 # 尝试常见的键
                 for key in ["test_cases", "testCases", "cases", "data"]:
                     if key in cases and isinstance(cases[key], list):
-                        print(f"从dict['{key}']解析到 {len(cases[key])} 条用例")
+                        logger.info(f"从dict['{key}']解析到 {len(cases[key])} 条用例")
                         return cases[key]
         except json.JSONDecodeError as e:
-            print(f"直接JSON解析失败: {e}")
+            logger.info(f"直接JSON解析失败: {e}")
 
         # 尝试2: 查找JSON代码块（```json ... ```）
         try:
@@ -5760,32 +5706,31 @@ class GenerationService:
             json_block_pattern = r"```(?:json)?\s*\n?([\s\S]*?)\n?\s*```"
             matches = re.findall(json_block_pattern, content)
             if matches:
-                print(f"找到 {len(matches)} 个JSON代码块")
+                logger.info(f"找到 {len(matches)} 个JSON代码块")
                 for idx, match in enumerate(matches):
-                    print(f"尝试解析第 {idx + 1} 个JSON代码块 (长度: {len(match)}字符)")
+                    logger.info(f"尝试解析第 {idx + 1} 个JSON代码块 (长度: {len(match)}字符)")
                     try:
                         cases = json.loads(match)
                         if isinstance(cases, list):
-                            print(f"从JSON代码块解析到 {len(cases)} 条用例")
+                            logger.info(f"从JSON代码块解析到 {len(cases)} 条用例")
                             return cases
                         elif isinstance(cases, dict):
                             for key in ["test_cases", "testCases", "cases", "data"]:
                                 if key in cases and isinstance(cases[key], list):
-                                    print(
-                                        f"从JSON代码块dict['{key}']解析到 {len(cases[key])} 条用例"
+                                    logger.info(f"从JSON代码块dict['{key}']解析到 {len(cases[key])} 条用例"
                                     )
                                     return cases[key]
                     except json.JSONDecodeError as e:
-                        print(f"第 {idx + 1} 个JSON代码块解析失败: {e}")
+                        logger.info(f"第 {idx + 1} 个JSON代码块解析失败: {e}")
                         # 如果是最后一个且特别长，尝试修复JSON
                         if len(match) > 10000:
-                            print("JSON过长，尝试智能修复...")
+                            logger.info("JSON过长，尝试智能修复...")
                             fixed_match = self._try_fix_json(match)
                             if fixed_match:
-                                print(f"智能修复成功，解析到 {len(fixed_match)} 条用例")
+                                logger.info(f"智能修复成功，解析到 {len(fixed_match)} 条用例")
                                 return fixed_match
         except Exception as e:
-            print(f"JSON代码块解析失败: {e}")
+            logger.info(f"JSON代码块解析失败: {e}")
 
         # 尝试3: 查找方括号包裹的内容
         try:
@@ -5793,20 +5738,20 @@ class GenerationService:
             end = content.rfind("]")
             if start != -1 and end != -1 and end > start:
                 json_str = content[start : end + 1]
-                print(f"尝试方括号解析 (长度: {len(json_str)}字符)")
+                logger.info(f"尝试方括号解析 (长度: {len(json_str)}字符)")
                 # 如果太长，尝试智能修复
                 if len(json_str) > 10000:
                     cases = self._try_fix_json(json_str)
                     if cases:
-                        print(f"方括号智能修复成功，解析到 {len(cases)} 条用例")
+                        logger.info(f"方括号智能修复成功，解析到 {len(cases)} 条用例")
                         return cases
                 else:
                     cases = json.loads(json_str)
                     if isinstance(cases, list):
-                        print(f"从方括号解析到 {len(cases)} 条用例")
+                        logger.info(f"从方括号解析到 {len(cases)} 条用例")
                         return cases
         except json.JSONDecodeError as e:
-            print(f"方括号JSON解析失败: {e}")
+            logger.info(f"方括号JSON解析失败: {e}")
 
         # 尝试4: 查找花括号对象
         try:
@@ -5814,14 +5759,13 @@ class GenerationService:
             end = content.rfind("}")
             if start != -1 and end != -1 and end > start:
                 json_str = content[start : end + 1]
-                print(f"尝试花括号解析 (长度: {len(json_str)}字符)")
+                logger.info(f"尝试花括号解析 (长度: {len(json_str)}字符)")
                 if len(json_str) > 10000:
                     obj = self._try_fix_json(json_str, expect_dict=True)
                     if obj:
                         for key in ["test_cases", "testCases", "cases", "data"]:
                             if key in obj and isinstance(obj[key], list):
-                                print(
-                                    f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
+                                logger.info(f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
                                 )
                                 return obj[key]
                 else:
@@ -5829,25 +5773,24 @@ class GenerationService:
                     if isinstance(obj, dict):
                         for key in ["test_cases", "testCases", "cases", "data"]:
                             if key in obj and isinstance(obj[key], list):
-                                print(
-                                    f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
+                                logger.info(f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
                                 )
                                 return obj[key]
         except json.JSONDecodeError as e:
-            print(f"花括号JSON解析失败: {e}")
+            logger.info(f"花括号JSON解析失败: {e}")
 
         # 尝试5: 解析Markdown文本协议格式（testcase-generator标准格式）
         try:
             markdown_cases = self._parse_markdown_cases(content)
             if markdown_cases:
-                print(f"从Markdown格式解析到 {len(markdown_cases)} 条用例")
+                logger.info(f"从Markdown格式解析到 {len(markdown_cases)} 条用例")
                 return markdown_cases
         except Exception as e:
-            print(f"Markdown格式解析失败: {e}")
+            logger.info(f"Markdown格式解析失败: {e}")
 
         # 返回空列表
-        print("所有解析方法均失败，返回空列表")
-        print(f"提示：请检查 logs/llm_response.log 查看LLM原始响应")
+        logger.info("所有解析方法均失败，返回空列表")
+        logger.info(f"提示：请检查 logs/llm_response.log 查看LLM原始响应")
         return []
 
     def _try_fix_json(self, json_str: str, expect_dict: bool = False) -> any:
@@ -5895,7 +5838,7 @@ class GenerationService:
             pattern = r'\{[^{}]*"case_id"[^{}]*\}'
             matches = re.findall(pattern, json_str)
             if matches:
-                print(f"找到 {len(matches)} 个独立JSON对象")
+                logger.info(f"找到 {len(matches)} 个独立JSON对象")
                 cases = []
                 for match in matches:
                     try:
@@ -5908,7 +5851,7 @@ class GenerationService:
 
             return None
         except Exception as e:
-            print(f"JSON修复失败: {e}")
+            logger.info(f"JSON修复失败: {e}")
             return None
 
     def _mock_generate_cases(self, requirement_content: str) -> list:
@@ -5954,9 +5897,9 @@ class GenerationService:
                 f.write("LLM完整响应:\n")
                 f.write(response.content + "\n")
                 f.write("=" * 80 + "\n\n")
-            print(f"LLM响应日志已保存到: {log_file}")
+            logger.info(f"LLM响应日志已保存到: {log_file}")
         except Exception as e:
-            print(f"保存日志失败: {e}")
+            logger.info(f"保存日志失败: {e}")
 
     def _execute_quality_review(
         self,
@@ -5983,7 +5926,7 @@ class GenerationService:
         Returns:
             质量评审报告
         """
-        print("[质量评审] 开始执行质量评审...")
+        logger.info("[质量评审] 开始执行质量评审...")
 
         # 使用 PromptTemplateService 渲染 case_review 模板
         from src.services.prompt_template_service import PromptTemplateService
@@ -6012,10 +5955,10 @@ class GenerationService:
         review_prompt = render_result["prompt"]
 
         if render_result["used_fallback"]:
-            print("[质量评审] 使用fallback默认模板")
+            logger.info("[质量评审] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            print(f"[质量评审] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(f"[质量评审] 模板缺少变量: {render_result['missing_variables']}")
 
         # 调用LLM进行评审
         try:
@@ -6044,17 +5987,15 @@ class GenerationService:
                 else:
                     raise Exception("无法解析评审结果JSON")
 
-            print(
-                f"[质量评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}"
+            logger.info(f"[质量评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}"
             )
-            print(
-                f"[质量评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100"
+            logger.info(f"[质量评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100"
             )
 
             return review_result
 
         except Exception as e:
-            print(f"[质量评审] 评审失败: {e}")
+            logger.info(f"[质量评审] 评审失败: {e}")
             # 返回简化的评审结果
             return {
                 "pass": True,  # 默认通过，不阻塞流程
