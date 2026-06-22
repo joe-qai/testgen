@@ -404,6 +404,7 @@ class CaseReviewRecord(Base):
 def init_database(db_path="data/testgen.db"):
     """初始化数据库"""
     from sqlalchemy import text
+    from src.monitoring.index_migration import IndexMigration
 
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     engine = create_engine(
@@ -417,6 +418,35 @@ def init_database(db_path="data/testgen.db"):
         conn.commit()
 
     Base.metadata.create_all(engine)
+
+    # 索引白名单
+    index_whitelist = [
+        {"name": "idx_requirements_status", "table": "requirements", "columns": ["status"]},
+        {"name": "idx_requirements_created_at", "table": "requirements", "columns": ["created_at"]},
+        {"name": "idx_test_cases_requirement_id", "table": "test_cases", "columns": ["requirement_id"]},
+        {"name": "idx_test_cases_status", "table": "test_cases", "columns": ["status"]},
+        {"name": "idx_test_cases_priority", "table": "test_cases", "columns": ["priority"]},
+        {"name": "idx_test_cases_confidence_level", "table": "test_cases", "columns": ["confidence_level"]},
+        {"name": "idx_generation_tasks_status", "table": "generation_tasks", "columns": ["status"]},
+        {"name": "idx_generation_tasks_requirement_id", "table": "generation_tasks", "columns": ["requirement_id"]},
+        {"name": "idx_generation_tasks_created_at", "table": "generation_tasks", "columns": ["created_at"]},
+        {"name": "idx_requirement_analysis_items_requirement_id", "table": "requirement_analysis_items", "columns": ["requirement_id"]},
+        {"name": "idx_requirement_analysis_items_item_type", "table": "requirement_analysis_items", "columns": ["item_type"]},
+        {"name": "idx_requirement_analysis_items_status", "table": "requirement_analysis_items", "columns": ["status"]},
+        {"name": "idx_defects_module", "table": "defects", "columns": ["module"]},
+        {"name": "idx_defects_severity", "table": "defects", "columns": ["severity"]},
+        {"name": "idx_defects_status", "table": "defects", "columns": ["status"]},
+        {"name": "idx_defects_related_requirement_id", "table": "defects", "columns": ["related_requirement_id"]},
+        {"name": "idx_llm_configs_is_default", "table": "llm_configs", "columns": ["is_default"]},
+        {"name": "idx_llm_configs_is_active", "table": "llm_configs", "columns": ["is_active"]},
+        {"name": "idx_llm_configs_provider", "table": "llm_configs", "columns": ["provider"]},
+        {"name": "idx_case_review_records_task_id", "table": "case_review_records", "columns": ["task_id"]},
+        {"name": "idx_case_review_records_case_id", "table": "case_review_records", "columns": ["case_id"]},
+    ]
+
+    # 执行索引迁移
+    migration = IndexMigration(engine, index_whitelist)
+    migration.migrate()
 
     # 创建FTS5虚拟表
     from src.database.fts5_listeners import FTS5_TABLES
