@@ -9,3 +9,4 @@ class ErrorResponse:
         if details:
             response["details"] = details
         return response
+
