@@ -2,6 +2,8 @@
 comet_change: stabilize-rag-generation-baseline
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-22-stabilize-rag-generation-baseline
+status: final
 ---
 
 # RAG 生成基线稳定化技术设计

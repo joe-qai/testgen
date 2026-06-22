@@ -2,6 +2,7 @@
 change: stabilize-rag-generation-baseline
 design-doc: docs/superpowers/specs/2026-06-22-rag-generation-baseline-design.md
 base-ref: 6f2b7df0aaedb55e8dd36af046e645ce41784714
+archived-with: 2026-06-22-stabilize-rag-generation-baseline
 ---
 
 # RAG 生成基线稳定化实施计划
