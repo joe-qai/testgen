@@ -42,13 +42,13 @@ base-ref: 6f2b7df0aaedb55e8dd36af046e645ce41784714
 - Consumes: `HybridRetriever.retrieve(collection: str, query: str, top_k: int) -> Dict[str, Any]`，`RetrievalEvaluator.generate_quality_report(vector_results, keyword_results, fused_results) -> Dict[str, Any]`。
 - Produces: 经审查的 9 个测试及审查记录；后续任务只允许以其中标记为“实现缺陷”的断言驱动代码。
 
-- [ ] **Step 1: 运行目标测试并保存失败清单**
+- [x] **Step 1: 运行目标测试并保存失败清单**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -v --tb=short`
 
 Expected: 9 tests collected；8 个因 `_perform_item_rag_recall` 缺失失败，缺陷去重测试因同一内容出现两次失败。
 
-- [ ] **Step 2: 创建逐项逻辑审查记录**
+- [x] **Step 2: 创建逐项逻辑审查记录**
 
 Create `docs/superpowers/reviews/2026-06-22-rag-generation-test-audit.md` with this table:
 
@@ -68,7 +68,7 @@ Create `docs/superpowers/reviews/2026-06-22-rag-generation-test-audit.md` with t
 | test_no_results_sets_degraded | 稳定降级 / 无结果 | 实现缺陷 | 保留 |
 ```
 
-- [ ] **Step 3: 修正无结果测试的质量报告 mock**
+- [x] **Step 3: 修正无结果测试的质量报告 mock**
 
 Replace its evaluator response with:
 
@@ -78,7 +78,7 @@ service._retrieval_evaluator.generate_quality_report.return_value = {
 }
 ```
 
-- [ ] **Step 4: 修正低相似度测试的检索返回与断言**
+- [x] **Step 4: 修正低相似度测试的检索返回与断言**
 
 Use exactly two responses because ITEM 检索只查 `defects`，质量告警最多触发一次扩检：
 
@@ -96,13 +96,13 @@ service._hybrid_retriever.retrieve.side_effect = [
 assert [call.kwargs["top_k"] for call in service._hybrid_retriever.retrieve.call_args_list] == [5, 10]
 ```
 
-- [ ] **Step 5: 运行测试确认剩余失败均对应实现缺口**
+- [x] **Step 5: 运行测试确认剩余失败均对应实现缺口**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -v --tb=short`
 
 Expected: `_perform_item_rag_recall` 相关测试仍因方法缺失失败；`test_defect_not_duplicated` 仍因重复内容失败；不再出现 mock 序列耗尽或无结果质量报告矛盾。
 
-- [ ] **Step 6: 勾选 OpenSpec 测试审查任务并提交**
+- [x] **Step 6: 勾选 OpenSpec 测试审查任务并提交**
 
 Update `tasks.md` items 1.1 and 1.2 to `[x]`, then run:
 
@@ -122,7 +122,7 @@ git commit -m "test: audit rag generation failures"
 - Consumes: `self._hybrid_retriever.retrieve(collection="defects", query=query, top_k=top_k)` 和 `self._retrieval_evaluator.generate_quality_report(results, [], results)`。
 - Produces: `_perform_item_rag_recall(item_title: str, item_points: List[Any], top_k: int = 5) -> Dict[str, Any]`，返回 `rag_context`、`results`、`quality_alert`、`degraded`、`stats`。
 
-- [ ] **Step 1: 扩充稳定结构与字典测试点的失败断言**
+- [x] **Step 1: 扩充稳定结构与字典测试点的失败断言**
 
 Add:
 
@@ -145,13 +145,13 @@ def test_query_construction_normalizes_dict_points(self):
     assert set(result) >= {"rag_context", "results", "quality_alert", "degraded", "stats"}
 ```
 
-- [ ] **Step 2: 运行新增测试验证红灯**
+- [x] **Step 2: 运行新增测试验证红灯**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py::TestPerformItemRagRecall -v --tb=short`
 
 Expected: FAIL because `_perform_item_rag_recall` is absent.
 
-- [ ] **Step 3: 实现查询规范化、优化器回退与稳定结果骨架**
+- [x] **Step 3: 实现查询规范化、优化器回退与稳定结果骨架**
 
 The existing typing import already contains `List`; add these focused methods near `_perform_rag_recall`:
 
@@ -195,7 +195,7 @@ def _perform_item_rag_recall(
     return self._retrieve_item_rag(query, top_k, empty)
 ```
 
-- [ ] **Step 4: 实现单次扩检、质量报告和上下文格式化**
+- [x] **Step 4: 实现单次扩检、质量报告和上下文格式化**
 
 Add:
 
@@ -256,13 +256,13 @@ def _format_item_rag_context(self, results: List[Dict[str, Any]]) -> str:
     return "\n\n".join(blocks)
 ```
 
-- [ ] **Step 5: 运行 ITEM 召回测试并确认绿灯**
+- [x] **Step 5: 运行 ITEM 召回测试并确认绿灯**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -k "PerformItemRagRecall or RagContextFormatting or QualityAlertDegradation" -v --tb=short`
 
 Expected: all selected tests PASS；低相似度的 `top_k` sequence is `[5, 10]`.
 
-- [ ] **Step 6: 勾选召回稳定化任务并提交**
+- [x] **Step 6: 勾选召回稳定化任务并提交**
 
 Update `tasks.md` items 2.1 and 2.2 to `[x]`, then run:
 
@@ -282,7 +282,7 @@ git commit -m "feat: restore item rag retrieval"
 - Consumes: `_perform_item_rag_recall(item_title: str, item_points: List[Any], top_k: int = 5) -> Dict[str, Any]`。
 - Produces: `_merge_rag_contexts(global_context: str, item_result: Dict[str, Any]) -> str`；Phase 2 的 `generate_item_cases(..., rag_context=merged_rag_context)`。
 
-- [ ] **Step 1: 写局部优先和精确去重红灯测试**
+- [x] **Step 1: 写局部优先和精确去重红灯测试**
 
 Add:
 
@@ -300,7 +300,7 @@ def test_merge_rag_contexts_prefers_item_and_deduplicates_exact_blocks(self):
     assert merged.count("共享段落") == 1
 ```
 
-- [ ] **Step 2: 写 ITEM 生成编排的上下文传递测试**
+- [x] **Step 2: 写 ITEM 生成编排的上下文传递测试**
 
 Add:
 
@@ -334,13 +334,13 @@ def test_generate_item_with_rag_passes_merged_context(self):
     assert cases == [{"title": "case"}]
 ```
 
-- [ ] **Step 3: 运行新增测试验证红灯**
+- [x] **Step 3: 运行新增测试验证红灯**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -k "merge_rag_contexts or phase2_uses_item" -v --tb=short`
 
 Expected: FAIL because `_merge_rag_contexts` and `_generate_item_cases_with_rag` are absent.
 
-- [ ] **Step 4: 实现局部优先的精确段落去重**
+- [x] **Step 4: 实现局部优先的精确段落去重**
 
 Add:
 
@@ -360,11 +360,11 @@ def _merge_rag_contexts(
     return "\n\n".join(blocks)
 ```
 
-- [ ] **Step 5: 删除全局缺陷的第二段重复拼接分支**
+- [x] **Step 5: 删除全局缺陷的第二段重复拼接分支**
 
 In `_perform_rag_recall`, remove the second `defect_results = ...` plus its repeated `if defect_results:` formatting block, while retaining the first block, `retrieved_defects`, adjustment handling and exception boundary.
 
-- [ ] **Step 6: 实现 ITEM 生成编排并接入循环**
+- [x] **Step 6: 实现 ITEM 生成编排并接入循环**
 
 Add near `generate_item_cases`:
 
@@ -408,13 +408,13 @@ item_cases = self._generate_item_cases_with_rag(
 
 Do not move global recall into the loop.
 
-- [ ] **Step 7: 运行合并、去重与流程测试**
+- [x] **Step 7: 运行合并、去重与流程测试**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -v --tb=short`
 
 Expected: all tests PASS，including defect count 1 and distinct merged context per ITEM.
 
-- [ ] **Step 8: 勾选接入任务并提交**
+- [x] **Step 8: 勾选接入任务并提交**
 
 Update `tasks.md` items 2.3, 3.1 and 3.2 to `[x]`, then run:
 
@@ -432,25 +432,25 @@ git commit -m "feat: integrate item rag into phase two"
 - Consumes: Task 1-3 的生产实现与测试。
 - Produces: 已通过的目标测试、RAG 回归和全量回归证据；全部勾选的 OpenSpec tasks。
 
-- [ ] **Step 1: 运行目标深度集成测试**
+- [x] **Step 1: 运行目标深度集成测试**
 
 Run: `python -m pytest tests/test_rag_generation_deep_integration.py -v --tb=short`
 
 Expected: all tests PASS.
 
-- [ ] **Step 2: 运行 RAG 相关测试集**
+- [x] **Step 2: 运行 RAG 相关测试集**
 
 Run: `python -m pytest tests/ -k "rag or retrieval" -v --tb=short`
 
 Expected: all collected, non-empty tests PASS. Empty placeholder tests remain outside this change and must not be converted into production-code requirements.
 
-- [ ] **Step 3: 运行全量测试**
+- [x] **Step 3: 运行全量测试**
 
 Run: `python -m pytest tests/ -v --tb=short`
 
 Expected: all valid tests PASS. If a test fails, reapply Task 1 logic audit before changing production code.
 
-- [ ] **Step 4: 检查范围与变更内容**
+- [x] **Step 4: 检查范围与变更内容**
 
 Run:
 
@@ -461,7 +461,7 @@ git diff --stat 6f2b7df0aaedb55e8dd36af046e645ce41784714..HEAD
 
 Expected: no whitespace errors；变更仅涉及计划列出的实现、测试、审查和 OpenSpec task 文件。
 
-- [ ] **Step 5: 勾选回归任务并提交**
+- [x] **Step 5: 勾选回归任务并提交**
 
 Update `tasks.md` items 4.1 and 4.2 to `[x]`, then run:
 
