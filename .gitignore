@@ -37,3 +37,6 @@ src/logs/
 
 # Site customize (sandbox only)
 sitecustomize.py
+
+# Local worktrees
+.worktrees/
