@@ -148,3 +148,107 @@ def test_index_migration_upgrades_existing_database():
             assert rows[0] == (1, 'old1', 'old2')
     finally:
         engine.dispose()
+
+
+def test_index_does_not_change_query_results():
+    tmpdir = tempfile.mkdtemp()
+    db_path_no_index = os.path.join(tmpdir, "test_no_index.db")
+    db_path_with_index = os.path.join(tmpdir, "test_with_index.db")
+
+    engine_no_index = create_engine(f"sqlite:///{db_path_no_index}")
+    engine_with_index = create_engine(f"sqlite:///{db_path_with_index}")
+
+    try:
+        test_data = [
+            (1, 'apple', 'fruit'),
+            (2, 'banana', 'fruit'),
+            (3, 'carrot', 'vegetable'),
+            (4, 'date', 'fruit'),
+            (5, 'eggplant', 'vegetable')
+        ]
+
+        for engine in [engine_no_index, engine_with_index]:
+            with engine.connect() as conn:
+                conn.execute(text("CREATE TABLE test_table (id INTEGER, col1 TEXT, col2 TEXT)"))
+                for row in test_data:
+                    conn.execute(text(f"INSERT INTO test_table VALUES ({row[0]}, '{row[1]}', '{row[2]}')"))
+                conn.commit()
+
+        index_whitelist = [
+            {"table": "test_table", "columns": ["col1"], "name": "idx_test_col1"},
+            {"table": "test_table", "columns": ["col2"], "name": "idx_test_col2"}
+        ]
+
+        migration = IndexMigration(engine_with_index, index_whitelist)
+        migration.migrate()
+
+        queries = [
+            "SELECT * FROM test_table WHERE col2 = 'fruit'",
+            "SELECT * FROM test_table WHERE col1 LIKE 'a%'",
+            "SELECT id, col1 FROM test_table WHERE id > 2",
+            "SELECT COUNT(*) FROM test_table",
+        ]
+
+        for query in queries:
+            with engine_no_index.connect() as conn:
+                result_no_index = conn.execute(text(query)).fetchall()
+
+            with engine_with_index.connect() as conn:
+                result_with_index = conn.execute(text(query)).fetchall()
+
+            assert result_no_index == result_with_index, f"Query results differ: {query}"
+    finally:
+        engine_no_index.dispose()
+        engine_with_index.dispose()
+
+
+def test_index_does_not_change_query_order():
+    tmpdir = tempfile.mkdtemp()
+    db_path_no_index = os.path.join(tmpdir, "test_no_index.db")
+    db_path_with_index = os.path.join(tmpdir, "test_with_index.db")
+
+    engine_no_index = create_engine(f"sqlite:///{db_path_no_index}")
+    engine_with_index = create_engine(f"sqlite:///{db_path_with_index}")
+
+    try:
+        test_data = [
+            (1, 'zebra', 'animal'),
+            (2, 'apple', 'fruit'),
+            (3, 'banana', 'fruit'),
+            (4, 'cat', 'animal'),
+            (5, 'dog', 'animal')
+        ]
+
+        for engine in [engine_no_index, engine_with_index]:
+            with engine.connect() as conn:
+                conn.execute(text("CREATE TABLE test_table (id INTEGER, col1 TEXT, col2 TEXT)"))
+                for row in test_data:
+                    conn.execute(text(f"INSERT INTO test_table VALUES ({row[0]}, '{row[1]}', '{row[2]}')"))
+                conn.commit()
+
+        index_whitelist = [
+            {"table": "test_table", "columns": ["col1"], "name": "idx_test_col1"},
+            {"table": "test_table", "columns": ["col2"], "name": "idx_test_col2"}
+        ]
+
+        migration = IndexMigration(engine_with_index, index_whitelist)
+        migration.migrate()
+
+        queries_with_order = [
+            "SELECT * FROM test_table ORDER BY id",
+            "SELECT * FROM test_table ORDER BY col1, id",
+            "SELECT * FROM test_table ORDER BY col2 DESC, id",
+            "SELECT col1 FROM test_table ORDER BY col1 ASC, id",
+        ]
+
+        for query in queries_with_order:
+            with engine_no_index.connect() as conn:
+                result_no_index = conn.execute(text(query)).fetchall()
+
+            with engine_with_index.connect() as conn:
+                result_with_index = conn.execute(text(query)).fetchall()
+
+            assert result_no_index == result_with_index, f"Query order differs: {query}"
+    finally:
+        engine_no_index.dispose()
+        engine_with_index.dispose()
