@@ -61,7 +61,7 @@ class GenerationService:
             from src.database.models import get_scoped_session
 
             self._scoped_session_factory = get_scoped_session
-        except:
+        except Exception:
             self._scoped_session_factory = None
 
         # RAG增强组件（延迟初始化）
@@ -750,7 +750,7 @@ class GenerationService:
                 req = self.db_session.query(Requirement).get(requirement_id)
                 if req:
                     requirement_title = req.title
-            except:
+            except Exception:
                 pass
 
         task = GenerationTask(
@@ -882,12 +882,12 @@ class GenerationService:
             if task.started_at:
                 try:
                     task_model.started_at = datetime.fromisoformat(task.started_at)
-                except:
+                except ValueError:
                     pass
             if task.completed_at:
                 try:
                     task_model.completed_at = datetime.fromisoformat(task.completed_at)
-                except:
+                except ValueError:
                     pass
 
             # 计算耗时
@@ -901,7 +901,7 @@ class GenerationService:
             logger.info(f"[GenerationService] 同步任务到数据库失败: {e}")
             try:
                 session.rollback()
-            except:
+            except Exception:
                 pass
 
     def fail_task(self, task_id: str, error_message: str):
@@ -1073,7 +1073,7 @@ class GenerationService:
             logger.error(f"[GenerationService] 保存评审记录失败: {e}")
             try:
                 self.db_session.rollback()
-            except:
+            except Exception:
                 pass
             return False
 
@@ -3289,7 +3289,7 @@ class GenerationService:
                         logger.info(f"清理失败用例或更新状态失败: {cleanup_error}")
                         try:
                             bg_session.rollback()
-                        except:
+                        except Exception:
                             pass
 
         # 在后台线程执行
@@ -3459,7 +3459,7 @@ class GenerationService:
                     last_num = int(max_case.case_id[3:])
                     start_num = last_num + 1
                     logger.info(f"从全局最大用例序号 {last_num} 之后开始编号，起始: {start_num}")
-                except:
+                except ValueError:
                     start_num = 1
             else:
                 start_num = 1
@@ -3480,7 +3480,7 @@ class GenerationService:
                 if isinstance(test_steps, str):
                     try:
                         test_steps = json_module.loads(test_steps)
-                    except:
+                    except json.JSONDecodeError:
                         # 解析失败则按行分割
                         test_steps = [
                             s.strip() for s in test_steps.split("\n") if s.strip()
@@ -3489,7 +3489,7 @@ class GenerationService:
                 if isinstance(expected_results, str):
                     try:
                         expected_results = json_module.loads(expected_results)
-                    except:
+                    except json.JSONDecodeError:
                         # 解析失败则按行分割
                         expected_results = [
                             s.strip() for s in expected_results.split("\n") if s.strip()
@@ -3581,7 +3581,7 @@ class GenerationService:
         except Exception as e:
             try:
                 session.rollback()
-            except:
+            except Exception:
                 pass
             raise Exception(f"保存测试用例失败: {str(e)}")
 
@@ -3679,7 +3679,7 @@ class GenerationService:
             try:
                 analysis_result = json.loads(content)
                 return self._normalize_llm_analysis(analysis_result)
-            except:
+            except json.JSONDecodeError:
                 pass
 
             # 方法2：从代码块中提取
@@ -4730,7 +4730,7 @@ class GenerationService:
         # 尝试提取JSON
         try:
             review_result = json.loads(content)
-        except:
+        except json.JSONDecodeError:
             # 尝试从代码块中提取
             json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
             if json_match:
@@ -5844,7 +5844,7 @@ class GenerationService:
                     try:
                         case = json.loads(match)
                         cases.append(case)
-                    except:
+                    except json.JSONDecodeError:
                         pass
                 if cases:
                     return cases
@@ -5979,7 +5979,7 @@ class GenerationService:
             # 尝试提取JSON
             try:
                 review_result = json.loads(content)
-            except:
+            except json.JSONDecodeError:
                 # 尝试从代码块中提取
                 json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
                 if json_match:
