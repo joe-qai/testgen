@@ -32,7 +32,6 @@ AGENT_PROMPTS = {
 
 要求：简洁，4 个部分各 1-2 句话，Markdown 格式输出。
 """,
-
     "requirement_analyst": """你是需求分析专家（Requirement Analyst）。
 
 请基于用户需求和 Orchestrator 方案，输出需求解析报告：
@@ -44,7 +43,6 @@ AGENT_PROMPTS = {
 格式：Markdown 表格。
 要求：客观分析，不添加需求外内容。
 """,
-
     "test_plan_designer": """你是测试规划+评审专家（Test Plan Designer）。
 
 请基于需求解析报告，按 4 维度评审：
@@ -58,7 +56,6 @@ AGENT_PROMPTS = {
 - 详细意见
 - 修正后的测试点清单（如有修正）
 """,
-
     "case_generator_batch": """你是测试用例生成专家（Case Generator）。
 
 请基于指定的模块和测试点，生成 **2-3 条** 测试用例（不要多生成）。
@@ -82,8 +79,7 @@ AGENT_PROMPTS = {
 - 步骤编号和预期编号必须一一对应（步骤1→预期1，步骤2→预期2...）
 - **只生成 2-3 条，简洁输出**
 """,
-
-"case_generator_positive": """你是测试用例生成专家（正向主流程专用）。
+    "case_generator_positive": """你是测试用例生成专家（正向主流程专用）。
 
 请基于需求，生成 **2-3 条正向主流程测试用例**——即核心功能的正常成功路径。
 
@@ -111,7 +107,6 @@ AGENT_PROMPTS = {
 - 预期可验证，禁止"功能正常"
 - **只生成 2-3 条，简洁输出**
 """,
-
     "reviewer": """你是用例评审专家（Reviewer）。
 
 请评审测试用例：
@@ -152,6 +147,7 @@ C. 六大维度评估（100分制）：
 
 # ============ 5 Agent 串行 Pipeline ============
 
+
 class MultiAgentCaseService:
     """
     5 Agent 协作的用例生成服务（v2 优化版）
@@ -187,13 +183,17 @@ class MultiAgentCaseService:
         self.case_review_agent = None
         if llm_manager:
             try:
-                self.case_review_agent = CaseReviewAgent(llm_manager=llm_manager)
+                self.case_review_agent = CaseReviewAgent(
+                    llm_manager=llm_manager
+                )
             except Exception as e:
                 logger.warning(f"[MultiAgent] CaseReviewAgent 初始化失败: {e}")
 
     # ============ LLM 调用封装 ============
 
-    def _call_llm(self, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
+    def _call_llm(
+        self, system_prompt: str, user_prompt: str, temperature: float = 0.3
+    ) -> str:
         """统一的 LLM 调用接口（复用现有 LLMManager）"""
         if not self.llm_manager:
             raise ValueError("LLM Manager 未初始化")
@@ -216,7 +216,9 @@ class MultiAgentCaseService:
         except (AttributeError, NotImplementedError):
             # 回退到 generate 接口
             full_prompt = f"{system_prompt}\n\n{user_prompt}\n\n请简洁回答，不要超过 2000 字。"
-            response = adapter.generate(full_prompt, temperature=temperature, timeout=300)
+            response = adapter.generate(
+                full_prompt, temperature=temperature, timeout=300
+            )
             if response.success:
                 return response.content
             raise Exception(f"LLM 调用失败: {response.error_message}")
@@ -230,7 +232,9 @@ class MultiAgentCaseService:
             user_prompt=f"需求：\n{requirement_text}",
         )
 
-    def _run_analyst(self, requirement_text: str, orchestrator_out: str) -> str:
+    def _run_analyst(
+        self, requirement_text: str, orchestrator_out: str
+    ) -> str:
         """Agent 2: 需求分析（阶段 3）"""
         return self._call_llm(
             system_prompt=AGENT_PROMPTS["requirement_analyst"],
@@ -266,7 +270,9 @@ class MultiAgentCaseService:
 
         # 后续批次：按模块分批生成边界/异常用例
         for idx, module_info in enumerate(modules, 1):
-            logger.info(f"[MultiAgent] 批次 {idx}/{len(modules)}: {module_info[:50]}...")
+            logger.info(
+                f"[MultiAgent] 批次 {idx}/{len(modules)}: {module_info[:50]}..."
+            )
             try:
                 batch_result = self._call_llm(
                     system_prompt=AGENT_PROMPTS["case_generator_batch"],
@@ -287,17 +293,17 @@ class MultiAgentCaseService:
     def _extract_test_modules(self, designer_out: str) -> List[str]:
         """从 Designer 输出中提取测试点模块，用于分批生成"""
         # 按 ### 或 ## 标题切分模块
-        module_pattern = r'(?:^|\n)(?:#{2,3}\s+.+?)(?=\n#{2,3}\s+|\Z)'
+        module_pattern = r"(?:^|\n)(?:#{2,3}\s+.+?)(?=\n#{2,3}\s+|\Z)"
         modules = re.findall(module_pattern, designer_out, re.DOTALL)
 
         # 如果没有标题切分，按段落切分（每段约 200-300 字）
         if len(modules) <= 1:
-            lines = designer_out.strip().split('\n')
+            lines = designer_out.strip().split("\n")
             chunks = []
             current_chunk = ""
             for line in lines:
                 if line.strip():
-                    current_chunk += line + '\n'
+                    current_chunk += line + "\n"
                     if len(current_chunk) > 300:
                         chunks.append(current_chunk.strip())
                         current_chunk = ""
@@ -309,7 +315,9 @@ class MultiAgentCaseService:
         if len(modules) > 4:
             merged = []
             for i in range(0, len(modules), max(1, len(modules) // 4)):
-                merged.append('\n'.join(modules[i:i + max(1, len(modules) // 4)]))
+                merged.append(
+                    "\n".join(modules[i : i + max(1, len(modules) // 4)])
+                )
             modules = merged[:4]
 
         return modules
@@ -323,7 +331,9 @@ class MultiAgentCaseService:
 
     # ============ 用例解析（Markdown → 结构化数据）============
 
-    def _parse_cases_from_markdown(self, markdown_text: str) -> List[Dict[str, Any]]:
+    def _parse_cases_from_markdown(
+        self, markdown_text: str
+    ) -> List[Dict[str, Any]]:
         """从 Generator 输出的 Markdown 中解析出结构化用例列表"""
         cases = []
         pattern = r"##\s*\[P(\d)\]\s*(.+?)(?=##\s*\[P\d\]|$)"
@@ -338,7 +348,9 @@ class MultiAgentCaseService:
 
         return cases
 
-    def _parse_single_case(self, block: str, priority_num: str) -> Optional[Dict[str, Any]]:
+    def _parse_single_case(
+        self, block: str, priority_num: str
+    ) -> Optional[Dict[str, Any]]:
         """解析单条用例"""
         lines = block.strip().split("\n")
         title = lines[0].strip() if lines else ""
@@ -348,7 +360,9 @@ class MultiAgentCaseService:
             return m.group(1).strip() if m else ""
 
         test_type = extract_field(r"\[测试类型\]\s*(\S+)")
-        preconditions = extract_field(r"\[前置条件\]\s*(.+?)(?=\[测试步骤\]|\[预期结果\]|$)")
+        preconditions = extract_field(
+            r"\[前置条件\]\s*(.+?)(?=\[测试步骤\]|\[预期结果\]|$)"
+        )
         test_steps = extract_field(r"\[测试步骤\]\s*(.+?)(?=\[预期结果\]|$)")
         expected_results = extract_field(r"\[预期结果\]\s*(.+)")
 
@@ -372,7 +386,7 @@ class MultiAgentCaseService:
     def _parse_review_decision(self, reviewer_output: str) -> str:
         """
         从 Reviewer 输出中解析评审结论
-        
+
         Returns: "PASS" / "CONDITIONAL" / "FAIL"
         """
         # 检查一票否决项
@@ -395,13 +409,15 @@ class MultiAgentCaseService:
                 if total_score >= 60:
                     return "CONDITIONAL"  # 评分 60+ 但标题扣分，降为有条件通过
             return "FAIL"
-        
+
         # 默认
         return "CONDITIONAL"
 
     # ============ 优先级平衡 ============
 
-    def _balance_priorities(self, cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _balance_priorities(
+        self, cases: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """确保 P0+P1 合计不超过 40%（硬约束）
         超过时将部分 P1 降为 P2，优先保留正向主流程用例的 P1
         """
@@ -409,7 +425,9 @@ class MultiAgentCaseService:
         if total == 0:
             return cases
 
-        p0_p1_count = sum(1 for c in cases if c.get("priority") in ("P0", "P1"))
+        p0_p1_count = sum(
+            1 for c in cases if c.get("priority") in ("P0", "P1")
+        )
         max_p0_p1 = int(total * 0.4)  # 40% 上限
         # 至少允许 1 条 P0+P1
         if max_p0_p1 < 1:
@@ -419,15 +437,23 @@ class MultiAgentCaseService:
             return cases  # 不需要调整
 
         # 需要降级：从 P1 中选择非正向主流程的降为 P2
-        logger.info(f"[MultiAgent] 优先级平衡: P0+P1={p0_p1_count}/{total} > 40%, 需降级 {p0_p1_count - max_p0_p1} 条")
+        logger.info(
+            f"[MultiAgent] 优先级平衡: P0+P1={p0_p1_count}/{total} > 40%, 需降级 {p0_p1_count - max_p0_p1} 条"
+        )
 
         # P0 不降级；P1 中非正向的先降
         downgrade_count = p0_p1_count - max_p0_p1
         p1_cases = [c for c in cases if c.get("priority") == "P1"]
 
         # 正向用例（case_type 为"功能"）的 P1 优先保留
-        functional_p1 = [c for c in p1_cases if c.get("case_type") in ("功能", "功能/边界")]
-        other_p1 = [c for c in p1_cases if c.get("case_type") not in ("功能", "功能/边界")]
+        functional_p1 = [
+            c for c in p1_cases if c.get("case_type") in ("功能", "功能/边界")
+        ]
+        other_p1 = [
+            c
+            for c in p1_cases
+            if c.get("case_type") not in ("功能", "功能/边界")
+        ]
 
         # 先降非功能类P1，再降功能类P1
         downgrade_order = other_p1 + functional_p1
@@ -446,11 +472,20 @@ class MultiAgentCaseService:
         if not self.db_session:
             raise ValueError("DB Session 未初始化")
 
-        req = self.db_session.query(Requirement).filter_by(id=requirement_id).first()
+        req = (
+            self.db_session.query(Requirement)
+            .filter_by(id=requirement_id)
+            .first()
+        )
         if not req:
             raise ValueError(f"需求不存在: {requirement_id}")
 
-        return {"id": req.id, "title": req.title, "content": req.content, "status": req.status}
+        return {
+            "id": req.id,
+            "title": req.title,
+            "content": req.content,
+            "status": req.status,
+        }
 
     def _save_test_cases(
         self, requirement_id: int, cases: List[Dict[str, Any]]
@@ -460,7 +495,9 @@ class MultiAgentCaseService:
 
         saved_ids = []
         for idx, case in enumerate(cases, 1):
-            import uuid; case_id_str = f"MA_{requirement_id:04d}_{uuid.uuid4().hex[:6]}"
+            import uuid
+
+            case_id_str = f"MA_{requirement_id:04d}_{uuid.uuid4().hex[:6]}"
 
             tc = TestCase(
                 case_id=case_id_str,
@@ -498,7 +535,9 @@ class MultiAgentCaseService:
         """落库 5 Agent 的过程日志"""
         from src.database.models import GenerationTask, TaskStatus
 
-        task = self.db_session.query(GenerationTask).filter_by(id=task_id).first()
+        task = (
+            self.db_session.query(GenerationTask).filter_by(id=task_id).first()
+        )
         if task:
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.now(timezone.utc)
@@ -529,7 +568,11 @@ class MultiAgentCaseService:
 
         # 2. 创建任务
         import uuid
-        from src.database.models import GenerationTask, TaskStatus, GenerationPhase
+        from src.database.models import (
+            GenerationTask,
+            TaskStatus,
+            GenerationPhase,
+        )
 
         task = GenerationTask(
             task_id=f"ma_{uuid.uuid4().hex[:16]}",
@@ -546,7 +589,9 @@ class MultiAgentCaseService:
         pipeline_outputs = {}
 
         try:
-            pipeline_outputs["orchestrator"] = self._run_orchestrator(requirement_text)
+            pipeline_outputs["orchestrator"] = self._run_orchestrator(
+                requirement_text
+            )
             logger.info("[MultiAgent] ✅ Orchestrator 完成")
 
             pipeline_outputs["requirement_analyst"] = self._run_analyst(
@@ -565,7 +610,9 @@ class MultiAgentCaseService:
                 pipeline_outputs["case_generator"] = self._run_generator(
                     requirement_text, pipeline_outputs["test_plan_designer"]
                 )
-                logger.info(f"[MultiAgent] ✅ CaseGenerator 第 {attempt} 次完成")
+                logger.info(
+                    f"[MultiAgent] ✅ CaseGenerator 第 {attempt} 次完成"
+                )
 
                 pipeline_outputs["reviewer"] = self._run_reviewer(
                     requirement_text, pipeline_outputs["case_generator"]
@@ -573,25 +620,39 @@ class MultiAgentCaseService:
                 logger.info(f"[MultiAgent] ✅ Reviewer 第 {attempt} 次完成")
 
                 # 用改进的解析方法判断评审结论
-                review_decision = self._parse_review_decision(pipeline_outputs["reviewer"])
+                review_decision = self._parse_review_decision(
+                    pipeline_outputs["reviewer"]
+                )
                 logger.info(f"[MultiAgent] 评审结论: {review_decision}")
 
                 if review_decision in ("PASS", "CONDITIONAL"):
                     break
                 elif attempt < max_attempts:
-                    logger.warning(f"[MultiAgent] 评审不通过，重试 {attempt}/{max_attempts}")
+                    logger.warning(
+                        f"[MultiAgent] 评审不通过，重试 {attempt}/{max_attempts}"
+                    )
                 else:
                     review_decision = "FAIL"
 
             # 5. 解析用例 + 落库
-            cases = self._parse_cases_from_markdown(pipeline_outputs.get("case_generator", ""))
+            cases = self._parse_cases_from_markdown(
+                pipeline_outputs.get("case_generator", "")
+            )
             # 优先级平衡（确保 P0+P1 ≤ 40%）
             cases = self._balance_priorities(cases)
-            case_ids = self._save_test_cases(requirement_id, cases) if cases else []
+            case_ids = (
+                self._save_test_cases(requirement_id, cases) if cases else []
+            )
 
             # 6. 保存 Pipeline 日志
             total_duration = time.time() - start_time
-            self._save_pipeline_log(task_id, requirement_id, pipeline_outputs, total_duration, review_decision)
+            self._save_pipeline_log(
+                task_id,
+                requirement_id,
+                pipeline_outputs,
+                total_duration,
+                review_decision,
+            )
 
             return {
                 "task_id": task_id,
@@ -606,7 +667,11 @@ class MultiAgentCaseService:
             logger.error(f"[MultiAgent] Pipeline 失败: {e}")
             from src.database.models import TaskStatus
 
-            task = self.db_session.query(GenerationTask).filter_by(id=task_id).first()
+            task = (
+                self.db_session.query(GenerationTask)
+                .filter_by(id=task_id)
+                .first()
+            )
             if task:
                 task.status = TaskStatus.FAILED
                 task.error_message = str(e)
@@ -632,5 +697,9 @@ if __name__ == "__main__":
     logger.info("  - Generator: 标题禁止泛化词结尾 + 禁止变量占位符")
     logger.info("  - Reviewer: 标题泛化词从一票否决降级为扣分项")
     logger.info("  - Reviewer: 六大维度改为 100 分制评分")
-    logger.info("  - _parse_review_decision(): 智能解析评审结论（区分否决级 vs 扣分级）")
-    logger.info("  - _save_pipeline_log(): 用 result 字段替代 result_data（兼容原表结构）")
+    logger.info(
+        "  - _parse_review_decision(): 智能解析评审结论（区分否决级 vs 扣分级）"
+    )
+    logger.info(
+        "  - _save_pipeline_log(): 用 result 字段替代 result_data（兼容原表结构）"
+    )

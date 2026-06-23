@@ -107,17 +107,29 @@ class Requirement(Base):
         Integer,
         default=RequirementStatus.PENDING_ANALYSIS,
     )
-    analysis_data = Column(JSON, default=None)  # 分析结果数据：modules, test_points等
-    test_plan = Column(JSON, default=None)  # 测试规划内容：methodology, design_methods, test_types
-    generation_params = Column(JSON, default=None)  # 生成参数配置：temperature, max_tokens, prompt_template_id
-    rag_params = Column(JSON, default=None)  # RAG检索参数：similarity_threshold, top_k, fusion_strategy
+    analysis_data = Column(
+        JSON, default=None
+    )  # 分析结果数据：modules, test_points等
+    test_plan = Column(
+        JSON, default=None
+    )  # 测试规划内容：methodology, design_methods, test_types
+    generation_params = Column(
+        JSON, default=None
+    )  # 生成参数配置：temperature, max_tokens, prompt_template_id
+    rag_params = Column(
+        JSON, default=None
+    )  # RAG检索参数：similarity_threshold, top_k, fusion_strategy
     version = Column(String(50), default="1.0")
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # 关联关系
     test_cases = relationship("TestCase", back_populates="requirement")
-    generation_tasks = relationship("GenerationTask", back_populates="requirement")
+    generation_tasks = relationship(
+        "GenerationTask", back_populates="requirement"
+    )
 
     # 索引定义
     __table_args__ = (
@@ -132,7 +144,9 @@ class TestCase(Base):
     __tablename__ = "test_cases"
 
     id = Column(Integer, primary_key=True)
-    case_id = Column(String(100), unique=True, nullable=False)  # 用例编号如 TC_001
+    case_id = Column(
+        String(100), unique=True, nullable=False
+    )  # 用例编号如 TC_001
     requirement_id = Column(Integer, ForeignKey("requirements.id"))
 
     # 用例内容
@@ -156,11 +170,17 @@ class TestCase(Base):
     )
 
     # 置信度信息（RAG增强 Phase 1）
-    confidence_score = Column(Float, default=None)  # 综合置信度分数 (0.0 ~ 1.0)
+    confidence_score = Column(
+        Float, default=None
+    )  # 综合置信度分数 (0.0 ~ 1.0)
     confidence_level = Column(String(10), default=None)  # 置信度等级 (A/B/C/D)
     citations = Column(JSON, default=None)  # 引用来源列表
-    rag_influenced = Column(Integer, default=0)  # RAG影响标识 (0=未影响, 1=受影响)
-    rag_sources = Column(JSON, default=None)  # RAG来源列表 [{type, id, similarity}]
+    rag_influenced = Column(
+        Integer, default=0
+    )  # RAG影响标识 (0=未影响, 1=受影响)
+    rag_sources = Column(
+        JSON, default=None
+    )  # RAG来源列表 [{type, id, similarity}]
     is_duplicate = Column(Integer, default=0)  # 重复标识 (0=正常, 1=重复)
     duplicate_of = Column(String(200), default=None)  # 重复自哪个用例
     duplicate_similarity = Column(Float, default=None)  # 重复相似度
@@ -168,7 +188,9 @@ class TestCase(Base):
     # 追溯信息
     requirement_clause = Column(String(100))  # 关联需求条款编号
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # 关联关系
     requirement = relationship("Requirement", back_populates="test_cases")
@@ -190,7 +212,9 @@ class GenerationTask(Base):
     id = Column(Integer, primary_key=True)
     task_id = Column(String(100), unique=True, nullable=False)
     requirement_id = Column(Integer, ForeignKey("requirements.id"))
-    requirement_title = Column(String(500))  # 需求名称（冗余字段，便于列表展示）
+    requirement_title = Column(
+        String(500)
+    )  # 需求名称（冗余字段，便于列表展示）
 
     # 任务状态
     status = Column(
@@ -213,7 +237,9 @@ class GenerationTask(Base):
     analysis_snapshot = Column(
         JSON
     )  # 保存需求分析结果：modules, test_points, business_flows 等
-    rag_context = Column(JSON)  # RAG召回上下文：检索结果、融合详情、质量报告（RAG增强）
+    rag_context = Column(
+        JSON
+    )  # RAG召回上下文：检索结果、融合详情、质量报告（RAG增强）
 
     # 统计信息
     case_count = Column(Integer, default=0)  # 已生成的用例数
@@ -225,7 +251,9 @@ class GenerationTask(Base):
     completed_at = Column(DateTime)
 
     # 关联关系
-    requirement = relationship("Requirement", back_populates="generation_tasks")
+    requirement = relationship(
+        "Requirement", back_populates="generation_tasks"
+    )
 
     # 索引定义
     __table_args__ = (
@@ -255,7 +283,9 @@ class RequirementAnalysisItem(Base):
     __tablename__ = "requirement_analysis_items"
 
     id = Column(Integer, primary_key=True)
-    requirement_id = Column(Integer, ForeignKey("requirements.id"), nullable=False)
+    requirement_id = Column(
+        Integer, ForeignKey("requirements.id"), nullable=False
+    )
     item_type = Column(String(20), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text)
@@ -265,13 +295,17 @@ class RequirementAnalysisItem(Base):
     focus_points = Column(JSON)
     status = Column(Integer, default=AnalysisItemStatus.PENDING_REVIEW)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     requirement = relationship("Requirement", backref="analysis_items")
 
     # 索引定义
     __table_args__ = (
-        Index("idx_requirement_analysis_items_requirement_id", "requirement_id"),
+        Index(
+            "idx_requirement_analysis_items_requirement_id", "requirement_id"
+        ),
         Index("idx_requirement_analysis_items_item_type", "item_type"),
         Index("idx_requirement_analysis_items_status", "status"),
     )
@@ -291,7 +325,9 @@ class Defect(Base):
     severity = Column(String(10))
     category = Column(String(100))
     status = Column(String(50), default="open")
-    related_case_id = Column(Integer, ForeignKey("test_cases.id"), nullable=True)
+    related_case_id = Column(
+        Integer, ForeignKey("test_cases.id"), nullable=True
+    )
     related_requirement_id = Column(
         Integer, ForeignKey("requirements.id"), nullable=True
     )
@@ -314,7 +350,9 @@ class LLMConfig(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)  # 配置名称如 "qwen-turbo"
-    provider = Column(String(50), nullable=False)  # 提供商: openai/qwen/deepseek
+    provider = Column(
+        String(50), nullable=False
+    )  # 提供商: openai/qwen/deepseek
     base_url = Column(String(500), nullable=False)
     api_key = Column(String(500), nullable=False)
     model_id = Column(String(100), nullable=False)
@@ -337,7 +375,9 @@ class RequirementAnalysis(Base):
     __tablename__ = "requirement_analyses"
 
     id = Column(Integer, primary_key=True)
-    requirement_id = Column(Integer, ForeignKey("requirements.id"), nullable=False)
+    requirement_id = Column(
+        Integer, ForeignKey("requirements.id"), nullable=False
+    )
 
     # 分析结果
     modules = Column(JSON)  # 识别的功能模块列表
@@ -352,7 +392,9 @@ class RequirementAnalysis(Base):
     risk_assessment = Column(JSON)  # 风险评估结果
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # 关联关系
     requirement = relationship("Requirement", backref="analyses")
@@ -372,7 +414,9 @@ class PromptTemplate(Base):
     version = Column(Integer, default=1)
     change_log = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class CaseReviewRecord(Base):
@@ -408,7 +452,8 @@ def init_database(db_path="data/testgen.db"):
 
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     engine = create_engine(
-        f"sqlite:///{db_path}", connect_args={"timeout": 30, "check_same_thread": False}
+        f"sqlite:///{db_path}",
+        connect_args={"timeout": 30, "check_same_thread": False},
     )
 
     # 启用WAL模式减少锁冲突
@@ -421,27 +466,111 @@ def init_database(db_path="data/testgen.db"):
 
     # 索引白名单
     index_whitelist = [
-        {"name": "idx_requirements_status", "table": "requirements", "columns": ["status"]},
-        {"name": "idx_requirements_created_at", "table": "requirements", "columns": ["created_at"]},
-        {"name": "idx_test_cases_requirement_id", "table": "test_cases", "columns": ["requirement_id"]},
-        {"name": "idx_test_cases_status", "table": "test_cases", "columns": ["status"]},
-        {"name": "idx_test_cases_priority", "table": "test_cases", "columns": ["priority"]},
-        {"name": "idx_test_cases_confidence_level", "table": "test_cases", "columns": ["confidence_level"]},
-        {"name": "idx_generation_tasks_status", "table": "generation_tasks", "columns": ["status"]},
-        {"name": "idx_generation_tasks_requirement_id", "table": "generation_tasks", "columns": ["requirement_id"]},
-        {"name": "idx_generation_tasks_created_at", "table": "generation_tasks", "columns": ["created_at"]},
-        {"name": "idx_requirement_analysis_items_requirement_id", "table": "requirement_analysis_items", "columns": ["requirement_id"]},
-        {"name": "idx_requirement_analysis_items_item_type", "table": "requirement_analysis_items", "columns": ["item_type"]},
-        {"name": "idx_requirement_analysis_items_status", "table": "requirement_analysis_items", "columns": ["status"]},
-        {"name": "idx_defects_module", "table": "defects", "columns": ["module"]},
-        {"name": "idx_defects_severity", "table": "defects", "columns": ["severity"]},
-        {"name": "idx_defects_status", "table": "defects", "columns": ["status"]},
-        {"name": "idx_defects_related_requirement_id", "table": "defects", "columns": ["related_requirement_id"]},
-        {"name": "idx_llm_configs_is_default", "table": "llm_configs", "columns": ["is_default"]},
-        {"name": "idx_llm_configs_is_active", "table": "llm_configs", "columns": ["is_active"]},
-        {"name": "idx_llm_configs_provider", "table": "llm_configs", "columns": ["provider"]},
-        {"name": "idx_case_review_records_task_id", "table": "case_review_records", "columns": ["task_id"]},
-        {"name": "idx_case_review_records_case_id", "table": "case_review_records", "columns": ["case_id"]},
+        {
+            "name": "idx_requirements_status",
+            "table": "requirements",
+            "columns": ["status"],
+        },
+        {
+            "name": "idx_requirements_created_at",
+            "table": "requirements",
+            "columns": ["created_at"],
+        },
+        {
+            "name": "idx_test_cases_requirement_id",
+            "table": "test_cases",
+            "columns": ["requirement_id"],
+        },
+        {
+            "name": "idx_test_cases_status",
+            "table": "test_cases",
+            "columns": ["status"],
+        },
+        {
+            "name": "idx_test_cases_priority",
+            "table": "test_cases",
+            "columns": ["priority"],
+        },
+        {
+            "name": "idx_test_cases_confidence_level",
+            "table": "test_cases",
+            "columns": ["confidence_level"],
+        },
+        {
+            "name": "idx_generation_tasks_status",
+            "table": "generation_tasks",
+            "columns": ["status"],
+        },
+        {
+            "name": "idx_generation_tasks_requirement_id",
+            "table": "generation_tasks",
+            "columns": ["requirement_id"],
+        },
+        {
+            "name": "idx_generation_tasks_created_at",
+            "table": "generation_tasks",
+            "columns": ["created_at"],
+        },
+        {
+            "name": "idx_requirement_analysis_items_requirement_id",
+            "table": "requirement_analysis_items",
+            "columns": ["requirement_id"],
+        },
+        {
+            "name": "idx_requirement_analysis_items_item_type",
+            "table": "requirement_analysis_items",
+            "columns": ["item_type"],
+        },
+        {
+            "name": "idx_requirement_analysis_items_status",
+            "table": "requirement_analysis_items",
+            "columns": ["status"],
+        },
+        {
+            "name": "idx_defects_module",
+            "table": "defects",
+            "columns": ["module"],
+        },
+        {
+            "name": "idx_defects_severity",
+            "table": "defects",
+            "columns": ["severity"],
+        },
+        {
+            "name": "idx_defects_status",
+            "table": "defects",
+            "columns": ["status"],
+        },
+        {
+            "name": "idx_defects_related_requirement_id",
+            "table": "defects",
+            "columns": ["related_requirement_id"],
+        },
+        {
+            "name": "idx_llm_configs_is_default",
+            "table": "llm_configs",
+            "columns": ["is_default"],
+        },
+        {
+            "name": "idx_llm_configs_is_active",
+            "table": "llm_configs",
+            "columns": ["is_active"],
+        },
+        {
+            "name": "idx_llm_configs_provider",
+            "table": "llm_configs",
+            "columns": ["provider"],
+        },
+        {
+            "name": "idx_case_review_records_task_id",
+            "table": "case_review_records",
+            "columns": ["task_id"],
+        },
+        {
+            "name": "idx_case_review_records_case_id",
+            "table": "case_review_records",
+            "columns": ["case_id"],
+        },
     ]
 
     # 执行索引迁移
@@ -463,7 +592,9 @@ def init_database(db_path="data/testgen.db"):
                 if not result.fetchone():
                     columns = ", ".join(fts_config["columns"])
                     conn.execute(
-                        text(f"CREATE VIRTUAL TABLE {fts_table} USING fts5({columns})")
+                        text(
+                            f"CREATE VIRTUAL TABLE {fts_table} USING fts5({columns})"
+                        )
                     )
                     logger.info(f"创建FTS5虚拟表: {fts_table}")
             except Exception as e:

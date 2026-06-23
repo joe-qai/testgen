@@ -54,7 +54,9 @@ class GenerationService:
         self._tasks: Dict[str, GenerationTask] = {}
         self._lock = threading.Lock()
         self.callbacks: Dict[str, Callable] = {}
-        self._current_rag_sources: Dict[str, list] = {}  # 当前任务的RAG检索来源
+        self._current_rag_sources: Dict[str, list] = (
+            {}
+        )  # 当前任务的RAG检索来源
 
         # 获取线程安全的scoped session工厂
         try:
@@ -78,9 +80,13 @@ class GenerationService:
             try:
                 from src.services.case_review_agent import CaseReviewAgent
 
-                self.case_review_agent = CaseReviewAgent(llm_manager=llm_manager)
+                self.case_review_agent = CaseReviewAgent(
+                    llm_manager=llm_manager
+                )
             except Exception as e:
-                logger.warning(f"[GenerationService] CaseReviewAgent 初始化失败: {e}")
+                logger.warning(
+                    f"[GenerationService] CaseReviewAgent 初始化失败: {e}"
+                )
 
         # 检索模式配置
         self.retrieval_mode = "hybrid"  # vector_only / keyword_only / hybrid
@@ -89,7 +95,8 @@ class GenerationService:
         # 调试：输出llm_manager的默认配置
         if llm_manager:
             default_info = llm_manager.get_config_info()
-            logger.info(f"初始化完成，LLM默认配置: {default_info.get('name', '无')} ({default_info.get('provider', '未知')})"
+            logger.info(
+                f"初始化完成，LLM默认配置: {default_info.get('name', '无')} ({default_info.get('provider', '未知')})"
             )
             logger.info(f"LLM适配器列表: {list(llm_manager.adapters.keys())}")
             logger.info(f"默认适配器: {llm_manager.default_adapter}")
@@ -151,7 +158,9 @@ class GenerationService:
 
         if self._confidence_calculator is None:
             try:
-                from src.services.confidence_calculator import ConfidenceCalculator
+                from src.services.confidence_calculator import (
+                    ConfidenceCalculator,
+                )
 
                 self._confidence_calculator = ConfidenceCalculator()
                 logger.info("[RAG组件] ConfidenceCalculator 初始化完成")
@@ -185,7 +194,9 @@ class GenerationService:
             return
 
         try:
-            from src.database.models import GenerationTask as GenerationTaskModel
+            from src.database.models import (
+                GenerationTask as GenerationTaskModel,
+            )
 
             # 查询未完成的任务
             pending_tasks = (
@@ -195,7 +206,8 @@ class GenerationService:
             )
 
             if pending_tasks:
-                logger.info(f"[GenerationService] 从数据库恢复 {len(pending_tasks)} 个未完成任务"
+                logger.info(
+                    f"[GenerationService] 从数据库恢复 {len(pending_tasks)} 个未完成任务"
                 )
                 for task_model in pending_tasks:
                     task = GenerationTask(
@@ -787,7 +799,9 @@ class GenerationService:
             # 同步到数据库
             self._sync_task_to_db(task)
 
-    def update_progress(self, task_id: str, progress: Optional[float], message: str):
+    def update_progress(
+        self, task_id: str, progress: Optional[float], message: str
+    ):
         """更新任务进度"""
         task = self.get_task(task_id)
         if task:
@@ -823,7 +837,9 @@ class GenerationService:
         """检查任务是否已被取消"""
         task = self.get_task(task_id)
         if task and task.status == int(TaskStatus.CANCELLED):
-            logger.info("[GenerationService] 任务 %s 已被取消，停止后续处理", task_id)
+            logger.info(
+                "[GenerationService] 任务 %s 已被取消，停止后续处理", task_id
+            )
             return True
         return False
 
@@ -837,7 +853,9 @@ class GenerationService:
             task.progress = 100.0
             task.result = result
             # 提取用例数到task对象（用于前端显示）
-            task.case_count = result.get("case_count", result.get("total_cases", 0))
+            task.case_count = result.get(
+                "case_count", result.get("total_cases", 0)
+            )
             task.message = "生成完成"
             task.completed_at = datetime.now(timezone.utc).isoformat()
             # 同步到数据库
@@ -850,7 +868,9 @@ class GenerationService:
             return
 
         try:
-            from src.database.models import GenerationTask as GenerationTaskModel
+            from src.database.models import (
+                GenerationTask as GenerationTaskModel,
+            )
 
             task_model = (
                 session.query(GenerationTaskModel)
@@ -868,7 +888,9 @@ class GenerationService:
             task_model.status = task.status
             task_model.progress = task.progress
             task_model.message = task.message
-            task_model.result = task.result if hasattr(task, "result") else None
+            task_model.result = (
+                task.result if hasattr(task, "result") else None
+            )
             task_model.error_message = task.error_message
             task_model.case_count = getattr(task, "case_count", 0) or 0
             task_model.phase = getattr(task, "phase", None)
@@ -881,19 +903,27 @@ class GenerationService:
             # 时间字段
             if task.started_at:
                 try:
-                    task_model.started_at = datetime.fromisoformat(task.started_at)
+                    task_model.started_at = datetime.fromisoformat(
+                        task.started_at
+                    )
                 except ValueError:
                     pass
             if task.completed_at:
                 try:
-                    task_model.completed_at = datetime.fromisoformat(task.completed_at)
+                    task_model.completed_at = datetime.fromisoformat(
+                        task.completed_at
+                    )
                 except ValueError:
                     pass
 
             # 计算耗时
             if task_model.started_at:
-                end_time = task_model.completed_at or datetime.now(timezone.utc)
-                task_model.duration = (end_time - task_model.started_at).total_seconds()
+                end_time = task_model.completed_at or datetime.now(
+                    timezone.utc
+                )
+                task_model.duration = (
+                    end_time - task_model.started_at
+                ).total_seconds()
                 task.duration = task_model.duration
 
             session.commit()
@@ -920,7 +950,9 @@ class GenerationService:
                 try:
                     from src.database.models import Requirement
 
-                    req = self.db_session.query(Requirement).get(task.requirement_id)
+                    req = self.db_session.query(Requirement).get(
+                        task.requirement_id
+                    )
                     if req:
                         req.status = RequirementStatus.FAILED
                         self.db_session.commit()
@@ -954,7 +986,9 @@ class GenerationService:
                 try:
                     from src.database.models import Requirement
 
-                    req = self.db_session.query(Requirement).get(task.requirement_id)
+                    req = self.db_session.query(Requirement).get(
+                        task.requirement_id
+                    )
                     if req:
                         req.status = RequirementStatus.CANCELLED_GENERATION
                         self.db_session.commit()
@@ -1003,7 +1037,8 @@ class GenerationService:
                 return review_result.get("overall_score", 0)
 
             weighted_sum = sum(
-                get_overall_score(b) * b.get("case_count", 0) for b in batch_reviews
+                get_overall_score(b) * b.get("case_count", 0)
+                for b in batch_reviews
             )
             overall_score = round(weighted_sum / total_cases, 1)
 
@@ -1108,14 +1143,18 @@ class GenerationService:
             try:
                 from src.database.models import Requirement
 
-                requirement = self.db_session.query(Requirement).get(requirement_id)
+                requirement = self.db_session.query(Requirement).get(
+                    requirement_id
+                )
                 if requirement:
                     analyzed_md = self._build_analyzed_markdown(
                         requirement_analysis, requirement_content
                     )
                     requirement.analyzed_content = analyzed_md
                     self.db_session.commit()
-                    logger.info(f"已保存需求分析Markdown格式到需求ID: {requirement_id}")
+                    logger.info(
+                        f"已保存需求分析Markdown格式到需求ID: {requirement_id}"
+                    )
             except Exception as e:
                 logger.info(f"保存需求分析Markdown失败: {e}")
 
@@ -1127,7 +1166,9 @@ class GenerationService:
 
         # 阶段2: 测试规划（移到RAG之前）
         self.update_progress(task_id, 20.0, "📝 开始测试规划...")
-        test_plan = self._create_test_plan(requirement_content, requirement_analysis)
+        test_plan = self._create_test_plan(
+            requirement_content, requirement_analysis
+        )
 
         # 解析测试规划为结构化的ITEM和POINT
         structured_plan = self._parse_test_plan(test_plan)
@@ -1149,7 +1190,9 @@ class GenerationService:
                 requirement_analysis, requirement_content
             ),
             "business_rules": requirement_analysis.get("business_rules", []),
-            "data_constraints": requirement_analysis.get("data_constraints", []),
+            "data_constraints": requirement_analysis.get(
+                "data_constraints", []
+            ),
             "risk_assessment": structured_plan.get("risk_assessment", {}),
         }
 
@@ -1167,7 +1210,9 @@ class GenerationService:
                 "points": structured_plan.get("points", []),
                 "item_count": len(structured_plan.get("items", [])),
                 "point_count": len(structured_plan.get("points", [])),
-                "business_rules": requirement_analysis.get("business_rules", []),
+                "business_rules": requirement_analysis.get(
+                    "business_rules", []
+                ),
                 "risk_assessment": structured_plan.get("risk_assessment", {}),
             }
             self._sync_task_to_db(task)
@@ -1202,7 +1247,9 @@ class GenerationService:
             "total_modules": len(items),
             "total_points": sum(len(item.get("points", [])) for item in items),
             "core_modules": [
-                item.get("title", "") for item in items if item.get("priority") == "P0"
+                item.get("title", "")
+                for item in items
+                if item.get("priority") == "P0"
             ],
         }
 
@@ -1237,7 +1284,7 @@ class GenerationService:
         if not summary:
             return "无测试计划摘要"
 
-        text = f"## 测试计划摘要\n"
+        text = "## 测试计划摘要\n"
         text += f"- 总模块数: {summary.get('total_modules', 0)}\n"
         text += f"- 总测试点数: {summary.get('total_points', 0)}\n"
 
@@ -1381,11 +1428,18 @@ class GenerationService:
             item_priority = item.get("priority", "P1")
 
             # [调试] 打印item信息
-            logger.info(f"[调试][generate_item_cases] 开始生成 - title: {item_title}")
-            logger.info(f"[调试][generate_item_cases]   - item keys: {list(item.keys())}")
-            logger.info(f"[调试][generate_item_cases]   - points: {len(item_points) if item_points else 0}"
+            logger.info(
+                f"[调试][generate_item_cases] 开始生成 - title: {item_title}"
             )
-            logger.info(f"[调试][generate_item_cases]   - priority: {item_priority}")
+            logger.info(
+                f"[调试][generate_item_cases]   - item keys: {list(item.keys())}"
+            )
+            logger.info(
+                f"[调试][generate_item_cases]   - points: {len(item_points) if item_points else 0}"
+            )
+            logger.info(
+                f"[调试][generate_item_cases]   - priority: {item_priority}"
+            )
 
             # 格式化各部分
             plan_summary_str = self.format_plan_summary(
@@ -1398,15 +1452,21 @@ class GenerationService:
             recent_cases_str = self.format_recent_cases(recent_cases or [])
 
             # 构建RAG上下文部分（优先使用传入的rag_context，其次从global_context获取）
-            rag_context_str = rag_context or global_context.get("rag_context", "")
+            rag_context_str = rag_context or global_context.get(
+                "rag_context", ""
+            )
 
             # 使用 PromptTemplateService 渲染模板
-            from src.services.prompt_template_service import PromptTemplateService
+            from src.services.prompt_template_service import (
+                PromptTemplateService,
+            )
 
             prompt_service = PromptTemplateService(self.db_session)
             render_result = prompt_service.render_template(
                 "case_generation",
-                requirement_content=global_context.get("requirement_content", ""),
+                requirement_content=global_context.get(
+                    "requirement_content", ""
+                ),
                 item_title=item_title,
                 item_points=item_points_str,
                 plan_summary=plan_summary_str,
@@ -1414,7 +1474,9 @@ class GenerationService:
                 recent_cases=recent_cases_str,
                 item_priority=item_priority,
                 rag_context=(
-                    rag_context_str if rag_context_str else "（无历史参考数据）"
+                    rag_context_str
+                    if rag_context_str
+                    else "（无历史参考数据）"
                 ),
                 test_plan="",
             )
@@ -1425,21 +1487,31 @@ class GenerationService:
                 logger.info("[generate_item_cases] 使用fallback默认模板")
 
             if render_result["missing_variables"]:
-                logger.info(f"[generate_item_cases] 模板缺少变量: {render_result['missing_variables']}")
+                logger.info(
+                    f"[generate_item_cases] 模板缺少变量: {render_result['missing_variables']}"
+                )
 
             # 2. 调用LLM生成
             adapter = self.llm_manager.get_adapter()
 
             if task_id:
-                self.update_progress(task_id, None, f"🤖 正在生成模块: {item_title}")
+                self.update_progress(
+                    task_id, None, f"🤖 正在生成模块: {item_title}"
+                )
 
             # [调试] 打印LLM调用信息
-            logger.info(f"[调试][generate_item_cases] 调用LLM - adapter: {type(adapter).__name__}"
+            logger.info(
+                f"[调试][generate_item_cases] 调用LLM - adapter: {type(adapter).__name__}"
             )
-            logger.info(f"[调试][generate_item_cases]   - prompt长度: {len(prompt)} 字符")
-            logger.info(f"[调试][generate_item_cases]   - temperature: 0.7, max_tokens: 4096, timeout: 120")
+            logger.info(
+                f"[调试][generate_item_cases]   - prompt长度: {len(prompt)} 字符"
+            )
+            logger.info(
+                "[调试][generate_item_cases]   - temperature: 0.7, max_tokens: 4096, timeout: 120"
+            )
 
-            logger.info(f"[用例生成] 调用LLM - adapter={type(adapter).__name__}, temperature=0.7"
+            logger.info(
+                f"[用例生成] 调用LLM - adapter={type(adapter).__name__}, temperature=0.7"
             )
             response = adapter.generate(
                 prompt,
@@ -1452,10 +1524,13 @@ class GenerationService:
 
             # 打印LLM响应结果
             if response.success:
-                logger.info(f"[用例生成] LLM响应成功 - 响应长度: {len(response.content) if response.content else 0}字符"
+                logger.info(
+                    f"[用例生成] LLM响应成功 - 响应长度: {len(response.content) if response.content else 0}字符"
                 )
             else:
-                logger.info(f"[用例生成] LLM响应失败: {response.error_message}")
+                logger.info(
+                    f"[用例生成] LLM响应失败: {response.error_message}"
+                )
 
             if not response.success:
                 raise Exception(f"LLM生成失败: {response.error_message}")
@@ -1463,10 +1538,12 @@ class GenerationService:
             # 解析生成的用例
             try:
                 test_cases = self._parse_generated_cases(response.content)
-                logger.info(f"[用例生成] 解析用例完成 - 生成 {len(test_cases)} 条用例")
+                logger.info(
+                    f"[用例生成] 解析用例完成 - 生成 {len(test_cases)} 条用例"
+                )
             except AttributeError as ae:
                 logger.info(f"[用例生成] 解析方法AttributeError: {ae}")
-                logger.info(f"[用例生成] 尝试备用解析方法...")
+                logger.info("[用例生成] 尝试备用解析方法...")
                 import traceback
 
                 traceback.print_exc()
@@ -1484,15 +1561,19 @@ class GenerationService:
                 case["item_title"] = item_title
                 case["item_priority"] = item_priority
 
-            logger.info(f"[用例生成] 模块 '{item_title}' 完成 - 共 {len(test_cases)} 条用例")
+            logger.info(
+                f"[用例生成] 模块 '{item_title}' 完成 - 共 {len(test_cases)} 条用例"
+            )
             return test_cases
 
         except Exception as e:
             import traceback
 
-            logger.info(f"[分批生成] 模块 '{item.get('title', '未知')}' 生成失败: {e}")
+            logger.info(
+                f"[分批生成] 模块 '{item.get('title', '未知')}' 生成失败: {e}"
+            )
             logger.info(f"[分批生成] 异常类型: {type(e).__name__}")
-            logger.info(f"[分批生成] 堆栈跟踪:")
+            logger.info("[分批生成] 堆栈跟踪:")
             traceback.print_exc()
             return []
 
@@ -1525,7 +1606,9 @@ class GenerationService:
             for case in cases:
                 title = case.get("name", case.get("case_title", ""))
                 steps = case.get("test_steps", [])
-                steps_text = " ".join(steps) if isinstance(steps, list) else str(steps)
+                steps_text = (
+                    " ".join(steps) if isinstance(steps, list) else str(steps)
+                )
                 documents.append(f"{title} {steps_text}")
 
             # TF-IDF 向量化
@@ -1558,7 +1641,9 @@ class GenerationService:
                             }
                         )
 
-            logger.info(f"[质检] 重复检测完成 - 发现 {len(duplicate_pairs)} 对重复用例")
+            logger.info(
+                f"[质检] 重复检测完成 - 发现 {len(duplicate_pairs)} 对重复用例"
+            )
             return duplicate_pairs
 
         except Exception as e:
@@ -1592,7 +1677,9 @@ class GenerationService:
             for case in cases:
                 title = case.get("name", case.get("case_title", ""))
                 steps = case.get("test_steps", [])
-                steps_text = " ".join(steps) if isinstance(steps, list) else str(steps)
+                steps_text = (
+                    " ".join(steps) if isinstance(steps, list) else str(steps)
+                )
                 documents.append(f"{title} {steps_text}")
 
             vectorizer = TfidfVectorizer(
@@ -1611,7 +1698,7 @@ class GenerationService:
                         continue
                     if similarity_matrix[i][j] > threshold:
                         indices_to_remove.add(j)
-                        cases[j]["duplicate_of"] = cases[i].get(
+                        cases[j]["duplicate_o"] = cases[i].get(
                             "name", cases[i].get("case_title", "")
                         )
                         cases[j]["duplicate_similarity"] = round(
@@ -1619,12 +1706,17 @@ class GenerationService:
                         )
 
             filtered = [
-                c for idx, c in enumerate(cases) if idx not in indices_to_remove
+                c
+                for idx, c in enumerate(cases)
+                if idx not in indices_to_remove
             ]
-            duplicates = [c for idx, c in enumerate(cases) if idx in indices_to_remove]
+            duplicates = [
+                c for idx, c in enumerate(cases) if idx in indices_to_remove
+            ]
 
             if duplicates:
-                logger.info(f"[去重] 过滤完成 - 保留 {len(filtered)} 条, 移除 {len(duplicates)} 条重复用例"
+                logger.info(
+                    f"[去重] 过滤完成 - 保留 {len(filtered)} 条, 移除 {len(duplicates)} 条重复用例"
                 )
 
             return filtered, duplicates
@@ -1633,7 +1725,9 @@ class GenerationService:
             logger.info(f"[去重] 过滤失败: {e}")
             return cases, []
 
-    def extract_point_id_from_case(self, case: Dict[str, Any]) -> Optional[str]:
+    def extract_point_id_from_case(
+        self, case: Dict[str, Any]
+    ) -> Optional[str]:
         """
         从用例标题或标签中提取测试点ID
 
@@ -1652,7 +1746,9 @@ class GenerationService:
         tags = case.get("tags", [])
         if isinstance(tags, list):
             for tag in tags:
-                if isinstance(tag, str) and ("POINT" in tag.upper() or "测试点" in tag):
+                if isinstance(tag, str) and (
+                    "POINT" in tag.upper() or "测试点" in tag
+                ):
                     return tag
 
         # 尝试从标题提取（如 "TP_001_用户登录验证"）
@@ -1722,9 +1818,7 @@ class GenerationService:
             import re
 
             for case in cases:
-                case_text = (
-                    f"{case.get('name', '')} {case.get('test_point', '')}".lower()
-                )
+                case_text = f"{case.get('name', '')} {case.get('test_point', '')}".lower()
                 for point in all_points:
                     point_title = point.get("point_title", "").lower()
                     if not point_title:
@@ -1741,10 +1835,14 @@ class GenerationService:
 
             # 计算覆盖度
             covered_points = sum(
-                1 for point_id, covered_cases in coverage_map.items() if covered_cases
+                1
+                for point_id, covered_cases in coverage_map.items()
+                if covered_cases
             )
             total_points = len(all_points)
-            coverage_rate = covered_points / total_points if total_points > 0 else 0.0
+            coverage_rate = (
+                covered_points / total_points if total_points > 0 else 0.0
+            )
 
             # 识别未覆盖的测试点
             uncovered_points = []
@@ -1753,7 +1851,8 @@ class GenerationService:
                 if not coverage_map.get(point_id):
                     uncovered_points.append(point)
 
-            logger.info(f"[质检] 覆盖度检查完成 - {covered_points}/{total_points} ({coverage_rate:.2%})"
+            logger.info(
+                f"[质检] 覆盖度检查完成 - {covered_points}/{total_points} ({coverage_rate:.2%})"
             )
 
             return {
@@ -1773,7 +1872,9 @@ class GenerationService:
                 "error": str(e),
             }
 
-    def calculate_quality_score(self, cases: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def calculate_quality_score(
+        self, cases: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         质量评分（100分制）
 
@@ -1825,7 +1926,9 @@ class GenerationService:
             test_steps = case.get("test_steps", [])
             if test_steps:
                 steps_list = (
-                    test_steps if isinstance(test_steps, list) else [test_steps]
+                    test_steps
+                    if isinstance(test_steps, list)
+                    else [test_steps]
                 )
                 if len(steps_list) > 0:
                     score += 10
@@ -1856,7 +1959,9 @@ class GenerationService:
             # 步骤数量2-10 (20分)
             if test_steps:
                 steps_list = (
-                    test_steps if isinstance(test_steps, list) else [test_steps]
+                    test_steps
+                    if isinstance(test_steps, list)
+                    else [test_steps]
                 )
                 step_count = len(steps_list)
                 if 2 <= step_count <= 10:
@@ -1885,7 +1990,9 @@ class GenerationService:
             )
 
         # 计算统计信息
-        scores = [cs["score"] for cs in case_scores if cs.get("score") is not None]
+        scores = [
+            cs["score"] for cs in case_scores if cs.get("score") is not None
+        ]
         if not scores:
             return {
                 "average_score": 0.0,
@@ -1902,7 +2009,9 @@ class GenerationService:
         high_quality_count = sum(1 for s in scores if s >= 80)
         low_quality_count = sum(1 for s in scores if s < 60)
 
-        logger.info(f"[质检] 质量评分完成 - 平均分: {average_score:.1f}, 高质量: {high_quality_count}, 低质量: {low_quality_count}")
+        logger.info(
+            f"[质检] 质量评分完成 - 平均分: {average_score:.1f}, 高质量: {high_quality_count}, 低质量: {low_quality_count}"
+        )
 
         return {
             "average_score": round(average_score, 2),
@@ -1937,7 +2046,11 @@ class GenerationService:
                     "coverage_rate": 0.0,
                     "uncovered_points": [],
                 },
-                "duplicates": {"total_pairs": 0, "duplicate_rate": 0.0, "details": []},
+                "duplicates": {
+                    "total_pairs": 0,
+                    "duplicate_rate": 0.0,
+                    "details": [],
+                },
                 "quality_score": {
                     "average_score": 0.0,
                     "min_score": 0.0,
@@ -1945,13 +2058,17 @@ class GenerationService:
                     "high_quality_count": 0,
                     "low_quality_count": 0,
                 },
-                "recommendations": ["未生成任何用例，请检查需求文档和Prompt配置"],
+                "recommendations": [
+                    "未生成任何用例，请检查需求文档和Prompt配置"
+                ],
             }
 
         # 1. 重复检测
         logger.info("[质检] Step 1: 重复检测...")
         duplicates = self.detect_duplicates(cases, threshold=0.85)
-        duplicate_rate = len(duplicates) / len(cases) if len(cases) > 0 else 0.0
+        duplicate_rate = (
+            len(duplicates) / len(cases) if len(cases) > 0 else 0.0
+        )
 
         # 2. 覆盖度检查
         logger.info("[质检] Step 2: 覆盖度检查...")
@@ -1998,7 +2115,8 @@ class GenerationService:
 
         total = len(cases)
         p0_p1_ratio = (
-            (priority_counts.get("P0", 0) + priority_counts.get("P1", 0)) / total
+            (priority_counts.get("P0", 0) + priority_counts.get("P1", 0))
+            / total
             if total > 0
             else 0
         )
@@ -2023,7 +2141,9 @@ class GenerationService:
             "recommendations": recommendations,
         }
 
-        logger.info(f"[质检] 质量检查完成 - 生成 {len(recommendations)} 条建议")
+        logger.info(
+            f"[质检] 质量检查完成 - 生成 {len(recommendations)} 条建议"
+        )
         return quality_report
 
     def generate_missing_cases(
@@ -2058,7 +2178,7 @@ class GenerationService:
             logger.info(f"[补充生成] 为测试点 '{point_title}' 补充生成用例...")
 
             # 构建补充生成Prompt
-            prompt = f"""你是资深的测试用例设计专家，请为以下未覆盖的测试点补充生成测试用例。
+            prompt = """你是资深的测试用例设计专家，请为以下未覆盖的测试点补充生成测试用例。
 
 ## 需求文档
 {requirement_content[:2000]}
@@ -2114,7 +2234,9 @@ class GenerationService:
 
                 if response.success:
                     # 解析生成的用例
-                    parsed_cases = self._parse_generated_cases(response.content)
+                    parsed_cases = self._parse_generated_cases(
+                        response.content
+                    )
 
                     # 附加元数据
                     for case in parsed_cases:
@@ -2124,15 +2246,20 @@ class GenerationService:
                         case["supplement_point"] = point_title
 
                     supplement_cases.extend(parsed_cases)
-                    logger.info(f"[补充生成] 测试点 '{point_title}' 生成 {len(parsed_cases)} 条用例"
+                    logger.info(
+                        f"[补充生成] 测试点 '{point_title}' 生成 {len(parsed_cases)} 条用例"
                     )
                 else:
-                    logger.info(f"[补充生成] 测试点 '{point_title}' 生成失败: {response.error_message}")
+                    logger.info(
+                        f"[补充生成] 测试点 '{point_title}' 生成失败: {response.error_message}"
+                    )
 
             except Exception as e:
                 logger.info(f"[补充生成] 测试点 '{point_title}' 生成异常: {e}")
 
-        logger.info(f"[补充生成] 补充生成完成 - 共生成 {len(supplement_cases)} 条用例")
+        logger.info(
+            f"[补充生成] 补充生成完成 - 共生成 {len(supplement_cases)} 条用例"
+        )
         return supplement_cases
 
     def execute_phase2_generation(
@@ -2152,7 +2279,8 @@ class GenerationService:
             generation_strategy: 生成策略配置（可选）
         """
         logger.info(
-            "[调试][execute_phase2_generation] 方法被调用 - task_id: %s", task_id
+            "[调试][execute_phase2_generation] 方法被调用 - task_id: %s",
+            task_id,
         )
         logger.info(
             "[调试][execute_phase2_generation] reviewed_plan: %s",
@@ -2160,7 +2288,9 @@ class GenerationService:
         )
 
         def run_phase2_batch():
-            logger.info("[调试][run_phase2_batch] ===== 后台线程开始执行 =====")
+            logger.info(
+                "[调试][run_phase2_batch] ===== 后台线程开始执行 ====="
+            )
             logger.info("[调试][run_phase2_batch] task_id: %s", task_id)
             logger.info(
                 "[调试][run_phase2_batch] reviewed_plan: %s",
@@ -2179,7 +2309,9 @@ class GenerationService:
                 # 立即更新状态为running，避免显示为待评审
                 with self._lock:
                     task_obj.status = int(TaskStatus.RUNNING)
-                    task_obj.started_at = datetime.now(timezone.utc).isoformat()
+                    task_obj.started_at = datetime.now(
+                        timezone.utc
+                    ).isoformat()
                     task_obj.message = "🚀 正在启动分批生成任务..."
                     self._sync_task_to_db(task_obj)
 
@@ -2191,7 +2323,9 @@ class GenerationService:
                     from src.database.models import Requirement
 
                     try:
-                        requirement = bg_session.query(Requirement).get(requirement_id)
+                        requirement = bg_session.query(Requirement).get(
+                            requirement_id
+                        )
                         if not requirement:
                             self.fail_task(task_id, "需求不存在")
                             return
@@ -2211,31 +2345,60 @@ class GenerationService:
                     modules = test_plan_data.get("modules", [])
                     test_points = test_plan_data.get("test_points", [])
                     if modules and test_points:
-                        logger.info(f"[执行阶段2] items 为空，从 {len(modules)} 个模块 + {len(test_points)} 个测试点自动构建")
+                        logger.info(
+                            f"[执行阶段2] items 为空，从 {len(modules)} 个模块 + {len(test_points)} 个测试点自动构建"
+                        )
                         for mod in modules:
-                            mod_name = mod.get("name", mod.get("Name", "未知模块"))
-                            mod_points = [tp.get("name", "") for tp in test_points if tp.get("module", "") == mod_name]
+                            mod_name = mod.get(
+                                "name", mod.get("Name", "未知模块")
+                            )
+                            mod_points = [
+                                tp.get("name", "")
+                                for tp in test_points
+                                if tp.get("module", "") == mod_name
+                            ]
                             if not mod_points:
                                 # 尝试模糊匹配
-                                mod_points = [tp.get("name", "") for tp in test_points if mod_name in tp.get("module", "") or tp.get("module", "") in mod_name]
-                            items.append({
-                                "title": mod_name,
-                                "description": mod.get("description", ""),
-                                "points": mod_points,
-                                "priority": "P0" if any(tp.get("risk_level") == "High" for tp in test_points if tp.get("module", "") == mod_name) else "P1"
-                            })
+                                mod_points = [
+                                    tp.get("name", "")
+                                    for tp in test_points
+                                    if mod_name in tp.get("module", "")
+                                    or tp.get("module", "") in mod_name
+                                ]
+                            items.append(
+                                {
+                                    "title": mod_name,
+                                    "description": mod.get("description", ""),
+                                    "points": mod_points,
+                                    "priority": (
+                                        "P0"
+                                        if any(
+                                            tp.get("risk_level") == "High"
+                                            for tp in test_points
+                                            if tp.get("module", "") == mod_name
+                                        )
+                                        else "P1"
+                                    ),
+                                }
+                            )
                         test_plan_data["items"] = items
-                        logger.info(f"[执行阶段2] 自动构建 {len(items)} 个测试项")
+                        logger.info(
+                            f"[执行阶段2] 自动构建 {len(items)} 个测试项"
+                        )
                     elif modules:
                         # 只有 modules 没有 test_points
                         for mod in modules:
-                            mod_name = mod.get("name", mod.get("Name", "未知模块"))
-                            items.append({
-                                "title": mod_name,
-                                "description": mod.get("description", ""),
-                                "points": [],
-                                "priority": "P1"
-                            })
+                            mod_name = mod.get(
+                                "name", mod.get("Name", "未知模块")
+                            )
+                            items.append(
+                                {
+                                    "title": mod_name,
+                                    "description": mod.get("description", ""),
+                                    "points": [],
+                                    "priority": "P1",
+                                }
+                            )
                         test_plan_data["items"] = items
 
                 # 过滤每个模块只保留属于该模块的测试点
@@ -2243,13 +2406,19 @@ class GenerationService:
                     item_title = item.get("title", item.get("name", ""))
                     item_points = item.get("points", [])
                     if item_points:
-                        filtered = [pt for pt in item_points if item_title in pt]
+                        filtered = [
+                            pt for pt in item_points if item_title in pt
+                        ]
                         item["points"] = filtered
 
                 # 打印调试信息
-                logger.info(f"[执行阶段2] reviewed_plan is not None: {reviewed_plan is not None}")
+                logger.info(
+                    f"[执行阶段2] reviewed_plan is not None: {reviewed_plan is not None}"
+                )
                 logger.info(f"[执行阶段2] test_plan_data: {test_plan_data}")
-                logger.info(f"[执行阶段2] test_plan_data keys: {list(test_plan_data.keys())}")
+                logger.info(
+                    f"[执行阶段2] test_plan_data keys: {list(test_plan_data.keys())}"
+                )
                 logger.info(f"[执行阶段2] items count: {len(items)}")
                 if items:
                     logger.info(f"[执行阶段2] first item: {items[0]}")
@@ -2266,13 +2435,17 @@ class GenerationService:
 
                 # ========== 步骤1: 准备全局上下文（执行一次）==========
                 self.update_progress(task_id, 30.0, "📋 正在准备生成上下文...")
-                logger.info(f"[阶段2生成] ===== 开始生成任务 task_id={task_id} =====")
-                logger.info(f"[阶段2生成] 需求内容摘要: {requirement.content[:80]}...")
+                logger.info(
+                    f"[阶段2生成] ===== 开始生成任务 task_id={task_id} ====="
+                )
+                logger.info(
+                    f"[阶段2生成] 需求内容摘要: {requirement.content[:80]}..."
+                )
 
                 global_context = self.prepare_generation_context(
                     requirement, test_plan_data, generation_strategy
                 )
-                logger.info(f"[阶段2生成] 全局上下文准备完成")
+                logger.info("[阶段2生成] 全局上下文准备完成")
 
                 # 执行RAG召回（全局一次）
                 rag_context = ""
@@ -2283,7 +2456,8 @@ class GenerationService:
                         self.update_progress(
                             task_id, 32.0, "🔎 正在召回相似历史用例..."
                         )
-                        logger.info(f"[RAG召回] 开始召回 - 查询需求内容长度: {len(global_context.get('requirement_content', ''))}"
+                        logger.info(
+                            f"[RAG召回] 开始召回 - 查询需求内容长度: {len(global_context.get('requirement_content', ''))}"
                         )
 
                         rag_context, rag_stats, rag_context_data = (
@@ -2299,46 +2473,65 @@ class GenerationService:
                         recall_summary = "✅ RAG召回完成 - "
                         if rag_stats["cases"] > 0:
                             recall_summary += f"用例:{rag_stats['cases']}条 "
-                            logger.info(f"[RAG召回] 召回相似用例: {rag_stats['cases']}条")
+                            logger.info(
+                                f"[RAG召回] 召回相似用例: {rag_stats['cases']}条"
+                            )
                         if rag_stats["defects"] > 0:
                             recall_summary += f"缺陷:{rag_stats['defects']}条 "
-                            logger.info(f"[RAG召回] 召回历史缺陷: {rag_stats['defects']}条")
+                            logger.info(
+                                f"[RAG召回] 召回历史缺陷: {rag_stats['defects']}条"
+                            )
                         if rag_stats["requirements"] > 0:
-                            recall_summary += f"需求:{rag_stats['requirements']}条"
-                            logger.info(f"[RAG召回] 召回相似需求: {rag_stats['requirements']}条")
+                            recall_summary += (
+                                f"需求:{rag_stats['requirements']}条"
+                            )
+                            logger.info(
+                                f"[RAG召回] 召回相似需求: {rag_stats['requirements']}条"
+                            )
 
                         if (
                             rag_stats["cases"] == 0
                             and rag_stats["defects"] == 0
                             and rag_stats["requirements"] == 0
                         ):
-                            logger.info(f"[RAG召回] 未召回任何相关内容")
+                            logger.info("[RAG召回] 未召回任何相关内容")
 
                         self.update_progress(task_id, 35.0, recall_summary)
                     except Exception as e:
                         logger.info(f"[RAG召回] 召回失败: {e}")
-                        self.update_progress(task_id, 35.0, "⚠️ RAG召回失败，继续生成")
+                        self.update_progress(
+                            task_id, 35.0, "⚠️ RAG召回失败，继续生成"
+                        )
                 else:
-                    logger.info(f"[RAG召回] 向量库未初始化，跳过RAG召回")
-                    self.update_progress(task_id, 35.0, "⚠️ 向量库未初始化，跳过RAG召回")
+                    logger.info("[RAG召回] 向量库未初始化，跳过RAG召回")
+                    self.update_progress(
+                        task_id, 35.0, "⚠️ 向量库未初始化，跳过RAG召回"
+                    )
 
                 # 检查任务是否已取消
                 if self._check_task_cancelled(task_id):
                     return
 
                 # ========== 步骤2: 按ITEM分批生成 ==========
-                logger.info(f"[用例生成] 开始按模块生成 - 共 {total_items} 个模块")
+                logger.info(
+                    f"[用例生成] 开始按模块生成 - 共 {total_items} 个模块"
+                )
                 for idx, item in enumerate(items, 1):
                     # 每个ITEM生成前检查取消状态
                     if self._check_task_cancelled(task_id):
-                        logger.info(f"[用例生成] 任务已取消: task_id={task_id}")
+                        logger.info(
+                            f"[用例生成] 任务已取消: task_id={task_id}"
+                        )
                         return
-                    item_title = item.get("title", item.get("name", f"模块{idx}"))
+                    item_title = item.get(
+                        "title", item.get("name", f"模块{idx}")
+                    )
                     item_points = item.get("points", [])
 
                     # 打印当前模块信息
                     point_names = [str(p) for p in item_points]
-                    logger.info(f"[用例生成] 处理模块 {idx}/{total_items}: {item_title}, 测试点: {', '.join(point_names[:3])}"
+                    logger.info(
+                        f"[用例生成] 处理模块 {idx}/{total_items}: {item_title}, 测试点: {', '.join(point_names[:3])}"
                     )
 
                     # 更新进度: 30% + (idx / total_items) * 50%
@@ -2353,7 +2546,8 @@ class GenerationService:
                         # 获取最近5条用例（保持风格连贯）
                         recent_cases = all_generated_cases[-5:]
 
-                        logger.info(f"[用例生成] 调用 generate_item_cases - 模块={item_title}, 测试点数={len(item_points)}"
+                        logger.info(
+                            f"[用例生成] 调用 generate_item_cases - 模块={item_title}, 测试点数={len(item_points)}"
                         )
 
                         # 为当前ITEM生成用例（传递RAG上下文）
@@ -2365,12 +2559,14 @@ class GenerationService:
                             global_rag_context=rag_context,
                         )
 
-                        logger.info(f"[调试] generate_item_cases 返回 {len(item_cases) if item_cases else 0} 条用例"
+                        logger.info(
+                            f"[调试] generate_item_cases 返回 {len(item_cases) if item_cases else 0} 条用例"
                         )
 
                         if item_cases:
                             all_generated_cases.extend(item_cases)
-                            logger.info(f"[分批生成] 模块 '{item_title}' 生成 {len(item_cases)} 条用例"
+                            logger.info(
+                                f"[分批生成] 模块 '{item_title}' 生成 {len(item_cases)} 条用例"
                             )
                         else:
                             failed_items.append(
@@ -2382,9 +2578,15 @@ class GenerationService:
                             )
 
                     except Exception as e:
-                        logger.info(f"[分批生成] 模块 '{item_title}' 处理异常: {e}")
+                        logger.info(
+                            f"[分批生成] 模块 '{item_title}' 处理异常: {e}"
+                        )
                         failed_items.append(
-                            {"title": item_title, "error": str(e), "stage": "process"}
+                            {
+                                "title": item_title,
+                                "error": str(e),
+                                "stage": "process",
+                            }
                         )
                         # 继续处理下一个ITEM，不中断整个流程
 
@@ -2396,7 +2598,7 @@ class GenerationService:
                 self.update_progress(
                     task_id,
                     85.0,
-                    f"🔍 正在执行质量检查...",
+                    "🔍 正在执行质量检查...",
                 )
 
                 quality_report = self.run_quality_check(
@@ -2424,7 +2626,7 @@ class GenerationService:
                     self.update_progress(
                         task_id,
                         87.0,
-                        f"🔨 覆盖度不足，正在补充生成未覆盖测试点用例...",
+                        "🔨 覆盖度不足，正在补充生成未覆盖测试点用例...",
                     )
                     uncovered_points = quality_report.get("coverage", {}).get(
                         "uncovered_points", []
@@ -2436,7 +2638,9 @@ class GenerationService:
                     # 保存补充生成的用例
                     if supplement_cases:
                         all_generated_cases.extend(supplement_cases)
-                        logger.info(f"[分批生成] 补充生成 {len(supplement_cases)} 条用例")
+                        logger.info(
+                            f"[分批生成] 补充生成 {len(supplement_cases)} 条用例"
+                        )
 
                 # 重新计算质检报告（包含补充用例）
                 if supplement_cases:
@@ -2454,22 +2658,28 @@ class GenerationService:
                     88.0,
                     "🔍 正在执行AI评审...",
                 )
-                logger.info(f"[用例评审] 开始评审 - 用例总数: {len(all_generated_cases)}")
+                logger.info(
+                    f"[用例评审] 开始评审 - 用例总数: {len(all_generated_cases)}"
+                )
 
                 review_result = None
                 review_passed = False
-                requirement_context = global_context.get("requirement_content", "")
+                requirement_context = global_context.get(
+                    "requirement_content", ""
+                )
 
                 if self.case_review_agent and all_generated_cases:
                     try:
-                        logger.info(f"[用例评审] 调用CaseReviewAgent评审...")
+                        logger.info("[用例评审] 调用CaseReviewAgent评审...")
                         review_result = self.case_review_agent.review_batch(
                             cases=all_generated_cases,
                             requirement_context=requirement_context,
                         )
-                        logger.info(f"[用例评审] 评审结果: {review_result.get('decision', 'N/A')}"
+                        logger.info(
+                            f"[用例评审] 评审结果: {review_result.get('decision', 'N/A')}"
                         )
-                        logger.info(f"[用例评审] 综合得分: {review_result.get('overall_score', 0)}"
+                        logger.info(
+                            f"[用例评审] 综合得分: {review_result.get('overall_score', 0)}"
                         )
 
                         decision = review_result.get("decision", "")
@@ -2486,20 +2696,28 @@ class GenerationService:
                         # 打印评审问题摘要
                         issues = review_result.get("issues", [])
                         if issues:
-                            logger.info(f"[用例评审] 发现 {len(issues)} 个问题")
+                            logger.info(
+                                f"[用例评审] 发现 {len(issues)} 个问题"
+                            )
                             for issue in issues[:3]:
-                                logger.info(f"  - {issue.get('type')}: {issue.get('description', '')[:50]}"
+                                logger.info(
+                                    f"  - {issue.get('type')}: {issue.get('description', '')[:50]}"
                                 )
                     except Exception as e:
-                        logger.info(f"[用例评审] 评审失败: {e}，跳过评审直接保存")
+                        logger.info(
+                            f"[用例评审] 评审失败: {e}，跳过评审直接保存"
+                        )
                 else:
-                    logger.info("[用例评审] 跳过评审（无review agent或无用例）")
+                    logger.info(
+                        "[用例评审] 跳过评审（无review agent或无用例）"
+                    )
 
                 # 标记需要人工复核的用例
                 if not review_passed and all_generated_cases:
                     for case in all_generated_cases:
                         case["requires_human_review"] = True
-                    logger.info(f"[用例评审] 标记 {len(all_generated_cases)} 条用例需要人工复核"
+                    logger.info(
+                        f"[用例评审] 标记 {len(all_generated_cases)} 条用例需要人工复核"
                     )
 
                 self.update_progress(
@@ -2512,15 +2730,21 @@ class GenerationService:
                 if all_generated_cases:
                     try:
                         # 去重过滤
-                        filtered_cases, duplicate_cases = self.filter_duplicates(
-                            all_generated_cases, threshold=0.85
+                        filtered_cases, duplicate_cases = (
+                            self.filter_duplicates(
+                                all_generated_cases, threshold=0.85
+                            )
                         )
                         if duplicate_cases:
-                            logger.info(f"[去重] 过滤掉 {len(duplicate_cases)} 条重复用例，保留 {len(filtered_cases)} 条"
+                            logger.info(
+                                f"[去重] 过滤掉 {len(duplicate_cases)} 条重复用例，保留 {len(filtered_cases)} 条"
                             )
 
-                        rag_influenced = 1 if rag_stats.get("cases", 0) > 0 else 0
-                        logger.info(f"[用例保存] 开始保存用例 - 需求ID={requirement_id}, 用例数={len(filtered_cases)}, RAG来源数={len(self._current_rag_sources.get(task_id, []))}"
+                        rag_influenced = (
+                            1 if rag_stats.get("cases", 0) > 0 else 0
+                        )
+                        logger.info(
+                            f"[用例保存] 开始保存用例 - 需求ID={requirement_id}, 用例数={len(filtered_cases)}, RAG来源数={len(self._current_rag_sources.get(task_id, []))}"
                         )
                         self._save_test_cases(
                             requirement_id,
@@ -2528,7 +2752,8 @@ class GenerationService:
                             rag_influenced,
                             self._current_rag_sources.get(task_id, []),
                         )
-                        logger.info(f"[用例保存] 保存完成 - 共 {len(filtered_cases)} 条用例, 需要人工复核: {len([c for c in filtered_cases if c.get('requires_human_review')])}"
+                        logger.info(
+                            f"[用例保存] 保存完成 - 共 {len(filtered_cases)} 条用例, 需要人工复核: {len([c for c in filtered_cases if c.get('requires_human_review')])}"
                         )
                     except Exception as save_error:
                         logger.info(f"[用例保存] 保存失败: {save_error}")
@@ -2583,25 +2808,34 @@ class GenerationService:
                     result_data["warning"] = (
                         f"以下模块生成失败: {', '.join(failed_titles)}"
                     )
-                    logger.info(f"[任务完成] 失败模块: {', '.join(failed_titles)}")
+                    logger.info(
+                        f"[任务完成] 失败模块: {', '.join(failed_titles)}"
+                    )
 
                 # 完成任务
                 if total_cases > 0:
                     self.update_progress(task_id, 100.0, "✅ 分批生成完成")
                     self.complete_task(task_id, result_data)
-                    logger.info(f"[任务完成] task_id={task_id}, 生成用例数={total_cases}, 状态=成功")
+                    logger.info(
+                        f"[任务完成] task_id={task_id}, 生成用例数={total_cases}, 状态=成功"
+                    )
                 else:
                     error_msg = "未生成任何用例"
                     if failed_items:
                         error_msg += f"，失败模块: {', '.join([f['title'] for f in failed_items])}"
                     self.fail_task(task_id, error_msg)
-                    logger.info(f"[任务完成] task_id={task_id}, 状态=失败, 原因={error_msg}")
+                    logger.info(
+                        f"[任务完成] task_id={task_id}, 状态=失败, 原因={error_msg}"
+                    )
 
                 # 更新需求状态（使用线程安全的session）
                 bg_session = self._get_db_session()
                 if bg_session:
                     try:
-                        from src.database.models import Requirement, RequirementStatus
+                        from src.database.models import (
+                            Requirement,
+                            RequirementStatus,
+                        )
 
                         task_obj = self.get_task(task_id)
                         if task_obj:
@@ -2611,22 +2845,31 @@ class GenerationService:
                             if requirement:
                                 # 只有生成了用例才标记为已完成
                                 if total_cases > 0:
-                                    requirement.status = RequirementStatus.COMPLETED
+                                    requirement.status = (
+                                        RequirementStatus.COMPLETED
+                                    )
                                 else:
-                                    requirement.status = RequirementStatus.FAILED
+                                    requirement.status = (
+                                        RequirementStatus.FAILED
+                                    )
                                 bg_session.commit()
-                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(
+                                    f"需求状态已更新为: {int(requirement.status)}"
+                                )
                     except Exception as e:
                         logger.info(f"更新需求状态失败: {e}")
 
             except Exception as e:
                 logger.info("[调试][run_phase2_batch] ===== 捕获到异常 =====")
-                logger.info("[调试][run_phase2_batch] 异常类型: %s", type(e).__name__)
+                logger.info(
+                    "[调试][run_phase2_batch] 异常类型: %s", type(e).__name__
+                )
                 logger.info("[调试][run_phase2_batch] 异常信息: %s", str(e))
                 import traceback
 
                 logger.info(
-                    "[调试][run_phase2_batch] 堆栈跟踪:\n%s", traceback.format_exc()
+                    "[调试][run_phase2_batch] 堆栈跟踪:\n%s",
+                    traceback.format_exc(),
                 )
                 self.fail_task(task_id, str(e))
                 logger.info("[调试][run_phase2_batch] 任务已标记为失败")
@@ -2641,7 +2884,9 @@ class GenerationService:
             thread.name,
         )
 
-    def execute_phase2_legacy(self, task_id: str, reviewed_plan: Optional[Dict] = None):
+    def execute_phase2_legacy(
+        self, task_id: str, reviewed_plan: Optional[Dict] = None
+    ):
         """
         [已废弃] 阶段2：RAG检索 + LLM生成（异步执行）- 旧版一次性生成方法
 
@@ -2657,7 +2902,9 @@ class GenerationService:
                 # 立即更新状态为running，避免显示为待评审
                 with self._lock:
                     task_obj.status = int(TaskStatus.RUNNING)
-                    task_obj.started_at = datetime.now(timezone.utc).isoformat()
+                    task_obj.started_at = datetime.now(
+                        timezone.utc
+                    ).isoformat()
                     task_obj.message = "🚀 正在启动生成任务..."
                     self._sync_task_to_db(task_obj)
 
@@ -2668,7 +2915,9 @@ class GenerationService:
                 if bg_session:
                     from src.database.models import Requirement
 
-                    requirement = bg_session.query(Requirement).get(requirement_id)
+                    requirement = bg_session.query(Requirement).get(
+                        requirement_id
+                    )
                     if not requirement:
                         self.fail_task(task_id, "需求不存在")
                         return
@@ -2700,7 +2949,9 @@ class GenerationService:
                             )
                         )
                         # 保存RAG检索来源到实例变量，供后续用例保存时使用
-                        retrieved_cases = rag_context_data.get("retrieved_cases", [])
+                        retrieved_cases = rag_context_data.get(
+                            "retrieved_cases", []
+                        )
                         retrieved_defects = rag_context_data.get(
                             "retrieved_defects", []
                         )
@@ -2708,55 +2959,79 @@ class GenerationService:
                             retrieved_cases + retrieved_defects
                         )
 
-                        recall_summary = f"✅ RAG召回完成 - "
+                        recall_summary = "✅ RAG召回完成 - "
                         if rag_stats["cases"] > 0:
                             recall_summary += f"用例:{rag_stats['cases']}条 "
                         if rag_stats["defects"] > 0:
                             recall_summary += f"缺陷:{rag_stats['defects']}条 "
                         if rag_stats["requirements"] > 0:
-                            recall_summary += f"需求:{rag_stats['requirements']}条"
+                            recall_summary += (
+                                f"需求:{rag_stats['requirements']}条"
+                            )
 
                         self.update_progress(task_id, 40.0, recall_summary)
                     except Exception as e:
                         logger.info(f"RAG召回失败: {e}")
-                        self.update_progress(task_id, 40.0, "⚠️ RAG召回失败，继续生成")
+                        self.update_progress(
+                            task_id, 40.0, "⚠️ RAG召回失败，继续生成"
+                        )
                 else:
-                    self.update_progress(task_id, 40.0, "⚠️ 向量库未初始化，跳过RAG召回")
+                    self.update_progress(
+                        task_id, 40.0, "⚠️ 向量库未初始化，跳过RAG召回"
+                    )
 
                 # 阶段2: LLM生成测试用例 (50%-80%)
                 self.update_progress(task_id, 50.0, "🤖 开始生成测试用例...")
 
                 test_cases = []
                 if self.llm_manager:
-                    self.update_progress(task_id, 55.0, "🤖 正在初始化适配器...")
+                    self.update_progress(
+                        task_id, 55.0, "🤖 正在初始化适配器..."
+                    )
 
                     # 输出当前使用的默认配置信息
                     default_config_info = self.llm_manager.get_config_info()
-                    logger.info(f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
+                    logger.info(
+                        f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
                     )
-                    logger.info(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
-                    logger.info(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
+                    logger.info(
+                        f"[LLM生成] Base URL: {default_config_info.get('base_url')}"
+                    )
+                    logger.info(
+                        f"[LLM生成] Model ID: {default_config_info.get('model_id')}"
+                    )
 
                     adapter = self.llm_manager.get_adapter()
 
-                    self.update_progress(task_id, 60.0, "🤖 正在构建Prompt上下文...")
+                    self.update_progress(
+                        task_id, 60.0, "🤖 正在构建Prompt上下文..."
+                    )
 
                     # 使用评审后的测试规划（如果有）或重新生成
                     test_plan = (
-                        reviewed_plan.get("test_plan", "") if reviewed_plan else ""
+                        reviewed_plan.get("test_plan", "")
+                        if reviewed_plan
+                        else ""
                     )
                     if not test_plan:
-                        test_plan = self._create_test_plan(requirement_content, {})
+                        test_plan = self._create_test_plan(
+                            requirement_content, {}
+                        )
 
                     # 构建优化的Prompt
                     prompt = self._build_optimized_generation_prompt(
-                        requirement_content, rag_context, test_plan, reviewed_plan or {}
+                        requirement_content,
+                        rag_context,
+                        test_plan,
+                        reviewed_plan or {},
                     )
 
                     self.update_progress(task_id, 65.0, "🤖 正在生成用例...")
 
                     # 调用LLM生成（带故障切换）
-                    response = self._generate_with_failover(adapter, prompt, task_id)
+                    response = self._generate_with_failover(
+                        adapter, prompt, task_id
+                    )
 
                     self.update_progress(
                         task_id, 80.0, "🤖 LLM响应已接收，正在解析结果..."
@@ -2764,13 +3039,19 @@ class GenerationService:
 
                     if not response.success:
                         self._log_llm_response(prompt, response)
-                        raise Exception(f"LLM生成失败: {response.error_message}")
+                        raise Exception(
+                            f"LLM生成失败: {response.error_message}"
+                        )
 
-                    self.update_progress(task_id, 85.0, "🤖 正在解析LLM返回的响应...")
+                    self.update_progress(
+                        task_id, 85.0, "🤖 正在解析LLM返回的响应..."
+                    )
 
                     # 打印原始响应以便调试
                     logger.info(f"LLM原始响应长度: {len(response.content)}")
-                    logger.info(f"LLM原始响应前1000字符: {response.content[:1000]}...")
+                    logger.info(
+                        f"LLM原始响应前1000字符: {response.content[:1000]}..."
+                    )
 
                     # 解析生成的用例
                     test_cases = self._parse_generated_cases(response.content)
@@ -2781,11 +3062,15 @@ class GenerationService:
                             f"LLM返回的用例数据为空（响应长度: {len(response.content)}字符）"
                         )
                 else:
-                    self.update_progress(task_id, 60.0, "🤖 使用模拟数据生成...")
+                    self.update_progress(
+                        task_id, 60.0, "🤖 使用模拟数据生成..."
+                    )
                     test_cases = self._mock_generate_cases(requirement_content)
 
                 self.update_progress(
-                    task_id, 90.0, f"✅ LLM生成完成 - 生成{len(test_cases)}条用例"
+                    task_id,
+                    90.0,
+                    f"✅ LLM生成完成 - 生成{len(test_cases)}条用例",
                 )
 
                 # 阶段3: 置信度计算 + 来源标注解析
@@ -2795,7 +3080,9 @@ class GenerationService:
                 confidence_stats = {}
                 citation_batch_stats = {}
                 try:
-                    from src.services.confidence_calculator import ConfidenceCalculator
+                    from src.services.confidence_calculator import (
+                        ConfidenceCalculator,
+                    )
                     from src.services.citation_parser import CitationParser
 
                     calculator = ConfidenceCalculator()
@@ -2815,9 +3102,15 @@ class GenerationService:
                             requirement_content,
                             rag_results=rag_stats,
                         )
-                        case["confidence_score"] = conf_result.get("confidence_score")
-                        case["confidence_level"] = conf_result.get("confidence_level")
-                        case["confidence_breakdown"] = conf_result.get("breakdown", {})
+                        case["confidence_score"] = conf_result.get(
+                            "confidence_score"
+                        )
+                        case["confidence_level"] = conf_result.get(
+                            "confidence_level"
+                        )
+                        case["confidence_breakdown"] = conf_result.get(
+                            "breakdown", {}
+                        )
                         # 低置信度用例标记需要人工审核
                         if conf_result.get("requires_human_review"):
                             case["requires_human_review"] = True
@@ -2830,7 +3123,9 @@ class GenerationService:
                         "by_level": confidence_levels,
                         "requires_review_count": requires_review_count,
                     }
-                    logger.info(f"[置信度] 计算完成: {confidence_levels}, 需人工审核: {requires_review_count}条")
+                    logger.info(
+                        f"[置信度] 计算完成: {confidence_levels}, 需人工审核: {requires_review_count}条"
+                    )
                 except Exception as e:
                     logger.info(f"[置信度/引用] 计算失败，忽略继续: {e}")
                     confidence_stats = {"error": str(e)}
@@ -2841,7 +3136,9 @@ class GenerationService:
                     return
 
                 # 阶段4: 直接保存用例到数据库（不再暂存）
-                self.update_progress(task_id, 92.0, "💾 正在保存测试用例到数据库...")
+                self.update_progress(
+                    task_id, 92.0, "💾 正在保存测试用例到数据库..."
+                )
 
                 try:
                     if test_cases:
@@ -2850,7 +3147,8 @@ class GenerationService:
                             self._save_test_cases(
                                 task_obj.requirement_id, test_cases, 0, []
                             )
-                            logger.info(f"[直接保存] 成功保存 {len(test_cases)} 条用例到数据库"
+                            logger.info(
+                                f"[直接保存] 成功保存 {len(test_cases)} 条用例到数据库"
                             )
 
                         self.update_progress(
@@ -2859,7 +3157,9 @@ class GenerationService:
                             f"✅ 已保存{len(test_cases)}条测试用例到数据库",
                         )
                     else:
-                        self.update_progress(task_id, 98.0, "⚠️ 没有生成任何用例")
+                        self.update_progress(
+                            task_id, 98.0, "⚠️ 没有生成任何用例"
+                        )
                 except Exception as e:
                     logger.info(f"[直接保存] 保存用例失败: {e}")
                     self.fail_task(task_id, f"保存用例失败: {str(e)}")
@@ -2882,7 +3182,10 @@ class GenerationService:
                 bg_session = self._get_db_session()
                 if bg_session:
                     try:
-                        from src.database.models import Requirement, RequirementStatus
+                        from src.database.models import (
+                            Requirement,
+                            RequirementStatus,
+                        )
 
                         task_obj = self.get_task(task_id)
                         if task_obj:
@@ -2890,9 +3193,13 @@ class GenerationService:
                                 task_obj.requirement_id
                             )
                             if requirement:
-                                requirement.status = RequirementStatus.COMPLETED
+                                requirement.status = (
+                                    RequirementStatus.COMPLETED
+                                )
                                 bg_session.commit()
-                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(
+                                    f"需求状态已更新为: {int(requirement.status)}"
+                                )
                     except Exception as e:
                         logger.info(f"更新需求状态失败: {e}")
 
@@ -2966,7 +3273,9 @@ class GenerationService:
                                 )
                                 requirement.analyzed_content = analyzed_md
                                 bg_session.commit()
-                                logger.info(f"已保存需求分析Markdown格式到需求ID: {requirement_id}")
+                                logger.info(
+                                    f"已保存需求分析Markdown格式到需求ID: {requirement_id}"
+                                )
                         except Exception as e:
                             logger.info(f"保存需求分析Markdown失败: {e}")
                             # 不影响主流程，继续执行
@@ -3003,7 +3312,9 @@ class GenerationService:
 
                 if self.vector_store:
                     try:
-                        self.update_progress(task_id, 25.0, "🔎 正在RAG检索...")
+                        self.update_progress(
+                            task_id, 25.0, "🔎 正在RAG检索..."
+                        )
                         if progress_callback:
                             progress_callback(25.0, "🔎 正在RAG检索...")
 
@@ -3018,31 +3329,45 @@ class GenerationService:
                             )
                         )
 
-                        recall_summary = f"✅ RAG召回完成 - "
+                        recall_summary = "✅ RAG召回完成 - "
                         if rag_stats["cases"] > 0:
                             recall_summary += f"用例:{rag_stats['cases']}条 "
                         if rag_stats["defects"] > 0:
                             recall_summary += f"缺陷:{rag_stats['defects']}条 "
                         if rag_stats["requirements"] > 0:
-                            recall_summary += f"需求:{rag_stats['requirements']}条"
-                        if rag_stats == {"cases": 0, "defects": 0, "requirements": 0}:
+                            recall_summary += (
+                                f"需求:{rag_stats['requirements']}条"
+                            )
+                        if rag_stats == {
+                            "cases": 0,
+                            "defects": 0,
+                            "requirements": 0,
+                        }:
                             recall_summary += "无相关数据"
 
                         self.update_progress(task_id, 30.0, recall_summary)
                         if progress_callback:
                             progress_callback(30.0, recall_summary)
 
-                        logger.info(f"RAG召回完成 - 用例:{rag_stats['cases']}, 缺陷:{rag_stats['defects']}, 需求:{rag_stats['requirements']}")
+                        logger.info(
+                            f"RAG召回完成 - 用例:{rag_stats['cases']}, 缺陷:{rag_stats['defects']}, 需求:{rag_stats['requirements']}"
+                        )
                     except Exception as e:
                         logger.info(f"RAG召回失败，继续生成: {e}")
                         rag_context = ""
-                        self.update_progress(task_id, 30.0, "⚠️ RAG召回失败，继续生成")
+                        self.update_progress(
+                            task_id, 30.0, "⚠️ RAG召回失败，继续生成"
+                        )
                         if progress_callback:
                             progress_callback(30.0, "⚠️ RAG召回失败，继续生成")
                 else:
-                    self.update_progress(task_id, 30.0, "⚠️ 向量库未初始化，跳过RAG召回")
+                    self.update_progress(
+                        task_id, 30.0, "⚠️ 向量库未初始化，跳过RAG召回"
+                    )
                     if progress_callback:
-                        progress_callback(30.0, "⚠️ 向量库未初始化，跳过RAG召回")
+                        progress_callback(
+                            30.0, "⚠️ 向量库未初始化，跳过RAG召回"
+                        )
 
                 # ========== 阶段3: 测试规划 (45%) ==========
                 self.update_progress(task_id, 35.0, "📝 开始测试规划...")
@@ -3080,20 +3405,29 @@ class GenerationService:
 
                 test_cases = []
                 if self.llm_manager:
-                    self.update_progress(task_id, 55.0, "🤖 正在初始化适配器...")
+                    self.update_progress(
+                        task_id, 55.0, "🤖 正在初始化适配器..."
+                    )
                     if progress_callback:
                         progress_callback(55.0, "🤖 正在初始化适配器...")
 
                     # 输出当前使用的默认配置信息
                     default_config_info = self.llm_manager.get_config_info()
-                    logger.info(f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
+                    logger.info(
+                        f"[LLM生成] 使用默认配置: {default_config_info.get('name')} ({default_config_info.get('provider')})"
                     )
-                    logger.info(f"[LLM生成] Base URL: {default_config_info.get('base_url')}")
-                    logger.info(f"[LLM生成] Model ID: {default_config_info.get('model_id')}")
+                    logger.info(
+                        f"[LLM生成] Base URL: {default_config_info.get('base_url')}"
+                    )
+                    logger.info(
+                        f"[LLM生成] Model ID: {default_config_info.get('model_id')}"
+                    )
 
                     adapter = self.llm_manager.get_adapter()
 
-                    self.update_progress(task_id, 60.0, "🤖 正在构建Prompt上下文...")
+                    self.update_progress(
+                        task_id, 60.0, "🤖 正在构建Prompt上下文..."
+                    )
                     if progress_callback:
                         progress_callback(60.0, "🤖 正在构建Prompt上下文...")
 
@@ -3123,20 +3457,28 @@ class GenerationService:
                         task_id, 80.0, "🤖 LLM响应已接收，正在解析结果..."
                     )
                     if progress_callback:
-                        progress_callback(80.0, "🤖 LLM响应已接收，正在解析结果...")
+                        progress_callback(
+                            80.0, "🤖 LLM响应已接收，正在解析结果..."
+                        )
 
                     if not response.success:
                         # 记录详细日志到文件
                         self._log_llm_response(prompt, response)
-                        raise Exception(f"LLM生成失败: {response.error_message}")
+                        raise Exception(
+                            f"LLM生成失败: {response.error_message}"
+                        )
 
-                    self.update_progress(task_id, 85.0, "🤖 正在解析LLM返回的响应...")
+                    self.update_progress(
+                        task_id, 85.0, "🤖 正在解析LLM返回的响应..."
+                    )
                     if progress_callback:
                         progress_callback(85.0, "🤖 正在解析LLM返回的响应...")
 
                     # 打印原始响应以便调试
                     logger.info(f"LLM原始响应长度: {len(response.content)}")
-                    logger.info(f"LLM原始响应前1000字符: {response.content[:1000]}...")
+                    logger.info(
+                        f"LLM原始响应前1000字符: {response.content[:1000]}..."
+                    )
 
                     # 解析生成的用例
                     test_cases = self._parse_generated_cases(response.content)
@@ -3149,13 +3491,17 @@ class GenerationService:
                         )
                 else:
                     # 模拟生成（无LLM时）
-                    self.update_progress(task_id, 70.0, "🤖 使用模拟数据生成...")
+                    self.update_progress(
+                        task_id, 70.0, "🤖 使用模拟数据生成..."
+                    )
                     if progress_callback:
                         progress_callback(70.0, "🤖 使用模拟数据生成...")
                     test_cases = self._mock_generate_cases(requirement_content)
 
                 self.update_progress(
-                    task_id, 90.0, f"✅ LLM生成完成 - 生成{len(test_cases)}条用例"
+                    task_id,
+                    90.0,
+                    f"✅ LLM生成完成 - 生成{len(test_cases)}条用例",
                 )
                 if progress_callback:
                     progress_callback(
@@ -3163,19 +3509,22 @@ class GenerationService:
                     )
 
                 # ========== 阶段5: 保存测试用例到数据库 (95%) ==========
-                self.update_progress(task_id, 92.0, "💾 正在保存测试用例到数据库...")
+                self.update_progress(
+                    task_id, 92.0, "💾 正在保存测试用例到数据库..."
+                )
                 if progress_callback:
                     progress_callback(92.0, "💾 正在保存测试用例到数据库...")
 
                 if self.db_session:
                     task_obj = self.get_task(task_id)
                     if task_obj:
-                        logger.info(f"开始保存用例，需求ID: {task_obj.requirement_id}, 用例数: {len(test_cases)}"
+                        logger.info(
+                            f"开始保存用例，需求ID: {task_obj.requirement_id}, 用例数: {len(test_cases)}"
                         )
                         self._save_test_cases(
                             task_obj.requirement_id, test_cases, 0, []
                         )
-                        logger.info(f"用例保存完成")
+                        logger.info("用例保存完成")
 
                         self.update_progress(
                             task_id,
@@ -3184,7 +3533,8 @@ class GenerationService:
                         )
                         if progress_callback:
                             progress_callback(
-                                95.0, f"✅ 已保存{len(test_cases)}条测试用例到数据库"
+                                95.0,
+                                f"✅ 已保存{len(test_cases)}条测试用例到数据库",
                             )
 
                 # ========== 阶段5.5: 质量评审 (98%) ==========
@@ -3196,16 +3546,22 @@ class GenerationService:
                 if self.llm_manager and test_cases:
                     try:
                         quality_review = self._execute_quality_review(
-                            test_cases, requirement_content, requirement_analysis
+                            test_cases,
+                            requirement_content,
+                            requirement_analysis,
                         )
                         self.update_progress(task_id, 98.0, "✅ 质量评审完成")
                         if progress_callback:
                             progress_callback(98.0, "✅ 质量评审完成")
                     except Exception as e:
                         logger.info(f"质量评审失败: {e}")
-                        self.update_progress(task_id, 98.0, "⚠️ 质量评审失败，继续完成")
+                        self.update_progress(
+                            task_id, 98.0, "⚠️ 质量评审失败，继续完成"
+                        )
                         if progress_callback:
-                            progress_callback(98.0, "⚠️ 质量评审失败，继续完成")
+                            progress_callback(
+                                98.0, "⚠️ 质量评审失败，继续完成"
+                            )
 
                 # ========== 阶段6: 完成任务 (100%) ==========
                 result = {
@@ -3226,7 +3582,10 @@ class GenerationService:
                 bg_session = self._get_db_session()
                 if bg_session:
                     try:
-                        from src.database.models import Requirement, RequirementStatus
+                        from src.database.models import (
+                            Requirement,
+                            RequirementStatus,
+                        )
 
                         task_obj = self.get_task(task_id)
                         if task_obj:
@@ -3234,9 +3593,13 @@ class GenerationService:
                                 task_obj.requirement_id
                             )
                             if requirement:
-                                requirement.status = RequirementStatus.COMPLETED
+                                requirement.status = (
+                                    RequirementStatus.COMPLETED
+                                )
                                 bg_session.commit()
-                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
+                                logger.info(
+                                    f"需求状态已更新为: {int(requirement.status)}"
+                                )
                     except Exception as e:
                         logger.info(f"更新需求状态失败: {e}")
 
@@ -3269,7 +3632,8 @@ class GenerationService:
                             deleted = (
                                 bg_session.query(TestCase)
                                 .filter(
-                                    TestCase.requirement_id == task_obj.requirement_id
+                                    TestCase.requirement_id
+                                    == task_obj.requirement_id
                                 )
                                 .delete(synchronize_session=False)
                             )
@@ -3282,10 +3646,16 @@ class GenerationService:
                                 requirement.status = RequirementStatus.FAILED
                                 bg_session.commit()
                                 if deleted > 0:
-                                    logger.info(f"已清除 {deleted} 条部分保存的测试用例")
-                                logger.info(f"需求状态已更新为: {int(requirement.status)}")
+                                    logger.info(
+                                        f"已清除 {deleted} 条部分保存的测试用例"
+                                    )
+                                logger.info(
+                                    f"需求状态已更新为: {int(requirement.status)}"
+                                )
                     except Exception as cleanup_error:
-                        logger.info(f"清理失败用例或更新状态失败: {cleanup_error}")
+                        logger.info(
+                            f"清理失败用例或更新状态失败: {cleanup_error}"
+                        )
                         try:
                             bg_session.rollback()
                         except Exception:
@@ -3330,9 +3700,11 @@ class GenerationService:
 
             # 如果主适配器失败，尝试切换到第一个可用的备用模型（仅切换一次）
             logger.info(f"[故障切换] 主适配器失败: {response.error_message}")
-            logger.info(f"[故障切换] 正在尝试切换备用模型...")
+            logger.info("[故障切换] 正在尝试切换备用模型...")
 
-            self.update_progress(task_id, 68.0, "⚠️ 主模型失败，正在切换备用模型...")
+            self.update_progress(
+                task_id, 68.0, "⚠️ 主模型失败，正在切换备用模型..."
+            )
 
             # 获取所有可用的适配器名称（排除当前的）
             all_adapters = list(self.llm_manager.adapters.keys())
@@ -3350,7 +3722,9 @@ class GenerationService:
                     )
 
                     backup_adapter = self.llm_manager.get_adapter(adapter_name)
-                    config_info = self.llm_manager.config_infos.get(adapter_name, {})
+                    config_info = self.llm_manager.config_infos.get(
+                        adapter_name, {}
+                    )
                     logger.info(f"[故障切换] 备用模型信息: {config_info}")
 
                     # 使用备用适配器重试
@@ -3364,13 +3738,19 @@ class GenerationService:
                     )
 
                     if response.success:
-                        logger.info(f"[故障切换] 备用模型 {adapter_name} 成功！")
+                        logger.info(
+                            f"[故障切换] 备用模型 {adapter_name} 成功！"
+                        )
                         self.update_progress(
-                            task_id, 75.0, f"✅ 已切换到备用模型: {adapter_name}"
+                            task_id,
+                            75.0,
+                            f"✅ 已切换到备用模型: {adapter_name}",
                         )
                         return response
                     else:
-                        logger.info(f"[故障切换] 备用模型 {adapter_name} 也失败: {response.error_message}")
+                        logger.info(
+                            f"[故障切换] 备用模型 {adapter_name} 也失败: {response.error_message}"
+                        )
                         # 只尝试切换一次，失败即返回错误
                         break
 
@@ -3424,12 +3804,15 @@ class GenerationService:
                 test_cases = calc_rag_influence(
                     test_cases, rag_sources_context, threshold=0.3
                 )
-                logger.info(f"[RAG影响计算] 完成 - 检测到 {sum(1 for c in test_cases if c.get('rag_influenced'))} 条用例受RAG影响"
+                logger.info(
+                    f"[RAG影响计算] 完成 - 检测到 {sum(1 for c in test_cases if c.get('rag_influenced'))} 条用例受RAG影响"
                 )
 
             saved_count = 0
 
-            logger.info(f"开始保存用例，需求ID: {requirement_id}, 用例数: {len(test_cases)}")
+            logger.info(
+                f"开始保存用例，需求ID: {requirement_id}, 用例数: {len(test_cases)}"
+            )
             logger.info(f"第一个用例数据: {test_cases[0]}")
 
             # 先删除该需求的所有旧用例
@@ -3448,14 +3831,18 @@ class GenerationService:
             # 这样可以确保不会与其他需求的用例ID冲突
             from sqlalchemy import func
 
-            max_case = session.query(TestCase).order_by(TestCase.id.desc()).first()
+            max_case = (
+                session.query(TestCase).order_by(TestCase.id.desc()).first()
+            )
 
             if max_case and max_case.case_id.startswith("TC_"):
                 try:
                     # 提取序号部分
                     last_num = int(max_case.case_id[3:])
                     start_num = last_num + 1
-                    logger.info(f"从全局最大用例序号 {last_num} 之后开始编号，起始: {start_num}")
+                    logger.info(
+                        f"从全局最大用例序号 {last_num} 之后开始编号，起始: {start_num}"
+                    )
                 except ValueError:
                     start_num = 1
             else:
@@ -3480,7 +3867,9 @@ class GenerationService:
                     except json.JSONDecodeError:
                         # 解析失败则按行分割
                         test_steps = [
-                            s.strip() for s in test_steps.split("\n") if s.strip()
+                            s.strip()
+                            for s in test_steps.split("\n")
+                            if s.strip()
                         ]
 
                 if isinstance(expected_results, str):
@@ -3489,13 +3878,19 @@ class GenerationService:
                     except json.JSONDecodeError:
                         # 解析失败则按行分割
                         expected_results = [
-                            s.strip() for s in expected_results.split("\n") if s.strip()
+                            s.strip()
+                            for s in expected_results.split("\n")
+                            if s.strip()
                         ]
 
                 # 如果是字符串形式的preconditions，保持字符串；如果是列表，转换为换行符连接的字符串
                 if isinstance(preconditions, list):
                     preconditions = "\n".join(
-                        [str(p).strip() for p in preconditions if str(p).strip()]
+                        [
+                            str(p).strip()
+                            for p in preconditions
+                            if str(p).strip()
+                        ]
                     )
 
                 # 确保最终结果是列表
@@ -3509,20 +3904,27 @@ class GenerationService:
                     text = str(text).strip()
                     # 清理中文前缀
                     text = re.sub(
-                        r"^(步骤|结果|前置)\d+[\：\:]\s*", "", text, flags=re.IGNORECASE
+                        r"^(步骤|结果|前置)\d+[\：\:]\s*",
+                        "",
+                        text,
+                        flags=re.IGNORECASE,
                     )
                     # 清理已有的序号 "1." "2." 等（只清理开头的序号）
                     text = re.sub(r"^(\d+)[\.\、]\s*", "", text)
                     return text.strip()
 
-                test_steps = [clean_prefix(s) for s in test_steps if str(s).strip()]
+                test_steps = [
+                    clean_prefix(s) for s in test_steps if str(s).strip()
+                ]
                 expected_results = [
                     clean_prefix(r) for r in expected_results if str(r).strip()
                 ]
 
                 # 为测试步骤添加序号（从1开始）
                 test_steps = [
-                    f"{i + 1}. {step}" for i, step in enumerate(test_steps) if step
+                    f"{i + 1}. {step}"
+                    for i, step in enumerate(test_steps)
+                    if step
                 ]
 
                 # 为预期结果添加序号（从1开始）
@@ -3535,7 +3937,9 @@ class GenerationService:
                 # 处理优先级
                 priority_str = case_data.get("priority", "P2")
                 try:
-                    priority = Priority(priority_str) if priority_str else Priority.P2
+                    priority = (
+                        Priority(priority_str) if priority_str else Priority.P2
+                    )
                 except ValueError:
                     priority = Priority.P2
 
@@ -3560,8 +3964,8 @@ class GenerationService:
                     citations=case_data.get("citations"),
                     rag_influenced=case_data.get("rag_influenced", 0),
                     rag_sources=case_data.get("rag_sources"),
-                    is_duplicate=1 if case_data.get("duplicate_of") else 0,
-                    duplicate_of=case_data.get("duplicate_of"),
+                    is_duplicate=1 if case_data.get("duplicate_o") else 0,
+                    duplicate_of=case_data.get("duplicate_o"),
                     duplicate_similarity=case_data.get("duplicate_similarity"),
                 )
                 session.add(test_case)
@@ -3618,7 +4022,8 @@ class GenerationService:
                 logger.info("[需求分析] 尝试使用LLM CoT进行深度需求分析...")
                 llm_analysis = self._llm_based_analysis(requirement_content)
                 if llm_analysis and llm_analysis.get("modules"):
-                    logger.info(f"[需求分析] LLM分析成功 - 识别到 {len(llm_analysis['modules'])} 个模块"
+                    logger.info(
+                        f"[需求分析] LLM分析成功 - 识别到 {len(llm_analysis['modules'])} 个模块"
                     )
                     return llm_analysis
                 else:
@@ -3650,7 +4055,9 @@ class GenerationService:
             logger.info("[需求分析] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            logger.info(f"[需求分析] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(
+                f"[需求分析] 模板缺少变量: {render_result['missing_variables']}"
+            )
 
         # 调用LLM
         adapter = self.llm_manager.get_adapter()
@@ -3732,7 +4139,9 @@ class GenerationService:
             if point_name in module_names:
                 # 自动重命名
                 point["name"] = f"{point_name}（操作验证）"
-                logger.info(f"[需求分析] 测试点名称与模块重复，已重命名: {point_name} -> {point['name']}")
+                logger.info(
+                    f"[需求分析] 测试点名称与模块重复，已重命名: {point_name} -> {point['name']}"
+                )
 
         return defaults
 
@@ -3779,7 +4188,11 @@ class GenerationService:
                 clean_line = line.replace("#", "").replace("*", "").strip()
                 if clean_line and 3 < len(clean_line) < 50:
                     analysis["modules"].append(
-                        {"name": clean_line, "description": "", "sub_features": []}
+                        {
+                            "name": clean_line,
+                            "description": "",
+                            "sub_features": [],
+                        }
                     )
 
             # 模式2: # 一级标题（即使没有关键词也识别为模块）
@@ -3791,7 +4204,11 @@ class GenerationService:
                     existing_names = [m["name"] for m in analysis["modules"]]
                     if clean_line not in existing_names:
                         analysis["modules"].append(
-                            {"name": clean_line, "description": "", "sub_features": []}
+                            {
+                                "name": clean_line,
+                                "description": "",
+                                "sub_features": [],
+                            }
                         )
 
             # 模式3: ## 级别的标题（子功能）
@@ -3807,7 +4224,9 @@ class GenerationService:
             analysis["modules"] = inferred_modules
 
         # ========== 2. 提取业务流程步骤 ==========
-        analysis["business_flows"] = self._extract_business_flows(requirement_content)
+        analysis["business_flows"] = self._extract_business_flows(
+            requirement_content
+        )
 
         # ========== 3. 识别约束条件 ==========
         for line in lines:
@@ -3859,10 +4278,14 @@ class GenerationService:
                     )
 
         # ========== 4. 识别状态变化 ==========
-        analysis["state_changes"] = self._extract_state_changes(requirement_content)
+        analysis["state_changes"] = self._extract_state_changes(
+            requirement_content
+        )
 
         # ========== 5. 识别非功能需求 ==========
-        analysis["non_functional"] = self._extract_non_functional(requirement_content)
+        analysis["non_functional"] = self._extract_non_functional(
+            requirement_content
+        )
 
         # ========== 6. 识别风险与模糊点 ==========
         analysis["risks"] = self._identify_risks(requirement_content)
@@ -3940,7 +4363,11 @@ class GenerationService:
             # 1. 有流程关键词
             # 2. 有动作+状态
             # 3. 有流程连接词（表示操作的结果或后续动作）
-            if has_flow_keyword or (has_action and has_state) or has_flow_connector:
+            if (
+                has_flow_keyword
+                or (has_action and has_state)
+                or has_flow_connector
+            ):
                 flows.append({"step": line[:50], "keywords": []})
 
         return flows[:10]  # 最多10个流程步骤
@@ -3963,12 +4390,16 @@ class GenerationService:
         # 寻找状态转换模式：从X状态到Y状态
         import re
 
-        pattern = r"(待\w+|已\w+).*?(变为|转为|更新为|修改为|改为).+?(待\w+|已\w+)"
+        pattern = (
+            r"(待\w+|已\w+).*?(变为|转为|更新为|修改为|改为).+?(待\w+|已\w+)"
+        )
         matches = re.findall(pattern, content)
 
         for match in matches:
             if len(match) >= 2:
-                state_changes.append({"from_state": match[0], "to_state": match[-1]})
+                state_changes.append(
+                    {"from_state": match[0], "to_state": match[-1]}
+                )
 
         # 如果没有找到明确的状态转换，尝试识别提到的状态
         if not state_changes:
@@ -3976,7 +4407,10 @@ class GenerationService:
             if len(found_states) >= 2:
                 for i in range(len(found_states) - 1):
                     state_changes.append(
-                        {"from_state": found_states[i], "to_state": found_states[i + 1]}
+                        {
+                            "from_state": found_states[i],
+                            "to_state": found_states[i + 1],
+                        }
                     )
 
         return state_changes
@@ -4000,7 +4434,15 @@ class GenerationService:
             # 性能需求
             if any(
                 kw in line
-                for kw in ["响应时间", "并发", "性能", "QPS", "TPS", "秒内", "毫秒"]
+                for kw in [
+                    "响应时间",
+                    "并发",
+                    "性能",
+                    "QPS",
+                    "TPS",
+                    "秒内",
+                    "毫秒",
+                ]
             ):
                 non_functional["performance"].append(line)
 
@@ -4022,7 +4464,15 @@ class GenerationService:
             # 安全需求
             if any(
                 kw in line
-                for kw in ["加密", "权限", "鉴权", "SQL注入", "XSS", "安全", "密码加密"]
+                for kw in [
+                    "加密",
+                    "权限",
+                    "鉴权",
+                    "SQL注入",
+                    "XSS",
+                    "安全",
+                    "密码加密",
+                ]
             ):
                 non_functional["security"].append(line)
 
@@ -4035,7 +4485,8 @@ class GenerationService:
 
             # 稳定性需求
             if any(
-                kw in line for kw in ["7×24", "崩溃", "恢复时间", "稳定性", "可用性"]
+                kw in line
+                for kw in ["7×24", "崩溃", "恢复时间", "稳定性", "可用性"]
             ):
                 non_functional["stability"].append(line)
 
@@ -4052,12 +4503,19 @@ class GenerationService:
                 continue
 
             # 识别模糊描述
-            if any(kw in line for kw in ["等", "可能", "大概", "类似", "适当", "合理"]):
-                risks.append({"type": "模糊点", "content": line, "severity": "中"})
+            if any(
+                kw in line
+                for kw in ["等", "可能", "大概", "类似", "适当", "合理"]
+            ):
+                risks.append(
+                    {"type": "模糊点", "content": line, "severity": "中"}
+                )
 
             # 识别外部依赖
             if any(kw in line for kw in ["第三方", "接口", "外部", "依赖"]):
-                risks.append({"type": "高风险点", "content": line, "severity": "高"})
+                risks.append(
+                    {"type": "高风险点", "content": line, "severity": "高"}
+                )
 
         return risks
 
@@ -4074,7 +4532,9 @@ class GenerationService:
         modules = analysis.get("modules", [])
 
         for module in modules:
-            module_name = module["name"] if isinstance(module, dict) else module
+            module_name = (
+                module["name"] if isinstance(module, dict) else module
+            )
 
             # 为每个模块生成测试点
             # 1. 正向场景测试点
@@ -4141,8 +4601,21 @@ class GenerationService:
 
         # 扩展的业务场景模式（包含更多常见场景）
         patterns = {
-            "用户管理": ["用户注册", "用户登录", "用户信息", "账号管理", "权限管理"],
-            "登录认证": ["登录", "登出", "忘记密码", "验证码", "密码重置", "免登录"],
+            "用户管理": [
+                "用户注册",
+                "用户登录",
+                "用户信息",
+                "账号管理",
+                "权限管理",
+            ],
+            "登录认证": [
+                "登录",
+                "登出",
+                "忘记密码",
+                "验证码",
+                "密码重置",
+                "免登录",
+            ],
             "订单管理": ["订单创建", "订单查询", "订单状态", "支付", "退款"],
             "商品管理": ["商品上架", "商品下架", "库存管理", "商品分类"],
             "数据统计": ["统计报表", "数据分析", "导出报表", "趋势分析"],
@@ -4155,7 +4628,9 @@ class GenerationService:
 
         for module_name, keywords in patterns.items():
             # 如果内容中包含多个相关关键词，则推断存在该模块
-            match_count = sum(1 for keyword in keywords if keyword in content_lower)
+            match_count = sum(
+                1 for keyword in keywords if keyword in content_lower
+            )
             if match_count >= 2:  # 至少匹配2个关键词
                 modules.append(
                     {
@@ -4200,9 +4675,13 @@ class GenerationService:
         if analysis.get("modules"):
             md += "## 一、功能模块划分\n\n"
             for i, module in enumerate(analysis["modules"], 1):
-                module_name = module["name"] if isinstance(module, dict) else module
+                module_name = (
+                    module["name"] if isinstance(module, dict) else module
+                )
                 module_desc = (
-                    module.get("description", "") if isinstance(module, dict) else ""
+                    module.get("description", "")
+                    if isinstance(module, dict)
+                    else ""
                 )
                 md += f"{i}. **{module_name}**"
                 if module_desc:
@@ -4333,9 +4812,13 @@ class GenerationService:
             try:
                 keywords = self._query_optimizer.extract_keywords(raw_query)
                 if keywords:
-                    query = " ".join([raw_query, *[str(word) for word in keywords]])
+                    query = " ".join(
+                        [raw_query, *[str(word) for word in keywords]]
+                    )
             except Exception as e:
-                logger.warning("ITEM RAG query optimization failed: %s", str(e))
+                logger.warning(
+                    "ITEM RAG query optimization failed: %s", str(e)
+                )
         empty = self._empty_item_rag_result(query)
         if not self._hybrid_retriever:
             return empty
@@ -4395,7 +4878,9 @@ class GenerationService:
         for index, result in enumerate(results, 1):
             source_id = result.get("id", f"defect_{index}")
             blocks.append(f"### 来源 {source_id}\n{result.get('content', '')}")
-        blocks.append("引用标注要求：如采用历史资料，请在结果中提供 citation。")
+        blocks.append(
+            "引用标注要求：如采用历史资料，请在结果中提供 citation。"
+        )
         return "\n\n".join(blocks)
 
     def _perform_rag_recall(
@@ -4419,9 +4904,15 @@ class GenerationService:
         rag_stats = {"cases": 0, "defects": 0, "requirements": 0}
         rag_context_data = {
             "retrieval_mode": (
-                self._hybrid_retriever.mode if self._hybrid_retriever else "vector_only"
+                self._hybrid_retriever.mode
+                if self._hybrid_retriever
+                else "vector_only"
             ),
-            "rrf_k": self._hybrid_retriever.rrf_k if self._hybrid_retriever else None,
+            "rrf_k": (
+                self._hybrid_retriever.rrf_k
+                if self._hybrid_retriever
+                else None
+            ),
             "adjustments": [],
         }
 
@@ -4458,7 +4949,9 @@ class GenerationService:
                     ]
 
                 # 记录动态检索调整信息
-                if isinstance(case_response, dict) and case_response.get("adjustment"):
+                if isinstance(case_response, dict) and case_response.get(
+                    "adjustment"
+                ):
                     rag_context_data.setdefault("adjustments", []).append(
                         case_response["adjustment"]
                     )
@@ -4480,10 +4973,10 @@ class GenerationService:
                 if defect_results:
                     rag_context += "\n## 召回的历史缺陷场景（必须覆盖）\n"
                     rag_context += "> 以下缺陷在历史项目中出现过，请在新用例设计中重点覆盖这些场景，避免重复问题。\n\n"
-                    for i, defect in enumerate(defect_results[:top_k_defects], 1):
-                        rag_context += (
-                            f"### 历史缺陷 {i}\n{defect.get('content', '')}\n\n"
-                        )
+                    for i, defect in enumerate(
+                        defect_results[:top_k_defects], 1
+                    ):
+                        rag_context += f"### 历史缺陷 {i}\n{defect.get('content', '')}\n\n"
                     rag_stats["defects"] = len(defect_results[:top_k_defects])
                     # 保存原始检索结果用于后续相似度匹配
                     rag_context_data["retrieved_defects"] = [
@@ -4517,14 +5010,20 @@ class GenerationService:
                 )
                 if req_results:
                     rag_context += "\n## 召回的相似需求（补充理解）\n"
-                    rag_context += (
-                        "> 以下需求与当前需求相关，请综合考虑，避免遗漏关联功能。\n\n"
+                    rag_context += "> 以下需求与当前需求相关，请综合考虑，避免遗漏关联功能。\n\n"
+                    for i, req in enumerate(
+                        req_results[:top_k_requirements], 1
+                    ):
+                        rag_context += (
+                            f"### 相关需求 {i}\n{req.get('content', '')}\n\n"
+                        )
+                    rag_stats["requirements"] = len(
+                        req_results[:top_k_requirements]
                     )
-                    for i, req in enumerate(req_results[:top_k_requirements], 1):
-                        rag_context += f"### 相关需求 {i}\n{req.get('content', '')}\n\n"
-                    rag_stats["requirements"] = len(req_results[:top_k_requirements])
 
-                if isinstance(req_response, dict) and req_response.get("adjustment"):
+                if isinstance(req_response, dict) and req_response.get(
+                    "adjustment"
+                ):
                     rag_context_data.setdefault("adjustments", []).append(
                         req_response["adjustment"]
                     )
@@ -4533,7 +5032,10 @@ class GenerationService:
         else:
             # 回退到原始向量检索
             return self._perform_rag_recall_fallback(
-                requirement_content, top_k_cases, top_k_defects, top_k_requirements
+                requirement_content,
+                top_k_cases,
+                top_k_defects,
+                top_k_requirements,
             )
 
         # 生成检索质量报告
@@ -4548,7 +5050,9 @@ class GenerationService:
                             "content": r.get("content", ""),
                         }
                     )
-                for r in defect_results[:top_k_defects] if defect_results else []:
+                for r in (
+                    defect_results[:top_k_defects] if defect_results else []
+                ):
                     all_fused.append(
                         {
                             "score": r.get("score", r.get("distance", 0)),
@@ -4556,7 +5060,9 @@ class GenerationService:
                             "content": r.get("content", ""),
                         }
                     )
-                for r in req_results[:top_k_requirements] if req_results else []:
+                for r in (
+                    req_results[:top_k_requirements] if req_results else []
+                ):
                     all_fused.append(
                         {
                             "score": r.get("score", r.get("distance", 0)),
@@ -4564,10 +5070,16 @@ class GenerationService:
                             "content": r.get("content", ""),
                         }
                     )
-                quality_report = self._retrieval_evaluator.generate_quality_report(
-                    case_results[:top_k_cases] if case_results else [],
-                    defect_results[:top_k_defects] if defect_results else [],
-                    all_fused,
+                quality_report = (
+                    self._retrieval_evaluator.generate_quality_report(
+                        case_results[:top_k_cases] if case_results else [],
+                        (
+                            defect_results[:top_k_defects]
+                            if defect_results
+                            else []
+                        ),
+                        all_fused,
+                    )
                 )
                 rag_stats["quality_report"] = quality_report
                 rag_context_data["quality_report"] = quality_report
@@ -4655,7 +5167,9 @@ class GenerationService:
                     review_info = {
                         "score": llm_review.get("overall_score"),
                         "conclusion": llm_review.get("conclusion"),
-                        "reviewed_items_count": llm_review.get("reviewed_items_count"),
+                        "reviewed_items_count": llm_review.get(
+                            "reviewed_items_count"
+                        ),
                         "reviewed_points_count": llm_review.get(
                             "reviewed_points_count"
                         ),
@@ -4688,7 +5202,9 @@ class GenerationService:
         """
         import json
 
-        analysis_str = json.dumps(requirement_analysis, ensure_ascii=False, indent=2)
+        analysis_str = json.dumps(
+            requirement_analysis, ensure_ascii=False, indent=2
+        )
 
         # 使用 PromptTemplateService 渲染模板
         from src.services.prompt_template_service import PromptTemplateService
@@ -4706,7 +5222,9 @@ class GenerationService:
             logger.info("[模块评审] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            logger.info(f"[模块评审] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(
+                f"[模块评审] 模板缺少变量: {render_result['missing_variables']}"
+            )
 
         # 调用LLM进行评审
         adapter = self.llm_manager.get_adapter()
@@ -4741,8 +5259,12 @@ class GenerationService:
                 else:
                     raise Exception("无法解析评审结果JSON")
 
-        logger.info(f"[模块评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}")
-        logger.info(f"[模块评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100")
+        logger.info(
+            f"[模块评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}"
+        )
+        logger.info(
+            f"[模块评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100"
+        )
 
         return review_result
 
@@ -4766,7 +5288,9 @@ class GenerationService:
         completeness = module_review.get("completeness", {})
         rationality = module_review.get("rationality", {})
 
-        test_plan += f"**完整性评分**: {completeness.get('score', 'N/A')}/100\n"
+        test_plan += (
+            f"**完整性评分**: {completeness.get('score', 'N/A')}/100\n"
+        )
         issues = completeness.get("issues", [])
         if issues:
             test_plan += "**完整性问题**:\n"
@@ -4781,13 +5305,19 @@ class GenerationService:
                 test_plan += f"- {suggestion}\n"
             test_plan += "\n"
 
-        test_plan += f"**合理性评分**: {rationality.get('score', 'N/A')}/100\n\n"
+        test_plan += (
+            f"**合理性评分**: {rationality.get('score', 'N/A')}/100\n\n"
+        )
 
         # 为每个模块生成测试项
         for module in modules[:5]:
-            module_name = module["name"] if isinstance(module, dict) else module
+            module_name = (
+                module["name"] if isinstance(module, dict) else module
+            )
             module_desc = (
-                module.get("description", "") if isinstance(module, dict) else ""
+                module.get("description", "")
+                if isinstance(module, dict)
+                else ""
             )
 
             test_plan += f"### 测试项：{module_name}\n"
@@ -4796,9 +5326,7 @@ class GenerationService:
 
             test_plan += "- 测试点：正常流程验证\n"
             if state_changes:
-                test_plan += (
-                    f"- 测试点：状态流转验证（覆盖{len(state_changes)}个状态转换）\n"
-                )
+                test_plan += f"- 测试点：状态流转验证（覆盖{len(state_changes)}个状态转换）\n"
 
             module_rules = [
                 r
@@ -4835,12 +5363,18 @@ class GenerationService:
         tp_completeness = test_point_review.get("completeness", {})
         tp_testability = test_point_review.get("testability", {})
 
-        test_plan += f"**完整性评分**: {tp_completeness.get('score', 'N/A')}/100\n"
-        test_plan += f"**可测性评分**: {tp_testability.get('score', 'N/A')}/100\n\n"
+        test_plan += (
+            f"**完整性评分**: {tp_completeness.get('score', 'N/A')}/100\n"
+        )
+        test_plan += (
+            f"**可测性评分**: {tp_testability.get('score', 'N/A')}/100\n\n"
+        )
 
         # ========== 3. 总体评审结论 ==========
         test_plan += "### 三、总体评审结论\n\n"
-        test_plan += f"**总体评分**: {llm_review.get('overall_score', 'N/A')}/100\n"
+        test_plan += (
+            f"**总体评分**: {llm_review.get('overall_score', 'N/A')}/100\n"
+        )
         test_plan += f"**结论**: {llm_review.get('conclusion', 'N/A')}\n\n"
 
         return test_plan
@@ -4877,7 +5411,14 @@ class GenerationService:
             normalized_modules = []
             for m in modules:
                 if isinstance(m, dict):
-                    nm = {k.lower() if k.lower() in ("name", "description") else k: v for k, v in m.items()}
+                    nm = {
+                        (
+                            k.lower()
+                            if k.lower() in ("name", "description")
+                            else k
+                        ): v
+                        for k, v in m.items()
+                    }
                     if "name" not in nm and "Name" in m:
                         nm["name"] = m["Name"]
                     normalized_modules.append(nm)
@@ -4890,9 +5431,13 @@ class GenerationService:
 
             # 为每个模块生成详细的测试项和测试点
             for module in modules[:5]:  # 最多处理5个模块
-                module_name = module["name"] if isinstance(module, dict) else module
+                module_name = (
+                    module["name"] if isinstance(module, dict) else module
+                )
                 module_desc = (
-                    module.get("description", "") if isinstance(module, dict) else ""
+                    module.get("description", "")
+                    if isinstance(module, dict)
+                    else ""
                 )
 
                 test_plan += f"### 测试项：{module_name}\n"
@@ -4912,7 +5457,8 @@ class GenerationService:
                 module_rules = [
                     r
                     for r in business_rules
-                    if module_name in r.get("content", "") or module_name in str(r)
+                    if module_name in r.get("content", "")
+                    or module_name in str(r)
                 ]
                 if module_rules:
                     for rule in module_rules[:3]:  # 最多3个规则
@@ -4930,7 +5476,8 @@ class GenerationService:
                 module_constraints = [
                     c
                     for c in data_constraints
-                    if module_name in c.get("content", "") or module_name in str(c)
+                    if module_name in c.get("content", "")
+                    or module_name in str(c)
                 ]
                 if module_constraints:
                     for constraint in module_constraints[:2]:  # 最多2个约束
@@ -4942,7 +5489,9 @@ class GenerationService:
                         constraint_desc = constraint_content[:30] + (
                             "..." if len(constraint_content) > 30 else ""
                         )
-                        test_plan += f"- 测试点：数据约束验证 - {constraint_desc}\n"
+                        test_plan += (
+                            f"- 测试点：数据约束验证 - {constraint_desc}\n"
+                        )
 
                 # 通用测试点
                 test_plan += "- 测试点：边界值测试\n"
@@ -4975,17 +5524,21 @@ class GenerationService:
             test_plan += f"**识别到 {len(risks)} 个风险点**\n\n"
             for i, risk in enumerate(risks[:5], 1):  # 最多显示5个风险
                 risk_content = (
-                    risk.get("content", risk) if isinstance(risk, dict) else str(risk)
+                    risk.get("content", risk)
+                    if isinstance(risk, dict)
+                    else str(risk)
                 )
                 risk_type = (
-                    risk.get("type", "风险") if isinstance(risk, dict) else "风险"
+                    risk.get("type", "风险")
+                    if isinstance(risk, dict)
+                    else "风险"
                 )
                 risk_severity = (
-                    risk.get("severity", "中") if isinstance(risk, dict) else "中"
+                    risk.get("severity", "中")
+                    if isinstance(risk, dict)
+                    else "中"
                 )
-                test_plan += (
-                    f"{i}. **[{risk_severity}]{risk_type}**: {risk_content[:50]}\n"
-                )
+                test_plan += f"{i}. **[{risk_severity}]{risk_type}**: {risk_content[:50]}\n"
             test_plan += "\n"
         else:
             test_plan += "**风险**: 未识别到明显风险点\n\n"
@@ -4995,23 +5548,15 @@ class GenerationService:
 
         if non_functional:
             if non_functional.get("performance"):
-                test_plan += (
-                    f"**性能测试**: {len(non_functional['performance'])}个性能指标\n"
-                )
+                test_plan += f"**性能测试**: {len(non_functional['performance'])}个性能指标\n"
             if non_functional.get("security"):
-                test_plan += (
-                    f"**安全测试**: {len(non_functional['security'])}个安全要求\n"
-                )
+                test_plan += f"**安全测试**: {len(non_functional['security'])}个安全要求\n"
             if non_functional.get("compatibility"):
                 test_plan += f"**兼容性测试**: {len(non_functional['compatibility'])}个兼容性要求\n"
             if non_functional.get("usability"):
-                test_plan += (
-                    f"**易用性测试**: {len(non_functional['usability'])}个易用性要求\n"
-                )
+                test_plan += f"**易用性测试**: {len(non_functional['usability'])}个易用性要求\n"
             if non_functional.get("stability"):
-                test_plan += (
-                    f"**稳定性测试**: {len(non_functional['stability'])}个稳定性要求\n"
-                )
+                test_plan += f"**稳定性测试**: {len(non_functional['stability'])}个稳定性要求\n"
             test_plan += "\n"
         else:
             test_plan += "**非功能需求**: 未识别到明确的非功能需求\n\n"
@@ -5053,7 +5598,8 @@ class GenerationService:
                     ):
                         risk_level = "Critical"
                     elif any(
-                        keyword in item_name for keyword in ["重要", "用户", "管理"]
+                        keyword in item_name
+                        for keyword in ["重要", "用户", "管理"]
                     ):
                         risk_level = "High"
 
@@ -5133,11 +5679,14 @@ class GenerationService:
             )
 
             if template:
-                logger.info(f"[Prompt加载] 从数据库加载模板: {template.name} (类型: {template_type})"
+                logger.info(
+                    f"[Prompt加载] 从数据库加载模板: {template.name} (类型: {template_type})"
                 )
                 return template.template
             else:
-                logger.info(f"[Prompt加载] 数据库中未找到模板: {template_type}")
+                logger.info(
+                    f"[Prompt加载] 数据库中未找到模板: {template_type}"
+                )
                 return None
         except Exception as e:
             logger.info(f"[Prompt加载] 加载模板失败: {e}")
@@ -5163,7 +5712,11 @@ class GenerationService:
         return {
             "valid": valid,
             "missing": missing,
-            "message": "模板验证通过" if valid else f"缺少占位符: {', '.join(missing)}",
+            "message": (
+                "模板验证通过"
+                if valid
+                else f"缺少占位符: {', '.join(missing)}"
+            ),
         }
 
     def _build_optimized_generation_prompt(
@@ -5215,10 +5768,14 @@ class GenerationService:
                 prompt = prompt.replace("{rag_context}", rag_section)
                 prompt = prompt.replace("{test_plan}", test_plan_section)
 
-                logger.info(f"[Prompt构建] 使用数据库模板生成prompt (类型: {prompt_type})")
+                logger.info(
+                    f"[Prompt构建] 使用数据库模板生成prompt (类型: {prompt_type})"
+                )
                 return prompt
             except Exception as e:
-                logger.info(f"[Prompt构建] 数据库模板替换失败，使用默认模板: {e}")
+                logger.info(
+                    f"[Prompt构建] 数据库模板替换失败，使用默认模板: {e}"
+                )
                 # 回退到硬编码默认值
 
         # 默认硬编码模板（回退方案）
@@ -5226,7 +5783,9 @@ class GenerationService:
             requirement_content, rag_context, test_plan, requirement_analysis
         )
 
-    def _build_rag_context_with_source_ids(self, rag_items: Dict[str, Any]) -> str:
+    def _build_rag_context_with_source_ids(
+        self, rag_items: Dict[str, Any]
+    ) -> str:
         """
         构建带来源ID标注的RAG上下文（用于引用标注模板）
 
@@ -5241,7 +5800,9 @@ class GenerationService:
         """
         # 尝试使用 PromptTemplateService 渲染模板
         try:
-            from src.services.prompt_template_service import PromptTemplateService
+            from src.services.prompt_template_service import (
+                PromptTemplateService,
+            )
 
             prompt_service = PromptTemplateService(self.db_session)
             template_obj = prompt_service.get_template("rag_citation")
@@ -5296,7 +5857,9 @@ class GenerationService:
         requirements = rag_items.get("requirements", [])
 
         if cases:
-            rag_context += "\n\n## 召回的历史测试用例（请在生成时引用来源ID）\n"
+            rag_context += (
+                "\n\n## 召回的历史测试用例（请在生成时引用来源ID）\n"
+            )
             rag_context += "> 引用格式示例：`[citation: #CASE-001]`\n\n"
             for i, case in enumerate(cases, 1):
                 source_id = case.get("id", f"CASE-{i:03d}")
@@ -5338,7 +5901,7 @@ class GenerationService:
         requirement_analysis: Dict[str, Any],
     ) -> str:
         """构建默认的优化生成Prompt（硬编码回退方案）"""
-        prompt = f"""你是一位资深的功能测试专家，拥有10年以上测试经验，擅长基于场景法和等价类划分设计测试用例。请根据以下需求文档、RAG召回的历史数据和测试规划，生成高质量、高覆盖率的测试用例。
+        prompt = """你是一位资深的功能测试专家，拥有10年以上测试经验，擅长基于场景法和等价类划分设计测试用例。请根据以下需求文档、RAG召回的历史数据和测试规划，生成高质量、高覆盖率的测试用例。
 
 ## 需求文档
 {requirement_content}
@@ -5434,13 +5997,15 @@ class GenerationService:
                 )
                 prompt = prompt.replace("{rag_context}", rag_section)
 
-                logger.info(f"[Prompt构建] 使用数据库基础版模板生成prompt")
+                logger.info("[Prompt构建] 使用数据库基础版模板生成prompt")
                 return prompt
             except Exception as e:
-                logger.info(f"[Prompt构建] 基础版数据库模板替换失败，使用默认模板: {e}")
+                logger.info(
+                    f"[Prompt构建] 基础版数据库模板替换失败，使用默认模板: {e}"
+                )
 
         # 默认硬编码模板（回退方案）
-        prompt = f"""你是一位资深的功能测试专家，拥有10年以上测试经验。请根据以下需求文档，生成高质量、高覆盖率的测试用例。
+        prompt = """你是一位资深的功能测试专家，拥有10年以上测试经验。请根据以下需求文档，生成高质量、高覆盖率的测试用例。
 
 ## 需求文档
 {requirement_content}
@@ -5573,7 +6138,9 @@ class GenerationService:
                 test_steps = self._parse_step_or_result(test_steps_raw)
 
                 # 解析预期结果（格式：1. xxx。2. xxx。3. xxx）
-                expected_results = self._parse_step_or_result(expected_results_raw)
+                expected_results = self._parse_step_or_result(
+                    expected_results_raw
+                )
 
                 # 构建用例字典
                 case = {
@@ -5630,7 +6197,9 @@ class GenerationService:
 
         if matches:
             # 提取内容，保留序号
-            items = [f"{num}. {content.strip('。.')}" for num, content in matches]
+            items = [
+                f"{num}. {content.strip('。.')}" for num, content in matches
+            ]
             return items
 
         # 如果没有序号，按句号或换行分割
@@ -5662,7 +6231,8 @@ class GenerationService:
             import os
 
             log_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs"
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "logs",
             )
             os.makedirs(log_dir, exist_ok=True)
             log_path = os.path.join(log_dir, "llm_response.log")
@@ -5686,7 +6256,9 @@ class GenerationService:
                 # 尝试常见的键
                 for key in ["test_cases", "testCases", "cases", "data"]:
                     if key in cases and isinstance(cases[key], list):
-                        logger.info(f"从dict['{key}']解析到 {len(cases[key])} 条用例")
+                        logger.info(
+                            f"从dict['{key}']解析到 {len(cases[key])} 条用例"
+                        )
                         return cases[key]
         except json.JSONDecodeError as e:
             logger.info(f"直接JSON解析失败: {e}")
@@ -5700,16 +6272,28 @@ class GenerationService:
             if matches:
                 logger.info(f"找到 {len(matches)} 个JSON代码块")
                 for idx, match in enumerate(matches):
-                    logger.info(f"尝试解析第 {idx + 1} 个JSON代码块 (长度: {len(match)}字符)")
+                    logger.info(
+                        f"尝试解析第 {idx + 1} 个JSON代码块 (长度: {len(match)}字符)"
+                    )
                     try:
                         cases = json.loads(match)
                         if isinstance(cases, list):
-                            logger.info(f"从JSON代码块解析到 {len(cases)} 条用例")
+                            logger.info(
+                                f"从JSON代码块解析到 {len(cases)} 条用例"
+                            )
                             return cases
                         elif isinstance(cases, dict):
-                            for key in ["test_cases", "testCases", "cases", "data"]:
-                                if key in cases and isinstance(cases[key], list):
-                                    logger.info(f"从JSON代码块dict['{key}']解析到 {len(cases[key])} 条用例"
+                            for key in [
+                                "test_cases",
+                                "testCases",
+                                "cases",
+                                "data",
+                            ]:
+                                if key in cases and isinstance(
+                                    cases[key], list
+                                ):
+                                    logger.info(
+                                        f"从JSON代码块dict['{key}']解析到 {len(cases[key])} 条用例"
                                     )
                                     return cases[key]
                     except json.JSONDecodeError as e:
@@ -5719,7 +6303,9 @@ class GenerationService:
                             logger.info("JSON过长，尝试智能修复...")
                             fixed_match = self._try_fix_json(match)
                             if fixed_match:
-                                logger.info(f"智能修复成功，解析到 {len(fixed_match)} 条用例")
+                                logger.info(
+                                    f"智能修复成功，解析到 {len(fixed_match)} 条用例"
+                                )
                                 return fixed_match
         except Exception as e:
             logger.info(f"JSON代码块解析失败: {e}")
@@ -5735,7 +6321,9 @@ class GenerationService:
                 if len(json_str) > 10000:
                     cases = self._try_fix_json(json_str)
                     if cases:
-                        logger.info(f"方括号智能修复成功，解析到 {len(cases)} 条用例")
+                        logger.info(
+                            f"方括号智能修复成功，解析到 {len(cases)} 条用例"
+                        )
                         return cases
                 else:
                     cases = json.loads(json_str)
@@ -5755,17 +6343,29 @@ class GenerationService:
                 if len(json_str) > 10000:
                     obj = self._try_fix_json(json_str, expect_dict=True)
                     if obj:
-                        for key in ["test_cases", "testCases", "cases", "data"]:
+                        for key in [
+                            "test_cases",
+                            "testCases",
+                            "cases",
+                            "data",
+                        ]:
                             if key in obj and isinstance(obj[key], list):
-                                logger.info(f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
+                                logger.info(
+                                    f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
                                 )
                                 return obj[key]
                 else:
                     obj = json.loads(json_str)
                     if isinstance(obj, dict):
-                        for key in ["test_cases", "testCases", "cases", "data"]:
+                        for key in [
+                            "test_cases",
+                            "testCases",
+                            "cases",
+                            "data",
+                        ]:
                             if key in obj and isinstance(obj[key], list):
-                                logger.info(f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
+                                logger.info(
+                                    f"从花括号dict['{key}']解析到 {len(obj[key])} 条用例"
                                 )
                                 return obj[key]
         except json.JSONDecodeError as e:
@@ -5775,14 +6375,16 @@ class GenerationService:
         try:
             markdown_cases = self._parse_markdown_cases(content)
             if markdown_cases:
-                logger.info(f"从Markdown格式解析到 {len(markdown_cases)} 条用例")
+                logger.info(
+                    f"从Markdown格式解析到 {len(markdown_cases)} 条用例"
+                )
                 return markdown_cases
         except Exception as e:
             logger.info(f"Markdown格式解析失败: {e}")
 
         # 返回空列表
         logger.info("所有解析方法均失败，返回空列表")
-        logger.info(f"提示：请检查 logs/llm_response.log 查看LLM原始响应")
+        logger.info("提示：请检查 logs/llm_response.log 查看LLM原始响应")
         return []
 
     def _try_fix_json(self, json_str: str, expect_dict: bool = False) -> any:
@@ -5877,7 +6479,9 @@ class GenerationService:
         try:
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write("\n" + "=" * 80 + "\n")
-                f.write(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(
+                    f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                )
                 f.write(f"模型: {response.model}\n")
                 f.write(f"成功: {response.success}\n")
                 f.write(f"错误: {response.error_message}\n")
@@ -5928,9 +6532,7 @@ class GenerationService:
         # 构建用例摘要
         case_summary = ""
         for idx, case in enumerate(test_cases[:20], 1):
-            case_summary += (
-                f"{idx}. [{case.get('priority', 'N/A')}] {case.get('name', 'N/A')}\n"
-            )
+            case_summary += f"{idx}. [{case.get('priority', 'N/A')}] {case.get('name', 'N/A')}\n"
         if len(test_cases) > 20:
             case_summary += f"... (还有{len(test_cases) - 20}条用例)\n"
 
@@ -5950,7 +6552,9 @@ class GenerationService:
             logger.info("[质量评审] 使用fallback默认模板")
 
         if render_result["missing_variables"]:
-            logger.info(f"[质量评审] 模板缺少变量: {render_result['missing_variables']}")
+            logger.info(
+                f"[质量评审] 模板缺少变量: {render_result['missing_variables']}"
+            )
 
         # 调用LLM进行评审
         try:
@@ -5973,15 +6577,19 @@ class GenerationService:
                 review_result = json.loads(content)
             except json.JSONDecodeError:
                 # 尝试从代码块中提取
-                json_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
+                json_match = re.search(
+                    r"```(?:json)?\s*([\s\S]*?)\s*```", content
+                )
                 if json_match:
                     review_result = json.loads(json_match.group(1))
                 else:
                     raise Exception("无法解析评审结果JSON")
 
-            logger.info(f"[质量评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}"
+            logger.info(
+                f"[质量评审] 评审完成 - 结论: {review_result.get('conclusion', 'N/A')}"
             )
-            logger.info(f"[质量评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100"
+            logger.info(
+                f"[质量评审] 总体评分: {review_result.get('overall_score', 'N/A')}/100"
             )
 
             return review_result
@@ -6003,7 +6611,9 @@ class IncrementalUpdateService:
     def __init__(self, generation_service: GenerationService):
         self.generation_service = generation_service
 
-    def detect_changes(self, old_content: str, new_content: str) -> Dict[str, Any]:
+    def detect_changes(
+        self, old_content: str, new_content: str
+    ) -> Dict[str, Any]:
         """
         检测文档变更
 
@@ -6016,8 +6626,12 @@ class IncrementalUpdateService:
             }
         """
         # 简化实现：按段落对比
-        old_paragraphs = set(p.strip() for p in old_content.split("\n") if p.strip())
-        new_paragraphs = set(p.strip() for p in new_content.split("\n") if p.strip())
+        old_paragraphs = set(
+            p.strip() for p in old_content.split("\n") if p.strip()
+        )
+        new_paragraphs = set(
+            p.strip() for p in new_content.split("\n") if p.strip()
+        )
 
         added = new_paragraphs - old_paragraphs
         removed = old_paragraphs - new_paragraphs

@@ -12,12 +12,12 @@ import os
 import sys
 import logging
 
-logging.basicConfig(level=logging.INFO, format='[Rollback] %(message)s')
+logging.basicConfig(level=logging.INFO, format="[Rollback] %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def get_db_path():
-    return os.environ.get('DB_PATH', 'data/testgen.db')
+    return os.environ.get("DB_PATH", "data/testgen.db")
 
 
 def check_column_exists(cursor, table_name, column_name):
@@ -29,7 +29,7 @@ def check_column_exists(cursor, table_name, column_name):
 def get_sqlite_version(cursor):
     cursor.execute("SELECT sqlite_version()")
     version_str = cursor.fetchone()[0]
-    parts = version_str.split('.')
+    parts = version_str.split(".")
     return tuple(int(p) for p in parts)
 
 
@@ -50,8 +50,12 @@ def run_rollback(db_path=None):
         sqlite_ver = get_sqlite_version(cursor)
         logger.info(f"SQLite版本: {'.'.join(str(v) for v in sqlite_ver)}")
 
-        columns_to_drop = ['confidence_score', 'confidence_level', 'citations']
-        existing_columns = [c for c in columns_to_drop if check_column_exists(cursor, 'test_cases', c)]
+        columns_to_drop = ["confidence_score", "confidence_level", "citations"]
+        existing_columns = [
+            c
+            for c in columns_to_drop
+            if check_column_exists(cursor, "test_cases", c)
+        ]
 
         if not existing_columns:
             logger.info("回滚目标字段均不存在，无需回滚")
@@ -104,13 +108,15 @@ def _rollback_by_recreate_table(cursor, columns_to_remove):
 
     cursor.execute("BEGIN TRANSACTION")
     cursor.execute(f"CREATE TABLE test_cases_backup ({cols_def_str})")
-    cursor.execute(f"INSERT INTO test_cases_backup SELECT {cols_name_str} FROM test_cases")
+    cursor.execute(
+        f"INSERT INTO test_cases_backup SELECT {cols_name_str} FROM test_cases"
+    )
     cursor.execute("DROP TABLE test_cases")
-    cursor.execute(f"ALTER TABLE test_cases_backup RENAME TO test_cases")
+    cursor.execute("ALTER TABLE test_cases_backup RENAME TO test_cases")
     logger.info(f"通过重建表删除字段: {columns_to_remove}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     db_path = sys.argv[1] if len(sys.argv) > 1 else None
     success = run_rollback(db_path)
     sys.exit(0 if success else 1)

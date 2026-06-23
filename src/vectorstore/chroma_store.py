@@ -23,6 +23,7 @@ embedding_functions = None
 try:
     import chromadb
     from chromadb.config import Settings
+
     _CHROMADB_AVAILABLE = True
     try:
         from chromadb.utils import embedding_functions
@@ -32,6 +33,7 @@ except (ImportError, AttributeError, ModuleNotFoundError, ValueError):
     pass
 
 from src.utils import get_logger
+
 logger = get_logger(__name__)
 
 from src.utils import get_logger
@@ -43,7 +45,9 @@ class ChromaVectorStore:
     """ChromaDB向量存储封装"""
 
     def __init__(
-        self, persist_directory: str = "data/chroma_db", enable_chunking: bool = True
+        self,
+        persist_directory: str = "data/chroma_db",
+        enable_chunking: bool = True,
     ):
         """
         初始化向量数据库
@@ -59,6 +63,7 @@ class ChromaVectorStore:
         # 使用ChromaDB本地ONNX embedding函数
         try:
             from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
+
             self.embedding_function = ONNXMiniLM_L6_V2()
             logger.info("使用ChromaDB ONNX本地embedding函数")
         except Exception as e:
@@ -80,7 +85,8 @@ class ChromaVectorStore:
     def _init_client(self):
         """初始化客户端"""
         self.client = chromadb.PersistentClient(
-            path=self.persist_directory, settings=Settings(anonymized_telemetry=False)
+            path=self.persist_directory,
+            settings=Settings(anonymized_telemetry=False),
         )
 
     def _rebuild_database(self):
@@ -145,7 +151,7 @@ class ChromaVectorStore:
                 "hnsw" in error_msg.lower()
                 or "nothing found on disk" in error_msg.lower()
             ):
-                logger.info(f"检测到hnsw索引损坏，正在重建...")
+                logger.info("检测到hnsw索引损坏，正在重建...")
                 self._rebuild_database()
             else:
                 raise
@@ -172,12 +178,18 @@ class ChromaVectorStore:
                 for i, chunk in enumerate(chunks):
                     chunk_id = f"{requirement_id}_chunk_{i}"
                     chunk_meta = (
-                        {**metadata, "original_id": requirement_id, "chunk_index": i}
+                        {
+                            **metadata,
+                            "original_id": requirement_id,
+                            "chunk_index": i,
+                        }
                         if metadata
                         else {"original_id": requirement_id, "chunk_index": i}
                     )
                     self.requirement_collection.add(
-                        ids=[chunk_id], documents=[chunk], metadatas=[chunk_meta]
+                        ids=[chunk_id],
+                        documents=[chunk],
+                        metadatas=[chunk_meta],
                     )
                 return
             except Exception as e:
@@ -192,7 +204,10 @@ class ChromaVectorStore:
         )
 
     def add_case(
-        self, case_id: str, content: str, metadata: Optional[Dict[str, Any]] = None
+        self,
+        case_id: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """
         添加历史用例到向量库
@@ -215,7 +230,9 @@ class ChromaVectorStore:
                         else {"original_id": case_id, "chunk_index": i}
                     )
                     self.case_collection.add(
-                        ids=[chunk_id], documents=[chunk], metadatas=[chunk_meta]
+                        ids=[chunk_id],
+                        documents=[chunk],
+                        metadatas=[chunk_meta],
                     )
                 return
             except Exception as e:
@@ -225,10 +242,15 @@ class ChromaVectorStore:
         meta = metadata or {}
         if not meta:
             meta = {"_id": case_id}
-        self.case_collection.add(ids=[case_id], documents=[content], metadatas=[meta])
+        self.case_collection.add(
+            ids=[case_id], documents=[content], metadatas=[meta]
+        )
 
     def add_defect(
-        self, defect_id: str, content: str, metadata: Optional[Dict[str, Any]] = None
+        self,
+        defect_id: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """
         添加缺陷到向量库
@@ -246,12 +268,18 @@ class ChromaVectorStore:
                 for i, chunk in enumerate(chunks):
                     chunk_id = f"{defect_id}_chunk_{i}"
                     chunk_meta = (
-                        {**metadata, "original_id": defect_id, "chunk_index": i}
+                        {
+                            **metadata,
+                            "original_id": defect_id,
+                            "chunk_index": i,
+                        }
                         if metadata
                         else {"original_id": defect_id, "chunk_index": i}
                     )
                     self.defect_collection.add(
-                        ids=[chunk_id], documents=[chunk], metadatas=[chunk_meta]
+                        ids=[chunk_id],
+                        documents=[chunk],
+                        metadatas=[chunk_meta],
                     )
                 return
             except Exception as e:
@@ -275,24 +303,46 @@ class ChromaVectorStore:
             }
             col = collection_map.get(collection)
         except AttributeError:
-            return {"id": doc_id, "content": "", "metadata": {}, "exists": False}
+            return {
+                "id": doc_id,
+                "content": "",
+                "metadata": {},
+                "exists": False,
+            }
         if not col:
-            return {"id": doc_id, "content": "", "metadata": {}, "exists": False}
+            return {
+                "id": doc_id,
+                "content": "",
+                "metadata": {},
+                "exists": False,
+            }
 
         try:
             result = col.get(ids=[doc_id])
             if result["ids"]:
                 content = result["documents"][0] if result["documents"] else ""
-                metadata = result["metadatas"][0] if result["metadatas"] else {}
+                metadata = (
+                    result["metadatas"][0] if result["metadatas"] else {}
+                )
                 return {
                     "id": doc_id,
                     "content": content,
                     "metadata": metadata,
                     "exists": True,
                 }
-            return {"id": doc_id, "content": "", "metadata": {}, "exists": False}
+            return {
+                "id": doc_id,
+                "content": "",
+                "metadata": {},
+                "exists": False,
+            }
         except Exception:
-            return {"id": doc_id, "content": "", "metadata": {}, "exists": False}
+            return {
+                "id": doc_id,
+                "content": "",
+                "metadata": {},
+                "exists": False,
+            }
 
     def search_similar_requirements(
         self, query: str, top_k: int = 3
@@ -313,7 +363,9 @@ class ChromaVectorStore:
 
         return self._format_results(results)
 
-    def search_similar_cases(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    def search_similar_cases(
+        self, query: str, top_k: int = 5
+    ) -> List[Dict[str, Any]]:
         """
         搜索相似历史用例
 
@@ -324,7 +376,9 @@ class ChromaVectorStore:
         Returns:
             相似用例列表
         """
-        results = self.case_collection.query(query_texts=[query], n_results=top_k)
+        results = self.case_collection.query(
+            query_texts=[query], n_results=top_k
+        )
 
         return self._format_results(results)
 
@@ -341,11 +395,15 @@ class ChromaVectorStore:
         Returns:
             相似缺陷列表
         """
-        results = self.defect_collection.query(query_texts=[query], n_results=top_k)
+        results = self.defect_collection.query(
+            query_texts=[query], n_results=top_k
+        )
 
         return self._format_results(results)
 
-    def search_all(self, query: str, top_k: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+    def search_all(
+        self, query: str, top_k: int = 5
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """
         搜索所有集合
 
@@ -443,7 +501,10 @@ class RAGEnhancer:
         self.vector_store = vector_store or ChromaVectorStore()
 
     def enhance_prompt(
-        self, requirement_content: str, top_k_cases: int = 3, top_k_defects: int = 2
+        self,
+        requirement_content: str,
+        top_k_cases: int = 3,
+        top_k_defects: int = 2,
     ) -> str:
         """
         增强Prompt，添加相似历史用例和缺陷作为上下文

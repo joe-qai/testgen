@@ -102,7 +102,9 @@ class ConfidenceCalculator:
                 vector[token] = vector.get(token, 0) + 1
         return vector
 
-    def _cosine_similarity(self, vec1: Dict[str, int], vec2: Dict[str, int]) -> float:
+    def _cosine_similarity(
+        self, vec1: Dict[str, int], vec2: Dict[str, int]
+    ) -> float:
         """计算两个词频向量之间的余弦相似度"""
         if not vec1 or not vec2:
             return 0.0
@@ -118,7 +120,10 @@ class ConfidenceCalculator:
     # 2.3 关键词覆盖率计算
     # ------------------------------------------------------------------
     def calculate_keyword_coverage(
-        self, case_text: str, requirement_content: str, min_keyword_len: int = 2
+        self,
+        case_text: str,
+        requirement_content: str,
+        min_keyword_len: int = 2,
     ) -> float:
         """
         计算需求关键词在测试用例中的覆盖比例。
@@ -223,7 +228,9 @@ class ConfidenceCalculator:
     # ------------------------------------------------------------------
     # 2.4 RAG支持度计算
     # ------------------------------------------------------------------
-    def calculate_rag_support(self, rag_results: Optional[Dict[str, Any]]) -> float:
+    def calculate_rag_support(
+        self, rag_results: Optional[Dict[str, Any]]
+    ) -> float:
         """
         计算RAG召回结果对生成用例的支持度。
 
@@ -266,7 +273,9 @@ class ConfidenceCalculator:
             # 历史用例权重最高（最直接相关）
             cases_score = min(rag_results.get("cases", 0) / 5.0, 1.0) * 0.5
             defects_score = min(rag_results.get("defects", 0) / 3.0, 1.0) * 0.3
-            reqs_score = min(rag_results.get("requirements", 0) / 3.0, 1.0) * 0.2
+            reqs_score = (
+                min(rag_results.get("requirements", 0) / 3.0, 1.0) * 0.2
+            )
             quality_score = cases_score + defects_score + reqs_score
 
         return 0.4 * quantity_score + 0.6 * quality_score
@@ -274,7 +283,9 @@ class ConfidenceCalculator:
     # ------------------------------------------------------------------
     # 2.5 结构完整性计算
     # ------------------------------------------------------------------
-    def calculate_structure_completeness(self, case_data: Dict[str, Any]) -> float:
+    def calculate_structure_completeness(
+        self, case_data: Dict[str, Any]
+    ) -> float:
         """
         计算测试用例结构完整性分数。
 
@@ -364,7 +375,9 @@ class ConfidenceCalculator:
                 case_text, requirement_content
             )
 
-        keyword_score = self.calculate_keyword_coverage(case_text, requirement_content)
+        keyword_score = self.calculate_keyword_coverage(
+            case_text, requirement_content
+        )
         rag_score = self.calculate_rag_support(rag_results)
         structure_score = self.calculate_structure_completeness(case_data)
 
@@ -458,7 +471,10 @@ class ConfidenceCalculator:
         """
         try:
             score, breakdown = self.calculate_total_confidence(
-                case_data, requirement_content, rag_results, chromadb_similarity
+                case_data,
+                requirement_content,
+                rag_results,
+                chromadb_similarity,
             )
             level = self.assign_confidence_level(score)
             rag_influenced = level in ("A", "B", "C")

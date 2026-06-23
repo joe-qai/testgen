@@ -76,7 +76,9 @@ class QueryOptimizer:
         """使用LLM提取关键词"""
         # 使用 PromptTemplateService 渲染模板
         try:
-            from src.services.prompt_template_service import PromptTemplateService
+            from src.services.prompt_template_service import (
+                PromptTemplateService,
+            )
 
             prompt_service = PromptTemplateService(
                 None
@@ -112,7 +114,9 @@ class QueryOptimizer:
             if response.success:
                 # 解析逗号分隔的关键词
                 keywords = [
-                    kw.strip() for kw in response.content.split(",") if kw.strip()
+                    kw.strip()
+                    for kw in response.content.split(",")
+                    if kw.strip()
                 ]
                 return keywords[:20]  # 最多20个关键词
         except Exception as e:
@@ -201,7 +205,9 @@ class QueryOptimizer:
 
         # 并行执行
         for query_type, query_text in queries.items():
-            thread = threading.Thread(target=search, args=(query_type, query_text))
+            thread = threading.Thread(
+                target=search, args=(query_type, query_text)
+            )
             threads.append(thread)
             thread.start()
 
@@ -264,7 +270,9 @@ class QueryOptimizer:
         """
         # 使用前500字符作为查询
         query_text = requirement_content[:500]
-        return retriever.retrieve(collection=collection, query=query_text, top_k=top_k)
+        return retriever.retrieve(
+            collection=collection, query=query_text, top_k=top_k
+        )
 
     # --- 缓存管理 ---
 
@@ -281,7 +289,9 @@ class QueryOptimizer:
 
         return None
 
-    def _save_to_cache(self, content: str, keywords: Optional[List[str]] = None):
+    def _save_to_cache(
+        self, content: str, keywords: Optional[List[str]] = None
+    ):
         """保存到缓存"""
         content_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
 

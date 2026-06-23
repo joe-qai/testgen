@@ -128,9 +128,7 @@ class DynamicRetriever:
         # 规则3: 保持
         else:
             action = "keep"
-            reason = (
-                f"相似度分布合理（高相似度{high_count}/{total}），保持top_k={current_k}"
-            )
+            reason = f"相似度分布合理（高相似度{high_count}/{total}），保持top_k={current_k}"
 
         # 应用上下限约束
         adjusted_k = max(MIN_TOP_K, min(adjusted_k, MAX_TOP_K))

@@ -55,7 +55,10 @@ def setup_fts5_listeners(engine):
                         )
                         if not result.fetchone():
                             columns_sql = ", ".join(
-                                [f"{col} TEXT" for col in fts_config["columns"]]
+                                [
+                                    f"{col} TEXT"
+                                    for col in fts_config["columns"]
+                                ]
                             )
                             conn.execute(
                                 text(
@@ -71,7 +74,7 @@ def setup_fts5_listeners(engine):
         except Exception as e:
             if attempt < max_retries - 1:
                 wait_time = 0.2 * (attempt + 1)
-                logger.warning(f"FTS5预创建失败，%.1f秒后重试..." % wait_time)
+                logger.warning("FTS5预创建失败，%.1f秒后重试..." % wait_time)
                 time.sleep(wait_time)
             else:
                 logger.error(f"FTS5预创建失败: {e}")
@@ -158,7 +161,9 @@ def _ensure_fts5_table_exists(conn, fts_config):
                     [f"{col} TEXT" for col in fts_config["columns"]]
                 )
                 conn.execute(
-                    text(f"CREATE VIRTUAL TABLE {fts_table} USING fts5({columns_sql})")
+                    text(
+                        f"CREATE VIRTUAL TABLE {fts_table} USING fts5({columns_sql})"
+                    )
                 )
                 conn.commit()
                 logger.info(f"创建FTS5虚拟表: {fts_table}")
@@ -215,7 +220,9 @@ def rebuild_fts5_index(engine, table_name=None):
         engine: SQLAlchemy引擎
         table_name: 可选，指定表名；None表示重建所有
     """
-    tables_to_rebuild = [table_name] if table_name else list(FTS5_TABLES.keys())
+    tables_to_rebuild = (
+        [table_name] if table_name else list(FTS5_TABLES.keys())
+    )
 
     with engine.connect() as conn:
         for tbl in tables_to_rebuild:
@@ -225,7 +232,9 @@ def rebuild_fts5_index(engine, table_name=None):
             fts_table = FTS5_TABLES[tbl]["fts_table"]
             try:
                 conn.execute(
-                    text(f"INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')")
+                    text(
+                        f"INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')"
+                    )
                 )
                 logger.info(f"FTS5索引重建: {fts_table}")
             except Exception as e:

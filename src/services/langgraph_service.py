@@ -28,8 +28,8 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command, interrupt
 
-
 # ============ State 定义 ============
+
 
 def append_list(existing: list, new: list) -> list:
     """Reducer: 追加列表"""
@@ -38,6 +38,7 @@ def append_list(existing: list, new: list) -> list:
 
 class TestGenState(TypedDict):
     """TestGen LangGraph 状态 — 所有 node 共享"""
+
     # 输入
     requirement_id: int
     requirement_text: str
@@ -52,10 +53,10 @@ class TestGenState(TypedDict):
     review_conclusion: str  # PASS / CONDITIONAL / FAIL
 
     # Phase 2: 生成
-    cases_raw: str                      # LLM 原始输出
+    cases_raw: str  # LLM 原始输出
     cases: Annotated[list, append_list]  # 解析后的结构化用例
     review_output: str
-    review_decision: str                # APPROVE / CONDITIONAL / REJECT
+    review_decision: str  # APPROVE / CONDITIONAL / REJECT
     retry_count: int
 
     # 输出
@@ -77,7 +78,6 @@ AGENT_PROMPTS = {
 4. 测试类型（13 种白名单中选）
 
 要求：简洁，4 个部分各 1-2 句话，Markdown 格式输出。""",
-
     "requirement_analyst": """你是需求分析专家（Requirement Analyst）。
 
 请基于用户需求和 Orchestrator 方案，输出需求解析报告：
@@ -87,7 +87,6 @@ AGENT_PROMPTS = {
 4. 测试点清单（按模块组织，禁止与模块名重复）
 
 格式：Markdown 表格。要求：客观分析，不添加需求外内容。""",
-
     "test_plan_designer": """你是测试规划+评审专家（Test Plan Designer）。
 
 请基于需求解析报告，按 4 维度评审：
@@ -97,7 +96,6 @@ AGENT_PROMPTS = {
 4. 可测性（测试点是否明确）
 
 输出：评审结论 + 详细意见 + 修正后的测试点清单。""",
-
     "case_generator": """你是测试用例生成专家（Case Generator）。
 
 请基于指定的模块和测试点，生成 2-3 条测试用例。
@@ -117,7 +115,6 @@ AGENT_PROMPTS = {
 - 数据具体，禁止占位符
 - 步骤与预期1:1对应
 - 只生成 2-3 条，简洁输出""",
-
     "reviewer": """你是用例评审专家（Reviewer）。
 
 请评审测试用例：
@@ -137,7 +134,10 @@ C. 四维评分（各0-25）：PRD覆盖/清晰度/明确性/完整性
 
 # ============ LLM 调用封装 ============
 
-def call_llm(llm_manager, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
+
+def call_llm(
+    llm_manager, system_prompt: str, user_prompt: str, temperature: float = 0.3
+) -> str:
     """统一 LLM 调用"""
     adapter = llm_manager.get_adapter()
     try:
@@ -154,7 +154,9 @@ def call_llm(llm_manager, system_prompt: str, user_prompt: str, temperature: flo
         raise Exception(f"LLM 调用失败: {response.error_message}")
     except (AttributeError, NotImplementedError):
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        response = adapter.generate(full_prompt, temperature=temperature, timeout=120)
+        response = adapter.generate(
+            full_prompt, temperature=temperature, timeout=120
+        )
         if response.success:
             return response.content
         raise Exception(f"LLM 调用失败: {response.error_message}")
@@ -165,16 +167,20 @@ def call_llm(llm_manager, system_prompt: str, user_prompt: str, temperature: flo
 # 所以用全局变量存储，node 函数从全局变量获取
 _current_llm_manager = None
 
+
 def set_llm_manager(llm_manager):
     """设置当前 LLM 管理器"""
     global _current_llm_manager
     _current_llm_manager = llm_manager
 
+
 # ============ Node 函数（纯函数，从 state 读取，返回 partial state）============
+
 
 def orchestrator_node(state: TestGenState) -> dict:
     """协调器：规划生成方案"""
     from src.utils import get_logger
+
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🎯 Orchestrator 启动")
 
@@ -191,6 +197,7 @@ def orchestrator_node(state: TestGenState) -> dict:
 def analyst_node(state: TestGenState) -> dict:
     """需求分析：解析模块/规则/测试点"""
     from src.utils import get_logger
+
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🔍 Analyst 启动")
 
@@ -207,6 +214,7 @@ def analyst_node(state: TestGenState) -> dict:
 def designer_node(state: TestGenState) -> dict:
     """测试规划：评审分析结果"""
     from src.utils import get_logger
+
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 📋 Designer 启动")
 
@@ -227,13 +235,16 @@ def designer_node(state: TestGenState) -> dict:
     # 提取评审详情（取前200字）
     conclusion_detail = output[:200]
 
-    logger.info(f"[LangGraph] ✅ Designer 完成，结论={conclusion}, 详情={conclusion_detail[:50]}")
+    logger.info(
+        f"[LangGraph] ✅ Designer 完成，结论={conclusion}, 详情={conclusion_detail[:50]}"
+    )
     return {"designer_output": output, "review_conclusion": conclusion}
 
 
 def generator_node(state: TestGenState) -> dict:
     """用例生成：按模块生成测试用例"""
     from src.utils import get_logger
+
     logger = get_logger("langgraph_testgen")
     retry = state.get("retry_count", 0)
     logger.info(f"[LangGraph] ⚡ Generator 启动 (retry={retry})")
@@ -257,6 +268,7 @@ def generator_node(state: TestGenState) -> dict:
 def reviewer_node(state: TestGenState) -> dict:
     """用例评审：6维度评分"""
     from src.utils import get_logger
+
     logger = get_logger("langgraph_testgen")
     logger.info("[LangGraph] 🔎 Reviewer 启动")
 
@@ -275,6 +287,7 @@ def reviewer_node(state: TestGenState) -> dict:
 
 # ============ 条件路由 ============
 
+
 def route_after_review(state: TestGenState) -> str:
     """评审后路由：APPROVE→END, REJECT/CONDITIONAL→Generator重试"""
     decision = state.get("review_decision", "REJECT")
@@ -290,7 +303,10 @@ def route_after_review(state: TestGenState) -> str:
 
 # ============ 构建 StateGraph ============
 
-def build_testgen_graph(checkpoint_path: str = "data/langgraph_checkpoints.db"):
+
+def build_testgen_graph(
+    checkpoint_path: str = "data/langgraph_checkpoints.db",
+):
     """构建 TestGen LangGraph StateGraph"""
 
     # 确保 data 目录存在
@@ -334,51 +350,62 @@ def build_testgen_graph(checkpoint_path: str = "data/langgraph_checkpoints.db"):
 
 # ============ 用例解析（复用 multi_agent_service.py 逻辑）============
 
+
 def _parse_cases_from_markdown(markdown_text: str) -> List[Dict[str, Any]]:
     """从 Markdown 解析测试用例"""
     cases = []
     # 支持多种格式：## [P0] 标题 或 ## [P0/P1/P2/P3] 标题
-    pattern = r'##\s*\[(P[0-3])\]\s*(.+?)(?=\n##\s*\[P|\Z)'
+    pattern = r"##\s*\[(P[0-3])\]\s*(.+?)(?=\n##\s*\[P|\Z)"
     blocks = re.findall(pattern, markdown_text, re.DOTALL)
 
     if not blocks:
         # 备用模式：匹配 ### 或 ** 格式
-        pattern2 = r'(?:##|###|\*\*)\s*\[(P[0-3])\]\s*(.+?)(?=(?:##|###|\*\*)\s*\[P|\Z)'
+        pattern2 = r"(?:##|###|\*\*)\s*\[(P[0-3])\]\s*(.+?)(?=(?:##|###|\*\*)\s*\[P|\Z)"
         blocks = re.findall(pattern2, markdown_text, re.DOTALL)
 
     if not blocks:
         # 第三种：匹配任何包含 P0/P1/P2/P3 的标题行
-        lines = markdown_text.split('\n')
+        lines = markdown_text.split("\n")
         current_case = None
         current_text = []
         for line in lines:
-            m = re.match(r'(?:##|###)\s*\[(P[0-3])\]\s*(.+)', line)
+            m = re.match(r"(?:##|###)\s*\[(P[0-3])\]\s*(.+)", line)
             if m:
                 if current_case:
-                    case = _parse_single_case('\n'.join(current_text), current_case[0])
+                    case = _parse_single_case(
+                        "\n".join(current_text), current_case[0]
+                    )
                     if case:
                         raw = current_case[1].strip()
-                        case['title'] = raw if raw.startswith(f'[{current_case[0]}]') else f'[{current_case[0]}] {raw}'
+                        case["title"] = (
+                            raw
+                            if raw.startswith(f"[{current_case[0]}]")
+                            else f"[{current_case[0]}] {raw}"
+                        )
                         cases.append(case)
                 current_case = (m.group(1), m.group(2))
                 current_text = [line]
             elif current_case:
                 current_text.append(line)
         if current_case:
-            case = _parse_single_case('\n'.join(current_text), current_case[0])
+            case = _parse_single_case("\n".join(current_text), current_case[0])
             if case:
                 raw = current_case[1].strip()
-                case['title'] = raw if raw.startswith(f'[{current_case[0]}]') else f'[{current_case[0]}] {raw}'
+                case["title"] = (
+                    raw
+                    if raw.startswith(f"[{current_case[0]}]")
+                    else f"[{current_case[0]}] {raw}"
+                )
                 cases.append(case)
         return cases
 
     for priority, block_content in blocks:
-        title = block_content.split('\n')[0].strip()
+        title = block_content.split("\n")[0].strip()
         case = _parse_single_case(block_content, priority)
         if case:
             # 避免重复优先级前缀
             raw_title = title.strip()
-            if raw_title.startswith(f'[{priority}]'):
+            if raw_title.startswith(f"[{priority}]"):
                 case["title"] = raw_title
             else:
                 case["title"] = f"[{priority}] {raw_title}"
@@ -387,19 +414,24 @@ def _parse_cases_from_markdown(markdown_text: str) -> List[Dict[str, Any]]:
     return cases
 
 
-def _parse_single_case(block: str, priority_num: str) -> Optional[Dict[str, Any]]:
+def _parse_single_case(
+    block: str, priority_num: str
+) -> Optional[Dict[str, Any]]:
     """解析单条用例"""
+
     def extract_field(pattern: str) -> str:
         m = re.search(pattern, block, re.IGNORECASE)
         return m.group(1).strip() if m else ""
 
-    test_type = extract_field(r'\[测试类型\]\s*(.+)')
-    precondition = extract_field(r'\[前置条件\]\s*(.+)')
-    steps_text = extract_field(r'\[测试步骤\]\s*(.+?)(?=\[预期结果\])')
-    expected_text = extract_field(r'\[预期结果\]\s*(.+)')
+    test_type = extract_field(r"\[测试类型\]\s*(.+)")
+    precondition = extract_field(r"\[前置条件\]\s*(.+)")
+    steps_text = extract_field(r"\[测试步骤\]\s*(.+?)(?=\[预期结果\])")
+    expected_text = extract_field(r"\[预期结果\]\s*(.+)")
 
-    steps = [s.strip() for s in re.split(r'\d+\.\s*', steps_text) if s.strip()]
-    expected = [e.strip() for e in re.split(r'\d+\.\s*', expected_text) if e.strip()]
+    steps = [s.strip() for s in re.split(r"\d+\.\s*", steps_text) if s.strip()]
+    expected = [
+        e.strip() for e in re.split(r"\d+\.\s*", expected_text) if e.strip()
+    ]
 
     if not steps or not expected:
         # 宽容解析：即使步骤/预期不完整也保留
@@ -430,7 +462,7 @@ def _parse_review_decision(review_output: str) -> str:
     elif "不合格" in output_lower or "否决" in output_lower:
         return "REJECT"
     # 评分判断
-    score_match = re.search(r'总分[：:]\s*(\d+)', review_output)
+    score_match = re.search(r"总分[：:]\s*(\d+)", review_output)
     if score_match:
         score = int(score_match.group(1))
         if score >= 70:
@@ -464,6 +496,7 @@ def _balance_priorities(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 # ============ 服务类（Flask 集成用）============
 
+
 class LangGraphTestGenService:
     """LangGraph 版 TestGen 服务 — Flask API 集成"""
 
@@ -472,9 +505,12 @@ class LangGraphTestGenService:
         self.llm_manager = llm_manager
         self.graph, self.conn = build_testgen_graph()
 
-    def generate_cases(self, requirement_id: int, max_attempts: int = 2) -> Dict[str, Any]:
+    def generate_cases(
+        self, requirement_id: int, max_attempts: int = 2
+    ) -> Dict[str, Any]:
         """主入口：生成测试用例"""
         from src.utils import get_logger
+
         logger = get_logger("langgraph_testgen")
         start_time = time.time()
 
@@ -486,7 +522,12 @@ class LangGraphTestGenService:
         requirement_text = f"# {req['title']}\n\n{req['content']}"
 
         # 2. 创建任务
-        from src.database.models import GenerationTask, TaskStatus, GenerationPhase
+        from src.database.models import (
+            GenerationTask,
+            TaskStatus,
+            GenerationPhase,
+        )
+
         task = GenerationTask(
             task_id=f"lg_{uuid.uuid4().hex[:16]}",
             requirement_id=requirement_id,
@@ -508,13 +549,22 @@ class LangGraphTestGenService:
         initial_state = {
             "requirement_id": requirement_id,
             "requirement_text": requirement_text,
-            "orchestrator_output": "", "analyst_output": "",
-            "modules": [], "rules": [], "test_points": [],
-            "designer_output": "", "review_conclusion": "",
-            "cases_raw": "", "cases": [], "review_output": "",
-            "review_decision": "", "retry_count": 0,
-            "task_id": task.task_id, "case_ids": [],
-            "duration_seconds": 0, "error": "",
+            "orchestrator_output": "",
+            "analyst_output": "",
+            "modules": [],
+            "rules": [],
+            "test_points": [],
+            "designer_output": "",
+            "review_conclusion": "",
+            "cases_raw": "",
+            "cases": [],
+            "review_output": "",
+            "review_decision": "",
+            "retry_count": 0,
+            "task_id": task.task_id,
+            "case_ids": [],
+            "duration_seconds": 0,
+            "error": "",
         }
 
         try:
@@ -523,17 +573,29 @@ class LangGraphTestGenService:
             result = self.graph.invoke(initial_state, config=config)
 
             # 检查 Designer 结论
-            designer_conclusion = result.get("review_conclusion", "CONDITIONAL")
+            designer_conclusion = result.get(
+                "review_conclusion", "CONDITIONAL"
+            )
             designer_output = result.get("designer_output", "")
-            logger.info(f"[LangGraph] Phase 1 完成，Designer结论={designer_conclusion}")
+            logger.info(
+                f"[LangGraph] Phase 1 完成，Designer结论={designer_conclusion}"
+            )
 
             # FAIL 时终止流程，返回失败原因
             if designer_conclusion == "FAIL":
-                logger.warning(f"[LangGraph] Designer FAIL，终止生成。详情: {designer_output[:200]}")
-                task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
+                logger.warning(
+                    f"[LangGraph] Designer FAIL，终止生成。详情: {designer_output[:200]}"
+                )
+                task = (
+                    self.db_session.query(GenerationTask)
+                    .filter_by(task_id=task.task_id)
+                    .first()
+                )
                 if task:
                     task.status = TaskStatus.FAILED
-                    task.error_message = f"Designer评审不通过: {designer_output[:500]}"
+                    task.error_message = (
+                        f"Designer评审不通过: {designer_output[:500]}"
+                    )
                     self.db_session.commit()
                 return {
                     "task_id": task.task_id,
@@ -547,16 +609,25 @@ class LangGraphTestGenService:
 
             # Phase 2: 生成+评审（自动继续）
             logger.info("[LangGraph] 继续 Phase 2")
-            result = self.graph.invoke(Command(resume={"retry_count": result.get("retry_count", 0)}), config=config)
+            result = self.graph.invoke(
+                Command(resume={"retry_count": result.get("retry_count", 0)}),
+                config=config,
+            )
 
             # 4. 不自动入库 — 先返回用例数据，等用户确认后再入库
             cases = result.get("cases", [])
 
             # 5. 更新任务状态为待确认
             total_duration = time.time() - start_time
-            task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
+            task = (
+                self.db_session.query(GenerationTask)
+                .filter_by(task_id=task.task_id)
+                .first()
+            )
             if task:
-                task.status = TaskStatus.COMPLETED  # Pipeline完成，但用例待人工确认
+                task.status = (
+                    TaskStatus.COMPLETED
+                )  # Pipeline完成，但用例待人工确认
                 task.completed_at = datetime.now(timezone.utc)
                 self.db_session.commit()
 
@@ -567,7 +638,9 @@ class LangGraphTestGenService:
                 "duration_seconds": round(total_duration, 1),
                 "review_decision": result.get("review_decision", ""),
                 # 每个node的输出摘要
-                "orchestrator_summary": result.get("orchestrator_output", "")[:300],
+                "orchestrator_summary": result.get("orchestrator_output", "")[
+                    :300
+                ],
                 "analyst_summary": result.get("analyst_output", "")[:300],
                 "designer_summary": result.get("designer_output", "")[:300],
                 "generator_summary": result.get("cases_raw", "")[:300],
@@ -579,9 +652,14 @@ class LangGraphTestGenService:
 
         except Exception as e:
             logger.error(f"[LangGraph] Pipeline 失败: {e}")
-            task = self.db_session.query(GenerationTask).filter_by(task_id=task.task_id).first()
+            task = (
+                self.db_session.query(GenerationTask)
+                .filter_by(task_id=task.task_id)
+                .first()
+            )
             if task:
                 from src.database.models import TaskStatus
+
                 task.status = TaskStatus.FAILED
                 task.error_message = str(e)
                 self.db_session.commit()
@@ -596,33 +674,53 @@ class LangGraphTestGenService:
     def _load_requirement(self, requirement_id: int) -> Dict[str, Any]:
         """加载需求"""
         from src.database.models import Requirement
-        req = self.db_session.query(Requirement).filter_by(id=requirement_id).first()
+
+        req = (
+            self.db_session.query(Requirement)
+            .filter_by(id=requirement_id)
+            .first()
+        )
         if not req:
             raise ValueError(f"需求不存在: {requirement_id}")
         return {"title": req.title, "content": req.content}
 
-    def _save_test_cases(self, requirement_id: int, cases: List[Dict]) -> List[str]:
+    def _save_test_cases(
+        self, requirement_id: int, cases: List[Dict]
+    ) -> List[str]:
         """保存测试用例到数据库"""
         from src.database.models import TestCase
+
         case_ids = []
         for case_data in cases:
             tc = TestCase(
                 requirement_id=requirement_id,
-                case_id=case_data.get("case_id", f"TC_LG_{uuid.uuid4().hex[:8]}"),
-                name=case_data.get("title", ""),  # DB field is 'name', not 'title'
-                module=case_data.get("module", case_data.get("test_type", "未分类")),  # module is required
+                case_id=case_data.get(
+                    "case_id", f"TC_LG_{uuid.uuid4().hex[:8]}"
+                ),
+                name=case_data.get(
+                    "title", ""
+                ),  # DB field is 'name', not 'title'
+                module=case_data.get(
+                    "module", case_data.get("test_type", "未分类")
+                ),  # module is required
                 priority=case_data.get("priority", "P2"),
                 case_type=case_data.get("test_type", ""),
                 preconditions=case_data.get("precondition", ""),
-                test_steps=json.dumps(case_data.get("steps", []), ensure_ascii=False),
-                expected_results=json.dumps(case_data.get("expected_results", []), ensure_ascii=False),
+                test_steps=json.dumps(
+                    case_data.get("steps", []), ensure_ascii=False
+                ),
+                expected_results=json.dumps(
+                    case_data.get("expected_results", []), ensure_ascii=False
+                ),
             )
             self.db_session.add(tc)
             case_ids.append(tc.case_id)
         self.db_session.commit()
         return case_ids
 
-    def confirm_and_save_cases(self, requirement_id: int, cases: List[Dict]) -> Dict[str, Any]:
+    def confirm_and_save_cases(
+        self, requirement_id: int, cases: List[Dict]
+    ) -> Dict[str, Any]:
         """人工确认后入库用例"""
         # 用更长的ID避免碰撞
         for case_data in cases:

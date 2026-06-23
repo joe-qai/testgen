@@ -50,7 +50,9 @@ def run_migration(db_path=None):
         else:
             logger.info("字段已存在，跳过: test_plan")
 
-        if not check_column_exists(cursor, "requirements", "generation_params"):
+        if not check_column_exists(
+            cursor, "requirements", "generation_params"
+        ):
             cursor.execute(
                 "ALTER TABLE requirements ADD COLUMN generation_params JSON DEFAULT NULL"
             )

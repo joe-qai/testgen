@@ -159,7 +159,9 @@ class CitationParser:
                 continue
 
             try:
-                exists = self._check_source_in_vector_store(source_id, source_type)
+                exists = self._check_source_in_vector_store(
+                    source_id, source_type
+                )
                 cit["validated"] = True
                 cit["exists"] = exists
             except Exception as e:
@@ -169,7 +171,9 @@ class CitationParser:
 
         return citations
 
-    def _check_source_in_vector_store(self, source_id: str, source_type: str) -> bool:
+    def _check_source_in_vector_store(
+        self, source_id: str, source_type: str
+    ) -> bool:
         """检查来源ID在向量库中是否存在"""
         if not self.vector_store:
             return False
@@ -183,7 +187,9 @@ class CitationParser:
             if not collection:
                 return False
             # 尝试通过元数据查询
-            result = self.vector_store.get_by_id(source_id, collection=collection)
+            result = self.vector_store.get_by_id(
+                source_id, collection=collection
+            )
             return result is not None
         except Exception:
             return False
@@ -250,7 +256,9 @@ class CitationParser:
     # ------------------------------------------------------------------
     # 3.5 处理解析失败场景
     # ------------------------------------------------------------------
-    def safe_parse(self, text: str, case_identifier: str = "") -> Dict[str, Any]:
+    def safe_parse(
+        self, text: str, case_identifier: str = ""
+    ) -> Dict[str, Any]:
         """
         安全解析接口：捕获所有异常，记录警告，确保始终返回有效结果。
 
@@ -273,14 +281,18 @@ class CitationParser:
             try:
                 citations = self.validate_citation_sources(citations)
             except Exception as ve:
-                logger.warning(f"[{case_identifier}] 引用来源验证失败，跳过验证: {ve}")
+                logger.warning(
+                    f"[{case_identifier}] 引用来源验证失败，跳过验证: {ve}"
+                )
                 for cit in citations:
                     cit["validated"] = False
                     cit["exists"] = None
             stats = self.generate_citation_stats(citations)
 
             if citations:
-                logger.debug(f"[{case_identifier}] 解析到 {len(citations)} 个引用来源")
+                logger.debug(
+                    f"[{case_identifier}] 解析到 {len(citations)} 个引用来源"
+                )
 
             return {
                 "citations": citations,
@@ -292,7 +304,9 @@ class CitationParser:
             }
 
         except Exception as e:
-            logger.warning(f"[{case_identifier}] 引用标注解析失败，保存原始文本: {e}")
+            logger.warning(
+                f"[{case_identifier}] 引用标注解析失败，保存原始文本: {e}"
+            )
             return {
                 "citations": [],
                 "stats": self.generate_citation_stats([]),
