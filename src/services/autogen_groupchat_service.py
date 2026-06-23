@@ -43,17 +43,71 @@ logger = get_logger(__name__)
 # ==================== 提供商 model_info 映射 ====================
 
 PROVIDER_MODEL_INFO = {
-    "openai": {"vision": True, "function_calling": True, "json_output": True, "structured_output": True, "family": "openai"},
-    "qwen": {"vision": True, "function_calling": True, "json_output": True, "structured_output": False, "family": "qwen"},
-    "deepseek": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "deepseek"},
-    "kimi": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "moonshot"},
-    "zhipu": {"vision": True, "function_calling": True, "json_output": True, "structured_output": False, "family": "zhipu"},
-    "minimax": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "minimax"},
-    "iflow": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"},
-    "uniaix": {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"},
+    "openai": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": True,
+        "family": "openai",
+    },
+    "qwen": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "qwen",
+    },
+    "deepseek": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "deepseek",
+    },
+    "kimi": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "moonshot",
+    },
+    "zhipu": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "zhipu",
+    },
+    "minimax": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "minimax",
+    },
+    "iflow": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "unknown",
+    },
+    "uniaix": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "structured_output": False,
+        "family": "unknown",
+    },
 }
 
-DEFAULT_MODEL_INFO = {"vision": False, "function_calling": True, "json_output": True, "structured_output": False, "family": "unknown"}
+DEFAULT_MODEL_INFO = {
+    "vision": False,
+    "function_calling": True,
+    "json_output": True,
+    "structured_output": False,
+    "family": "unknown",
+}
 
 # ==================== Agent Prompts ====================
 
@@ -155,7 +209,10 @@ REVIEWER_SYSTEM = """你是一位测试用例评审专家。评审生成的测�
 
 # ==================== selector_func ====================
 
-def phase1_selector(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
+
+def phase1_selector(
+    messages: Sequence[BaseAgentEvent | BaseChatMessage],
+) -> str | None:
     """Phase 1: Analyst → PlanDesigner，然后暂停"""
     if len(messages) <= 1:
         return "Analyst"
@@ -166,7 +223,9 @@ def phase1_selector(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str
     return None
 
 
-def phase2_selector(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
+def phase2_selector(
+    messages: Sequence[BaseAgentEvent | BaseChatMessage],
+) -> str | None:
     """Phase 2: Generator → Reviewer，REJECT 回到 Generator"""
     if len(messages) <= 1:
         return "Generator"
@@ -175,7 +234,11 @@ def phase2_selector(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str
         return "Reviewer"
     if last.source == "Reviewer":
         # 检查评审结论
-        text = last.to_model_text() if hasattr(last, 'to_model_text') else str(last)
+        text = (
+            last.to_model_text()
+            if hasattr(last, "to_model_text")
+            else str(last)
+        )
         if "REJECT" in text.upper():
             return "Generator"  # 回去重生成
         # APPROVE 或 NEEDS_REVIEW → 结束（由 TextMatchTermination 触发）
@@ -184,6 +247,7 @@ def phase2_selector(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str
 
 
 # ==================== 自定义终止条件 ====================
+
 
 class MaxRejectionTermination:
     """REJECT 次数上限终止条件"""
@@ -194,8 +258,12 @@ class MaxRejectionTermination:
 
     def check(self, messages: Sequence) -> bool:
         for msg in reversed(messages):
-            if hasattr(msg, 'source') and msg.source == "Reviewer":
-                text = msg.to_model_text() if hasattr(msg, 'to_model_text') else str(msg)
+            if hasattr(msg, "source") and msg.source == "Reviewer":
+                text = (
+                    msg.to_model_text()
+                    if hasattr(msg, "to_model_text")
+                    else str(msg)
+                )
                 if "REJECT" in text.upper():
                     self._count += 1
                     if self._count >= self._max:
@@ -206,9 +274,11 @@ class MaxRejectionTermination:
 
 # ==================== 核心服务 ====================
 
+
 @dataclass
 class AutogenTask:
     """AutoGen 生成任务"""
+
     task_id: str
     requirement_id: int
     requirement_title: str = ""
@@ -235,7 +305,9 @@ class AutogenGroupChatService:
     def __init__(self, db_session=None, socketio=None, llm_manager=None):
         self.db_session = db_session
         self.socketio = socketio  # Flask-SocketIO 实例，用于流式推送
-        self.llm_manager = llm_manager  # LLMManager 实例，用于动态获取 LLM 配置
+        self.llm_manager = (
+            llm_manager  # LLMManager 实例，用于动态获取 LLM 配置
+        )
         self._tasks: Dict[str, AutogenTask] = {}
         self._lock = threading.Lock()
         self._rejection_counts: Dict[str, int] = {}
@@ -260,7 +332,9 @@ class AutogenGroupChatService:
         # 根据提供商动态构建 model_info
         model_info = PROVIDER_MODEL_INFO.get(provider, DEFAULT_MODEL_INFO)
 
-        logger.info(f"[AutoGen] 动态获取 LLM 配置: provider={provider}, model={model_id}, base_url={base_url}")
+        logger.info(
+            f"[AutoGen] 动态获取 LLM 配置: provider={provider}, model={model_id}, base_url={base_url}"
+        )
 
         return OpenAIChatCompletionClient(
             model=model_id,
@@ -273,20 +347,27 @@ class AutogenGroupChatService:
         if not self.db_session:
             return None
         from src.database.models import Requirement
+
         return self.db_session.query(Requirement).get(requirement_id)
 
     def _emit(self, task_id: str, event_name: str, data: Dict):
         """推送 SocketIO 事件到前端"""
         if self.socketio:
             try:
-                self.socketio.emit(event_name, {"task_id": task_id, **data}, namespace="/progress")
+                self.socketio.emit(
+                    event_name,
+                    {"task_id": task_id, **data},
+                    namespace="/progress",
+                )
             except Exception as e:
                 logger.info(f"[SocketIO] emit 失败: {e}")
 
     def create_task(self, requirement_id: int) -> str:
         import uuid
+
         task_id = f"ag_{uuid.uuid4().hex[:12]}"
         from datetime import datetime, timezone
+
         task = AutogenTask(
             task_id=task_id,
             requirement_id=requirement_id,
@@ -304,6 +385,7 @@ class AutogenGroupChatService:
     async def run_generation(self, task_id: str, requirement_id: int):
         """完整的两阶段生成流程"""
         from datetime import datetime, timezone
+
         task = self._tasks.get(task_id)
         if not task:
             return
@@ -327,7 +409,15 @@ class AutogenGroupChatService:
             task.progress = 10.0
             task.message = "📋 Phase 1: 需求分析 + 策略设计"
             task.updated_at = datetime.now(timezone.utc).isoformat()
-            self._emit(task_id, "progress", {"phase": task.phase, "progress": task.progress, "message": task.message})
+            self._emit(
+                task_id,
+                "progress",
+                {
+                    "phase": task.phase,
+                    "progress": task.progress,
+                    "message": task.message,
+                },
+            )
 
             phase1_result = await self._run_phase1(requirement_text)
             if not phase1_result:
@@ -340,11 +430,21 @@ class AutogenGroupChatService:
             task.progress = 40.0
             task.message = "✅ Phase 1 完成，进入 Phase 2"
             task.updated_at = datetime.now(timezone.utc).isoformat()
-            self._emit(task_id, "progress", {"phase": task.phase, "progress": task.progress, "message": task.message})
+            self._emit(
+                task_id,
+                "progress",
+                {
+                    "phase": task.phase,
+                    "progress": task.progress,
+                    "message": task.message,
+                },
+            )
 
             # ========== Phase 2: 生成 + 评审 ==========
             task.phase = "phase2"
-            plan_text = json.dumps(phase1_result.get("plan", {}), ensure_ascii=False)
+            plan_text = json.dumps(
+                phase1_result.get("plan", {}), ensure_ascii=False
+            )
             combined_task = f"需求内容：\n{requirement_text}\n\n测试策略：\n{plan_text}\n\n请根据以上策略逐项生成测试用例。"
 
             phase2_result = await self._run_phase2(combined_task)
@@ -356,17 +456,30 @@ class AutogenGroupChatService:
             # 解析用例
             cases = self._parse_cases(phase2_result)
             task.cases = cases
-            task.case_count = len(cases) if hasattr(task, 'case_count') else len(cases)
+            task.case_count = (
+                len(cases) if hasattr(task, "case_count") else len(cases)
+            )
 
             # 入库
             if self.db_session and cases:
                 saved = self._save_cases(requirement_id, cases)
-                task.message = f"✅ 生成完成！{len(cases)} 条用例，{saved} 条入库"
+                task.message = (
+                    f"✅ 生成完成！{len(cases)} 条用例，{saved} 条入库"
+                )
             else:
                 task.message = f"✅ 生成完成！{len(cases)} 条用例"
 
             task.progress = 100.0
-            self._emit(task_id, "complete", {"phase": "complete", "progress": 100, "cases": len(task.cases), "message": task.message})
+            self._emit(
+                task_id,
+                "complete",
+                {
+                    "phase": "complete",
+                    "progress": 100,
+                    "cases": len(task.cases),
+                    "message": task.message,
+                },
+            )
             task.status = 2
             task.phase = "complete"
             task.completed_at = datetime.now(timezone.utc).isoformat()
@@ -393,7 +506,9 @@ class AutogenGroupChatService:
             system_message=PLAN_DESIGNER_SYSTEM,
         )
 
-        termination = SourceMatchTermination(sources=["PlanDesigner"]) | MaxMessageTermination(6)
+        termination = SourceMatchTermination(
+            sources=["PlanDesigner"]
+        ) | MaxMessageTermination(6)
 
         team = SelectorGroupChat(
             participants=[analyst, plan_designer],
@@ -403,22 +518,35 @@ class AutogenGroupChatService:
         )
 
         try:
-            result = await team.run(task=f"请分析以下需求：\n\n{requirement_text}")
+            result = await team.run(
+                task=f"请分析以下需求：\n\n{requirement_text}"
+            )
             # 提取结果
             analysis_text = ""
             plan_text = ""
             for msg in result.messages:
-                if hasattr(msg, 'source'):
+                if hasattr(msg, "source"):
                     if msg.source == "Analyst":
-                        analysis_text = msg.to_model_text() if hasattr(msg, 'to_model_text') else str(msg)
+                        analysis_text = (
+                            msg.to_model_text()
+                            if hasattr(msg, "to_model_text")
+                            else str(msg)
+                        )
                     elif msg.source == "PlanDesigner":
-                        plan_text = msg.to_model_text() if hasattr(msg, 'to_model_text') else str(msg)
+                        plan_text = (
+                            msg.to_model_text()
+                            if hasattr(msg, "to_model_text")
+                            else str(msg)
+                        )
 
             # 解析 JSON
             analysis = self._extract_json(analysis_text)
             plan = self._extract_json(plan_text)
 
-            return {"analysis": analysis or {"raw": analysis_text}, "plan": plan or {"raw": plan_text}}
+            return {
+                "analysis": analysis or {"raw": analysis_text},
+                "plan": plan or {"raw": plan_text},
+            }
 
         except Exception as e:
             logger.info(f"[Phase1] 失败: {e}")
@@ -456,8 +584,12 @@ class AutogenGroupChatService:
             result = await team.run(task=combined_task)
             # 提取 Generator 的输出
             for msg in reversed(result.messages):
-                if hasattr(msg, 'source') and msg.source == "Generator":
-                    return msg.to_model_text() if hasattr(msg, 'to_model_text') else str(msg)
+                if hasattr(msg, "source") and msg.source == "Generator":
+                    return (
+                        msg.to_model_text()
+                        if hasattr(msg, "to_model_text")
+                        else str(msg)
+                    )
             return None
         except Exception as e:
             logger.info(f"[Phase2] 失败: {e}")
@@ -472,18 +604,19 @@ class AutogenGroupChatService:
             pass
         # 尝试提取 ```json ... ``` 块
         import re
-        match = re.search(r'```json\s*(.*?)\s*```', text, re.DOTALL)
+
+        match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if match:
             try:
                 return json.loads(match.group(1))
             except json.JSONDecodeError:
                 pass
         # 尝试找第一个 { 到最后一个 }
-        start = text.find('{')
-        end = text.rfind('}')
+        start = text.find("{")
+        end = text.rfind("}")
         if start >= 0 and end > start:
             try:
-                return json.loads(text[start:end+1])
+                return json.loads(text[start : end + 1])
             except json.JSONDecodeError:
                 pass
         return None
@@ -491,26 +624,31 @@ class AutogenGroupChatService:
     def _parse_cases(self, markdown_text: str) -> List[Dict]:
         """从 Markdown 解析测试用例（增强版）"""
         import re
+
         cases = []
 
         # 策略1: 匹配 TC-{id} 或 ## TC-{id} 格式
         # 每个用例块以 TC- 开头，到下一个 TC- 或文档结尾
-        tc_blocks = re.split(r'(?:^|\n)(?:##\s*)?TC-\d+', markdown_text)
-        tc_headers = re.findall(r'(?:^|\n)(?:##\s*)?(TC-\d+[^\n]*)', markdown_text)
+        tc_blocks = re.split(r"(?:^|\n)(?:##\s*)?TC-\d+", markdown_text)
+        tc_headers = re.findall(
+            r"(?:^|\n)(?:##\s*)?(TC-\d+[^\n]*)", markdown_text
+        )
 
         if len(tc_headers) > 0 and len(tc_blocks) > 1:
-            for i, (header, block) in enumerate(zip(tc_headers, tc_blocks[1:])):
+            for i, (header, block) in enumerate(
+                zip(tc_headers, tc_blocks[1:])
+            ):
                 case = self._parse_single_case_block(header, block, i + 1)
                 if case:
                     cases.append(case)
 
         # 策略2: 如果没有 TC- 格式，尝试按 ## 标题拆分
         if not cases:
-            sections = re.split(r'\n##\s+', markdown_text)
+            sections = re.split(r"\n##\s+", markdown_text)
             for sec in sections[1:]:
-                lines = sec.strip().split('\n')
+                lines = sec.strip().split("\n")
                 title = lines[0].strip() if lines else ""
-                body = '\n'.join(lines[1:]) if len(lines) > 1 else ""
+                body = "\n".join(lines[1:]) if len(lines) > 1 else ""
                 case = self._parse_freeform_case(title, body)
                 if case:
                     cases.append(case)
@@ -519,55 +657,62 @@ class AutogenGroupChatService:
         if not cases:
             # 找所有包含步骤/预期的段落
             step_blocks = re.findall(
-                r'((?:测试步骤|步骤|Steps)[^:]*:[\s\S]*?)(?:\n\n(?:测试步骤|步骤|Steps|预期|Expected|##|TC-)|\Z)',
-                markdown_text, re.MULTILINE
+                r"((?:测试步骤|步骤|Steps)[^:]*:[\s\S]*?)(?:\n\n(?:测试步骤|步骤|Steps|预期|Expected|##|TC-)|\Z)",
+                markdown_text,
+                re.MULTILINE,
             )
             for i, block in enumerate(step_blocks):
-                cases.append({
-                    "name": f"TC-{i+1}",
-                    "raw": block.strip()[:800],
-                    "priority": "P1",
-                    "module": "未分类",
-                })
+                cases.append(
+                    {
+                        "name": f"TC-{i+1}",
+                        "raw": block.strip()[:800],
+                        "priority": "P1",
+                        "module": "未分类",
+                    }
+                )
 
         # 策略4: 最终兜底——整段作为一个粗略结果
         if not cases and markdown_text.strip():
-            cases.append({
-                "name": "TC-1",
-                "raw": markdown_text.strip()[:2000],
-                "priority": "P1",
-                "module": "未分类",
-            })
+            cases.append(
+                {
+                    "name": "TC-1",
+                    "raw": markdown_text.strip()[:2000],
+                    "priority": "P1",
+                    "module": "未分类",
+                }
+            )
 
         logger.info(f"[用例解析] 解析出 {len(cases)} 条用例")
         return cases
 
-    def _parse_single_case_block(self, header: str, block: str, idx: int) -> Optional[Dict]:
+    def _parse_single_case_block(
+        self, header: str, block: str, idx: int
+    ) -> Optional[Dict]:
         """解析单个 TC-xxx 格式的用例块"""
         import re
 
         # 从标题提取优先级和类型
-        priority_match = re.search(r'\[([P0P1P2P3]+)\]', header)
+        priority_match = re.search(r"\[([P0P1P2P3]+)\]", header)
         priority = priority_match.group(1) if priority_match else "P1"
 
-        type_match = re.search(r'\[([正向异常边界安全性能]+)\]', header)
+        type_match = re.search(r"\[([正向异常边界安全性能]+)\]", header)
         case_type = type_match.group(1) if type_match else ""
 
         # 从标题提取名称（去掉 TC-id 和方括号内容）
-        name = re.sub(r'TC-\d+', '', header)
-        name = re.sub(r'\[[^\]]+\]', '', name).strip()
+        name = re.sub(r"TC-\d+", "", header)
+        name = re.sub(r"\[[^\]]+\]", "", name).strip()
         if not name:
             name = f"TC-{idx}"
 
         # 从内容提取各字段
-        module = self._extract_field(block, '模块')
-        preconditions = self._extract_field(block, '前置条件')
+        module = self._extract_field(block, "模块")
+        preconditions = self._extract_field(block, "前置条件")
 
         # 提取步骤
-        steps = self._extract_list(block, '测试步骤|步骤|Steps')
+        steps = self._extract_list(block, "测试步骤|步骤|Steps")
 
         # 提取预期结果
-        expected = self._extract_list(block, '预期结果|预期|Expected')
+        expected = self._extract_list(block, "预期结果|预期|Expected")
 
         return {
             "name": name,
@@ -583,15 +728,17 @@ class AutogenGroupChatService:
     def _extract_field(self, text: str, field_name: str) -> str:
         """从文本提取单个字段值"""
         import re
-        pattern = f'{field_name}[^:]*:\s*(.+?)(?:\n|$)'
+
+        pattern = f"{field_name}[^:]*:\s*(.+?)(?:\n|$)"
         match = re.search(pattern, text)
         return match.group(1).strip() if match else ""
 
     def _extract_list(self, text: str, field_pattern: str) -> List[str]:
         """从文本提取编号列表"""
         import re
+
         # 找字段开始位置
-        pattern = f'({field_pattern})[^:]*:\s*'
+        pattern = f"({field_pattern})[^:]*:\s*"
         match = re.search(pattern, text)
         if not match:
             return []
@@ -601,20 +748,22 @@ class AutogenGroupChatService:
         remaining = text[start:]
 
         # 提取编号条目
-        items = re.findall(r'\d+[.、]\s*(.+?)(?:\n|\r|$)', remaining)
+        items = re.findall(r"\d+[.、]\s*(.+?)(?:\n|\r|$)", remaining)
         if items:
             return [item.strip() for item in items]
 
         # 如果没有编号，尝试按换行拆分
-        lines = remaining.strip().split('\n')
+        lines = remaining.strip().split("\n")
         result = []
         for line in lines:
             line = line.strip()
-            if line and not line.startswith(('测试', '预期', '模块', '前置', 'TC-', '##')):
-                line = re.sub(r'^[-*]\s*', '', line)
+            if line and not line.startswith(
+                ("测试", "预期", "模块", "前置", "TC-", "##")
+            ):
+                line = re.sub(r"^[-*]\s*", "", line)
                 if line:
                     result.append(line)
-            if line.startswith(('预期', 'Expected')) and result:
+            if line.startswith(("预期", "Expected")) and result:
                 break
 
         return result
@@ -624,14 +773,14 @@ class AutogenGroupChatService:
 
         # 从标题提取优先级
         priority = "P1"
-        for p in ['P0', 'P1', 'P2', 'P3']:
+        for p in ["P0", "P1", "P2", "P3"]:
             if p in title:
                 priority = p
                 break
 
-        module = self._extract_field(body, '模块')
-        steps = self._extract_list(body, '测试步骤|步骤')
-        expected = self._extract_list(body, '预期结果|预期')
+        module = self._extract_field(body, "模块")
+        steps = self._extract_list(body, "测试步骤|步骤")
+        expected = self._extract_list(body, "预期结果|预期")
 
         return {
             "name": title.strip()[:100],
@@ -648,9 +797,15 @@ class AutogenGroupChatService:
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
-        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'testgen.db')
+        db_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
+            "data",
+            "testgen.db",
+        )
         logger.info(f"[AutogenGroupChat] DB path: {db_path}")
-        engine = create_engine(f'sqlite:///{db_path}')
+        engine = create_engine(f"sqlite:///{db_path}")
         Session = sessionmaker(bind=engine)
         bg_session = Session()
 
@@ -662,7 +817,9 @@ class AutogenGroupChatService:
                         case_id=f"TC_AG_{uuid.uuid4().hex[:8]}",
                         requirement_id=requirement_id,
                         module=case_data.get("module", "未分类"),
-                        name=case_data.get("name", case_data.get("raw", "")[:100]),
+                        name=case_data.get(
+                            "name", case_data.get("raw", "")[:100]
+                        ),
                         test_point=case_data.get("name", ""),
                         priority=case_data.get("priority", "P1"),
                         test_steps=case_data.get("test_steps", []),
@@ -692,23 +849,28 @@ class AutogenGroupChatService:
 
     def run_async(self, task_id: str, requirement_id: int):
         """在新线程中运行异步生成"""
+
         def _run():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                loop.run_until_complete(self.run_generation(task_id, requirement_id))
+                loop.run_until_complete(
+                    self.run_generation(task_id, requirement_id)
+                )
             finally:
                 loop.close()
 
-        thread = threading.Thread(target=_run, name=f"autogen-{task_id}", daemon=True)
+        thread = threading.Thread(
+            target=_run, name=f"autogen-{task_id}", daemon=True
+        )
         thread.start()
-
-
 
     def run_async_phase1(self, task_id: str, requirement_id: int):
         """只运行 Phase 1，完成后暂停等人工评审"""
+
         async def _phase1():
             from datetime import datetime, timezone
+
             task = self._tasks.get(task_id)
             if not task:
                 return
@@ -725,7 +887,9 @@ class AutogenGroupChatService:
             task.progress = 10.0
             task.message = "Phase 1: 需求分析 + 策略设计"
             task.updated_at = datetime.now(timezone.utc).isoformat()
-            self._emit(task_id, "progress", {"phase": "phase1", "progress": 10})
+            self._emit(
+                task_id, "progress", {"phase": "phase1", "progress": 10}
+            )
 
             phase1_result = await self._run_phase1(requirement.content)
             if not phase1_result:
@@ -740,7 +904,15 @@ class AutogenGroupChatService:
             task.progress = 40.0
             task.message = "Phase 1 完成，等待人工评审"
             task.updated_at = datetime.now(timezone.utc).isoformat()
-            self._emit(task_id, "phase1_done", {"phase": "phase1_done", "progress": 40, "plan_data": task.plan_data})
+            self._emit(
+                task_id,
+                "phase1_done",
+                {
+                    "phase": "phase1_done",
+                    "progress": 40,
+                    "plan_data": task.plan_data,
+                },
+            )
 
         def _run():
             loop = asyncio.new_event_loop()
@@ -750,13 +922,19 @@ class AutogenGroupChatService:
             finally:
                 loop.close()
 
-        thread = threading.Thread(target=_run, name=f"autogen-phase1-{task_id}", daemon=True)
+        thread = threading.Thread(
+            target=_run, name=f"autogen-phase1-{task_id}", daemon=True
+        )
         thread.start()
 
-    def run_async_phase2(self, task_id: str, edited_plan: Optional[Dict] = None):
+    def run_async_phase2(
+        self, task_id: str, edited_plan: Optional[Dict] = None
+    ):
         """人工评审后继续 Phase 2"""
+
         async def _phase2():
             from datetime import datetime, timezone
+
             task = self._tasks.get(task_id)
             if not task or task.phase != "phase1_done":
                 return
@@ -765,7 +943,9 @@ class AutogenGroupChatService:
             task.progress = 40.0
             task.message = "Phase 2: 用例生成 + 评审"
             task.updated_at = datetime.now(timezone.utc).isoformat()
-            self._emit(task_id, "progress", {"phase": "phase2", "progress": 40})
+            self._emit(
+                task_id, "progress", {"phase": "phase2", "progress": 40}
+            )
 
             requirement = self._get_requirement(task.requirement_id)
             if not requirement:
@@ -797,8 +977,14 @@ class AutogenGroupChatService:
             task.status = 2
             task.phase = "complete"
             task.completed_at = datetime.now(timezone.utc).isoformat()
-            task.duration = time.time() - time.mktime(datetime.fromisoformat(task.created_at).timetuple())
-            self._emit(task_id, "complete", {"phase": "complete", "progress": 100, "cases": len(cases)})
+            task.duration = time.time() - time.mktime(
+                datetime.fromisoformat(task.created_at).timetuple()
+            )
+            self._emit(
+                task_id,
+                "complete",
+                {"phase": "complete", "progress": 100, "cases": len(cases)},
+            )
 
         def _run():
             loop = asyncio.new_event_loop()
@@ -808,24 +994,29 @@ class AutogenGroupChatService:
             finally:
                 loop.close()
 
-        thread = threading.Thread(target=_run, name=f"autogen-phase2-{task_id}", daemon=True)
+        thread = threading.Thread(
+            target=_run, name=f"autogen-phase2-{task_id}", daemon=True
+        )
         thread.start()
+
 
 # ==================== 单例 ====================
 
 _instance: Optional[AutogenGroupChatService] = None
 
 
-def get_autogen_service(db_session=None, socketio=None, llm_manager=None) -> AutogenGroupChatService:
+def get_autogen_service(
+    db_session=None, socketio=None, llm_manager=None
+) -> AutogenGroupChatService:
     """获取全局单例"""
     global _instance
     if _instance is None:
-        _instance = AutogenGroupChatService(db_session=db_session, socketio=socketio, llm_manager=llm_manager)
+        _instance = AutogenGroupChatService(
+            db_session=db_session, socketio=socketio, llm_manager=llm_manager
+        )
     else:
         if socketio and not _instance.socketio:
             _instance.socketio = socketio
         if llm_manager and not _instance.llm_manager:
             _instance.llm_manager = llm_manager
     return _instance
-
-

@@ -21,7 +21,9 @@ class RequirementReviewService:
     def __init__(self, db_session):
         self.db_session = db_session
 
-    def create_analysis_items(self, requirement_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def create_analysis_items(
+        self, requirement_id: int, items: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """为需求创建分析项（功能模块或测试点）"""
         requirement = self.db_session.query(Requirement).get(requirement_id)
         if not requirement:
@@ -44,9 +46,14 @@ class RequirementReviewService:
             created_count += 1
 
         self.db_session.commit()
-        return {"requirement_id": requirement_id, "created_count": created_count}
+        return {
+            "requirement_id": requirement_id,
+            "created_count": created_count,
+        }
 
-    def get_analysis_items(self, requirement_id: int, item_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_analysis_items(
+        self, requirement_id: int, item_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """获取需求的分析项列表"""
         query = self.db_session.query(RequirementAnalysisItem).filter_by(
             requirement_id=requirement_id
@@ -66,7 +73,9 @@ class RequirementReviewService:
                 "risk_level": item.risk_level,
                 "focus_points": item.focus_points,
                 "status": int(item.status),
-                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "created_at": (
+                    item.created_at.isoformat() if item.created_at else None
+                ),
             }
             for item in items
         ]
@@ -89,7 +98,9 @@ class RequirementReviewService:
             "status": int(item.status),
         }
 
-    def update_analysis_item(self, item_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+    def update_analysis_item(
+        self, item_id: int, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """更新分析项（用户编辑后保存）"""
         item = self.db_session.query(RequirementAnalysisItem).get(item_id)
         if not item:
@@ -131,11 +142,16 @@ class RequirementReviewService:
         if requirement.status != RequirementStatus.ANALYZED:
             raise ValueError(f"当前状态不支持确认操作: {requirement.status}")
 
-        items = self.db_session.query(RequirementAnalysisItem).filter_by(
-            requirement_id=requirement_id
-        ).all()
+        items = (
+            self.db_session.query(RequirementAnalysisItem)
+            .filter_by(requirement_id=requirement_id)
+            .all()
+        )
         for item in items:
-            if item.status in [AnalysisItemStatus.PENDING_REVIEW, AnalysisItemStatus.MODIFIED]:
+            if item.status in [
+                AnalysisItemStatus.PENDING_REVIEW,
+                AnalysisItemStatus.MODIFIED,
+            ]:
                 item.status = AnalysisItemStatus.APPROVED
 
         requirement.status = RequirementStatus.GENERATING

@@ -76,7 +76,8 @@ class RetrievalEvaluator:
                 import re as _re
 
                 for m in _re.finditer(
-                    r"(?:§|第[一二三四五六七八九十\d]+[章节条款])\s*[\d.]+", content
+                    r"(?:§|第[一二三四五六七八九十\d]+[章节条款])\s*[\d.]+",
+                    content,
                 ):
                     requirement_sections.add(m.group(0))
         coverage = len(requirement_sections)
@@ -104,7 +105,9 @@ class RetrievalEvaluator:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    def calculate_diversity_index(self, results: List[Dict[str, Any]]) -> float:
+    def calculate_diversity_index(
+        self, results: List[Dict[str, Any]]
+    ) -> float:
         """
         计算结果多样性指数
 
@@ -140,7 +143,9 @@ class RetrievalEvaluator:
                 entropy -= p * math.log2(p)
 
         # 归一化（最大熵为log2(type_count)）
-        max_entropy = math.log2(len(type_counts)) if len(type_counts) > 1 else 1.0
+        max_entropy = (
+            math.log2(len(type_counts)) if len(type_counts) > 1 else 1.0
+        )
         diversity = entropy / max_entropy if max_entropy > 0 else 0.0
 
         return min(diversity, 1.0)

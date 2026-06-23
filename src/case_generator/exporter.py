@@ -88,7 +88,9 @@ class CaseExporter:
                         )
                         return text.strip()
 
-                    expected_text = "\n".join([clean_result(e) for e in expected])
+                    expected_text = "\n".join(
+                        [clean_result(e) for e in expected]
+                    )
                 else:
                     expected_text = str(expected)
 
@@ -108,7 +110,9 @@ class CaseExporter:
                 # 置信度分数（百分比）
                 conf_score = test_case.get("confidence_score")
                 conf_score_str = (
-                    f"{round(conf_score * 100)}%" if conf_score is not None else ""
+                    f"{round(conf_score * 100)}%"
+                    if conf_score is not None
+                    else ""
                 )
 
                 row = [
@@ -200,21 +204,29 @@ class CaseExporter:
                     expected_text, [priority_node], "expected"
                 )
                 # 操作步骤是前置条件的子主题
-                steps_node = self._create_node(steps_text, [expected_node], "steps")
+                steps_node = self._create_node(
+                    steps_text, [expected_node], "steps"
+                )
                 # 前置条件是测试标题的子主题
                 precondition_node = self._create_node(
                     precondition, [steps_node], "precondition"
                 )
                 # 测试标题是测试点的子主题
-                title_node = self._create_node(title, [precondition_node], "title")
+                title_node = self._create_node(
+                    title, [precondition_node], "title"
+                )
                 # 测试点是模块名称的子主题
                 testpoint_node = self._create_node(
                     test_point, [title_node], "testpoint"
                 )
                 # 模块名称是用例编号的子主题
-                module_node = self._create_node(module, [testpoint_node], "module")
+                module_node = self._create_node(
+                    module, [testpoint_node], "module"
+                )
                 # 用例编号是根节点的子主题
-                case_node = self._create_node(case_id, [module_node], "case_id")
+                case_node = self._create_node(
+                    case_id, [module_node], "case_id"
+                )
 
                 case_items.append(case_node)
 
@@ -224,7 +236,9 @@ class CaseExporter:
 
             # 生成XMind文件
             self._generate_xmind_file(
-                test_items=case_items, output_path=output_path, title="测试用例集"
+                test_items=case_items,
+                output_path=output_path,
+                title="测试用例集",
             )
 
             return f"测试用例已导出到: {output_path}"
@@ -255,10 +269,16 @@ class CaseExporter:
         """
         # 从下往上构建
         priority_node = self._create_node("优先级", None, "priority")
-        expected_node = self._create_node("预期结果", [priority_node], "expected")
+        expected_node = self._create_node(
+            "预期结果", [priority_node], "expected"
+        )
         steps_node = self._create_node("操作步骤", [expected_node], "steps")
-        precondition_node = self._create_node("前置条件", [steps_node], "precondition")
-        title_node = self._create_node("测试标题", [precondition_node], "title")
+        precondition_node = self._create_node(
+            "前置条件", [steps_node], "precondition"
+        )
+        title_node = self._create_node(
+            "测试标题", [precondition_node], "title"
+        )
         testpoint_node = self._create_node("测试点", [title_node], "testpoint")
         module_node = self._create_node("模块名称", [testpoint_node], "module")
 
@@ -302,7 +322,9 @@ class CaseExporter:
         module_node = self._create_node(module, None, "module")
         testpoint_node = self._create_node(test_point, None, "testpoint")
         title_node = self._create_node(title, None, "title")
-        precondition_node = self._create_node(precondition, None, "precondition")
+        precondition_node = self._create_node(
+            precondition, None, "precondition"
+        )
         steps_node = self._create_node(steps, None, "steps")
         expected_node = self._create_node(expected, None, "expected")
         priority_node = self._create_node(priority, None, "priority")
@@ -398,23 +420,28 @@ class CaseExporter:
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             # 写入content.json
             zipf.writestr(
-                "content.json", json.dumps(content, ensure_ascii=False, indent=2)
+                "content.json",
+                json.dumps(content, ensure_ascii=False, indent=2),
             )
 
             # 写入metadata.json
             zipf.writestr(
-                "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=2)
+                "metadata.json",
+                json.dumps(metadata, ensure_ascii=False, indent=2),
             )
 
             # 写入manifest.json
             zipf.writestr(
-                "manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2)
+                "manifest.json",
+                json.dumps(manifest, ensure_ascii=False, indent=2),
             )
 
             # 创建空Thumbnails目录
             zipf.writestr("Thumbnails/.placeholder", "")
 
-    def export_to_json(self, test_cases: List[Dict[str, Any]], output_path: str) -> str:
+    def export_to_json(
+        self, test_cases: List[Dict[str, Any]], output_path: str
+    ) -> str:
         """
         导出测试用例到JSON
         """
@@ -441,7 +468,11 @@ if __name__ == "__main__":
                 "3. 输入密码",
                 "4. 点击登录",
             ],
-            "expected_results": ["1. 登录成功", "2. 跳转到首页", "3. 显示欢迎信息"],
+            "expected_results": [
+                "1. 登录成功",
+                "2. 跳转到首页",
+                "3. 显示欢迎信息",
+            ],
             "priority": "P0",
             "status": "approved",
         }

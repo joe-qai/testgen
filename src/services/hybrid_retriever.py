@@ -43,8 +43,12 @@ class BM25Scorer:
         self.avg_doc_length = 0.0
         self.doc_count = 0
         self.doc_lengths: Dict[str, int] = {}
-        self.term_freqs: Dict[str, Dict[str, int]] = {}  # term -> {doc_id -> tf}
-        self.doc_freqs: Dict[str, int] = {}  # term -> number of docs containing term
+        self.term_freqs: Dict[str, Dict[str, int]] = (
+            {}
+        )  # term -> {doc_id -> tf}
+        self.doc_freqs: Dict[str, int] = (
+            {}
+        )  # term -> number of docs containing term
 
     def index_documents(self, documents: Dict[str, str]):
         """
@@ -140,7 +144,9 @@ class BM25Scorer:
                 expanded.extend(list(t))
             else:
                 expanded.append(t)
-        return [t for t in expanded if len(t) > 1 or not re.match(r"[a-z0-9]", t)]
+        return [
+            t for t in expanded if len(t) > 1 or not re.match(r"[a-z0-9]", t)
+        ]
 
 
 class HybridRetriever:
@@ -231,7 +237,9 @@ class HybridRetriever:
             elif collection == "defects":
                 return self.vector_store.search_similar_defects(query, top_k)
             elif collection == "requirements":
-                return self.vector_store.search_similar_requirements(query, top_k)
+                return self.vector_store.search_similar_requirements(
+                    query, top_k
+                )
             else:
                 logger.warning(f"未知集合: {collection}")
                 return []

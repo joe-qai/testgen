@@ -32,7 +32,9 @@ class DocumentChunker:
     def __init__(self):
         pass
 
-    def chunk_requirement(self, content: str, doc_id: str) -> List[Dict[str, Any]]:
+    def chunk_requirement(
+        self, content: str, doc_id: str
+    ) -> List[Dict[str, Any]]:
         """
         需求文档分块
 
@@ -70,7 +72,9 @@ class DocumentChunker:
             skip_chunk_below=config["chunk_size"],
         )
 
-    def chunk_defect(self, content: str, defect_id: str) -> List[Dict[str, Any]]:
+    def chunk_defect(
+        self, content: str, defect_id: str
+    ) -> List[Dict[str, Any]]:
         """
         缺陷记录分块
 
@@ -215,7 +219,9 @@ class DocumentChunker:
 
         return chunks
 
-    def _extract_overlap(self, text: str, overlap_tokens: int) -> Tuple[str, int]:
+    def _extract_overlap(
+        self, text: str, overlap_tokens: int
+    ) -> Tuple[str, int]:
         """从文本末尾提取重叠部分"""
         if overlap_tokens <= 0:
             return "", 0
@@ -224,7 +230,9 @@ class DocumentChunker:
         # 中文1字符=1token，英文约3字符=1token
         chars_to_take = overlap_tokens * 2  # 保守估计
 
-        overlap_text = text[-chars_to_take:] if len(text) > chars_to_take else text
+        overlap_text = (
+            text[-chars_to_take:] if len(text) > chars_to_take else text
+        )
 
         # 找到最近的句子边界
         for boundary in ["。", "！", "？", ".", "\n", "；", ";"]:
@@ -294,7 +302,9 @@ class DocumentChunker:
             else:
                 # 多个块，合并内容
                 # 按chunk_index排序
-                chunks.sort(key=lambda c: c.get("metadata", {}).get("chunk_index", 0))
+                chunks.sort(
+                    key=lambda c: c.get("metadata", {}).get("chunk_index", 0)
+                )
 
                 # 合并内容（去重重叠部分）
                 full_content = self._merge_chunk_contents(chunks)

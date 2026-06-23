@@ -10,9 +10,9 @@ import os
 import sys
 import logging
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-logging.basicConfig(level=logging.INFO, format='[Migration] %(message)s')
+logging.basicConfig(level=logging.INFO, format="[Migration] %(message)s")
 logger = logging.getLogger(__name__)
 
 CITATION_TEMPLATE = """# 角色定义
@@ -101,7 +101,11 @@ def validate_prompt_template(template: str) -> tuple:
     Returns:
         Tuple[bool, List[str]]: (是否有效, 缺失的占位符列表)
     """
-    required_placeholders = ['{requirement_content}', '{rag_context}', '{test_plan}']
+    required_placeholders = [
+        "{requirement_content}",
+        "{rag_context}",
+        "{test_plan}",
+    ]
     missing = [p for p in required_placeholders if p not in template]
     return len(missing) == 0, missing
 
@@ -111,7 +115,7 @@ def run_migration(db_path=None):
     from src.database.models import init_database, get_session, PromptTemplate
 
     if db_path is None:
-        db_path = os.environ.get('DB_PATH', 'data/testgen.db')
+        db_path = os.environ.get("DB_PATH", "data/testgen.db")
 
     if not os.path.exists(db_path):
         logger.error(f"数据库文件不存在: {db_path}")
@@ -127,19 +131,23 @@ def run_migration(db_path=None):
     session = get_session(engine)
 
     try:
-        existing = session.query(PromptTemplate).filter(
-            PromptTemplate.template_type == 'generate_with_citation'
-        ).first()
+        existing = (
+            session.query(PromptTemplate)
+            .filter(PromptTemplate.template_type == "generate_with_citation")
+            .first()
+        )
 
         if existing:
             logger.info("模板已存在，更新内容...")
             existing.template = CITATION_TEMPLATE
-            existing.description = '包含引用标注要求的生成模板（RAG增强 Phase 1）'
+            existing.description = (
+                "包含引用标注要求的生成模板（RAG增强 Phase 1）"
+            )
         else:
             template = PromptTemplate(
-                name='generate_with_citation',
-                description='包含引用标注要求的生成模板（RAG增强 Phase 1）',
-                template_type='generate_with_citation',
+                name="generate_with_citation",
+                description="包含引用标注要求的生成模板（RAG增强 Phase 1）",
+                template_type="generate_with_citation",
                 template=CITATION_TEMPLATE,
                 is_default=0,
             )
@@ -158,7 +166,7 @@ def run_migration(db_path=None):
         session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     db_path = sys.argv[1] if len(sys.argv) > 1 else None
     success = run_migration(db_path)
     sys.exit(0 if success else 1)

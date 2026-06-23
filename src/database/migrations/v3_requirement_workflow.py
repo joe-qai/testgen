@@ -31,7 +31,9 @@ def migrate(db_path="data/testgen.db"):
         columns = {col[1] for col in cursor.fetchall()}
 
         if "analysis_data" not in columns:
-            cursor.execute("ALTER TABLE requirements ADD COLUMN analysis_data TEXT")
+            cursor.execute(
+                "ALTER TABLE requirements ADD COLUMN analysis_data TEXT"
+            )
             logger.info("Added analysis_data column")
 
         cursor.execute(
@@ -39,7 +41,9 @@ def migrate(db_path="data/testgen.db"):
         )
         migrated_count = cursor.rowcount
         if migrated_count > 0:
-            logger.info(f"Migrated {migrated_count} records to pending_analysis status")
+            logger.info(
+                f"Migrated {migrated_count} records to pending_analysis status"
+            )
 
         conn.commit()
         logger.info("Migration completed")

@@ -12,7 +12,6 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from linecache import getline
 
-
 LOG_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
 )

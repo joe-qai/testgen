@@ -32,5 +32,9 @@ class MetricsCollector:
                 "status_codes": self.status_codes.copy(),
                 "total_latency_ms": self.total_latency_ms,
                 "uptime_seconds": uptime,
-                "avg_latency_ms": self.total_latency_ms / self.total_requests if self.total_requests > 0 else 0
+                "avg_latency_ms": (
+                    self.total_latency_ms / self.total_requests
+                    if self.total_requests > 0
+                    else 0
+                ),
             }

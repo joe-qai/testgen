@@ -31,7 +31,9 @@ class LLMResponse:
 class BaseLLMAdapter(ABC):
     """LLM适配器基类"""
 
-    def __init__(self, base_url: str, api_key: str, model_id: str, timeout: int = 120):
+    def __init__(
+        self, base_url: str, api_key: str, model_id: str, timeout: int = 120
+    ):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model_id = model_id
@@ -70,7 +72,9 @@ class OpenAIAdapter(BaseLLMAdapter):
                 payload = {
                     "model": self.model_id,
                     "messages": messages,
-                    "temperature": kwargs.get("temperature", random.uniform(0.7, 1.0)),
+                    "temperature": kwargs.get(
+                        "temperature", random.uniform(0.7, 1.0)
+                    ),
                     "max_tokens": kwargs.get("max_tokens", 1024 * 4),
                     "stream": stream,
                 }
@@ -96,7 +100,10 @@ class OpenAIAdapter(BaseLLMAdapter):
                 if stream:
                     content = self._process_stream_response(response, timeout)
                     return LLMResponse(
-                        content=content, usage={}, model=self.model_id, success=True
+                        content=content,
+                        usage={},
+                        model=self.model_id,
+                        success=True,
                     )
 
                 data = response.json()
@@ -187,11 +194,15 @@ class OpenAIAdapter(BaseLLMAdapter):
 
         # 确保 base_timeout 是数值
         try:
-            b_timeout = float(base_timeout) if base_timeout is not None else 120.0
+            b_timeout = (
+                float(base_timeout) if base_timeout is not None else 120.0
+            )
         except (TypeError, ValueError):
             b_timeout = 120.0
 
-        max_total_timeout = max(b_timeout * 3, 600.0)  # 最大总体超时（至少10分钟）
+        max_total_timeout = max(
+            b_timeout * 3, 600.0
+        )  # 最大总体超时（至少10分钟）
 
         content = []
         last_data_time = datetime.datetime.now()
@@ -204,7 +215,9 @@ class OpenAIAdapter(BaseLLMAdapter):
                     continue
 
                 # 检查总体超时
-                elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                elapsed = (
+                    datetime.datetime.now() - start_time
+                ).total_seconds()
                 if elapsed > max_total_timeout:
                     logger.info(
                         f"[流式响应] 达到最大总体超时({max_total_timeout}秒)，停止接收"
@@ -212,9 +225,13 @@ class OpenAIAdapter(BaseLLMAdapter):
                     break
 
                 # 检查空闲超时
-                idle_time = (datetime.datetime.now() - last_data_time).total_seconds()
+                idle_time = (
+                    datetime.datetime.now() - last_data_time
+                ).total_seconds()
                 if idle_time > idle_timeout:
-                    logger.info(f"[流式响应] 连接空闲超过{idle_timeout}秒，可能已断开")
+                    logger.info(
+                        f"[流式响应] 连接空闲超过{idle_timeout}秒，可能已断开"
+                    )
                     break
 
                 line_str = line.decode("utf-8")
@@ -258,7 +275,9 @@ class OpenAIAdapter(BaseLLMAdapter):
 
                 # 检查首字节超时
                 if not first_token_received:
-                    elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                    elapsed = (
+                        datetime.datetime.now() - start_time
+                    ).total_seconds()
                     if elapsed > ttft_timeout:
                         logger.info(f"[流式响应] 首字节超时({ttft_timeout}秒)")
                         raise requests.exceptions.Timeout(
@@ -303,7 +322,9 @@ class OpenAIAdapter(BaseLLMAdapter):
                 payload = {
                     "model": self.model_id,
                     "messages": messages,
-                    "temperature": kwargs.get("temperature", random.uniform(0.7, 1.0)),
+                    "temperature": kwargs.get(
+                        "temperature", random.uniform(0.7, 1.0)
+                    ),
                     "max_tokens": kwargs.get("max_tokens", 1024 * 4),
                     "stream": True,
                 }
@@ -495,7 +516,10 @@ class IFlowAdapter(OpenAIAdapter):
         timeout: int = 120,
     ):
         super().__init__(
-            base_url=base_url, api_key=api_key, model_id=model_id, timeout=timeout
+            base_url=base_url,
+            api_key=api_key,
+            model_id=model_id,
+            timeout=timeout,
         )
 
 
@@ -510,7 +534,10 @@ class UniAIXAdapter(BaseLLMAdapter):
         timeout: int = 120,
     ):
         super().__init__(
-            base_url=base_url, api_key=api_key, model_id=model_id, timeout=timeout
+            base_url=base_url,
+            api_key=api_key,
+            model_id=model_id,
+            timeout=timeout,
         )
 
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
@@ -534,7 +561,9 @@ class UniAIXAdapter(BaseLLMAdapter):
                     "model": self.model_id,
                     "messages": messages,
                     "max_tokens": kwargs.get("max_tokens", 1024 * 4),
-                    "temperature": kwargs.get("temperature", random.uniform(0.7, 1.0)),
+                    "temperature": kwargs.get(
+                        "temperature", random.uniform(0.7, 1.0)
+                    ),
                     "stream": stream,
                 }
 
@@ -557,7 +586,10 @@ class UniAIXAdapter(BaseLLMAdapter):
                 if stream:
                     content = self._process_stream_response(response, timeout)
                     return LLMResponse(
-                        content=content, usage={}, model=self.model_id, success=True
+                        content=content,
+                        usage={},
+                        model=self.model_id,
+                        success=True,
                     )
 
                 data = response.json()
@@ -594,7 +626,9 @@ class UniAIXAdapter(BaseLLMAdapter):
                     error_message=str(e),
                 )
 
-    def _process_stream_response(self, response, base_timeout: int = 120) -> str:
+    def _process_stream_response(
+        self, response, base_timeout: int = 120
+    ) -> str:
         """处理流式响应 - 动态超时策略"""
         import datetime
 
@@ -604,7 +638,9 @@ class UniAIXAdapter(BaseLLMAdapter):
 
         # 确保 base_timeout 是数值
         try:
-            b_timeout = float(base_timeout) if base_timeout is not None else 120.0
+            b_timeout = (
+                float(base_timeout) if base_timeout is not None else 120.0
+            )
         except (TypeError, ValueError):
             b_timeout = 120.0
 
@@ -621,7 +657,9 @@ class UniAIXAdapter(BaseLLMAdapter):
                     continue
 
                 # 检查总体超时
-                elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                elapsed = (
+                    datetime.datetime.now() - start_time
+                ).total_seconds()
                 if elapsed > max_total_timeout:
                     logger.info(
                         f"[UniAIX流式响应] 达到最大总体超时({max_total_timeout}秒)，停止接收"
@@ -629,7 +667,9 @@ class UniAIXAdapter(BaseLLMAdapter):
                     break
 
                 # 检查空闲超时
-                idle_time = (datetime.datetime.now() - last_data_time).total_seconds()
+                idle_time = (
+                    datetime.datetime.now() - last_data_time
+                ).total_seconds()
                 if idle_time > idle_timeout:
                     logger.info(
                         f"[UniAIX流式响应] 连接空闲超过{idle_timeout}秒，可能已断开"
@@ -670,9 +710,13 @@ class UniAIXAdapter(BaseLLMAdapter):
 
                 # 检查首字节超时
                 if not first_token_received:
-                    elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                    elapsed = (
+                        datetime.datetime.now() - start_time
+                    ).total_seconds()
                     if elapsed > ttft_timeout:
-                        logger.info(f"[UniAIX流式响应] 首字节超时({ttft_timeout}秒)")
+                        logger.info(
+                            f"[UniAIX流式响应] 首字节超时({ttft_timeout}秒)"
+                        )
                         raise requests.exceptions.Timeout(
                             f"首字节超时: {ttft_timeout}秒内未收到任何数据"
                         )
@@ -828,7 +872,9 @@ class LLMManager:
         del self.config_infos[name]
         if self.default_adapter == name:
             # 如果删除的是默认配置，选择第一个可用的作为默认
-            self.default_adapter = next(iter(self.adapters)) if self.adapters else None
+            self.default_adapter = (
+                next(iter(self.adapters)) if self.adapters else None
+            )
 
     def list_configs(self) -> Dict[str, Dict[str, Any]]:
         """获取所有配置名称"""

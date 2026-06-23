@@ -55,19 +55,25 @@ class CaseReviewAgent:
             return ReviewDecision.REJECT
 
     def review_batch(
-        self, cases: List[Dict[str, Any]], requirement_context: Optional[str] = None
+        self,
+        cases: List[Dict[str, Any]],
+        requirement_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """评审一批测试用例"""
         if self.llm_manager:
             try:
                 return self._llm_review_batch(cases, requirement_context)
             except Exception as e:
-                logger.error(f"[CaseReviewAgent] LLM评审失败，使用规则回退: {e}")
+                logger.error(
+                    f"[CaseReviewAgent] LLM评审失败，使用规则回退: {e}"
+                )
                 return self._rule_based_review(cases)
         else:
             return self._rule_based_review(cases)
 
-    def _rule_based_review(self, cases: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _rule_based_review(
+        self, cases: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """基于规则的快速评审（无LLM时的fallback）"""
         issues = []
         duplicate_cases = []
@@ -121,14 +127,20 @@ class CaseReviewAgent:
                     )
 
         completeness = max(
-            60, 100 - len([i for i in issues if i["type"] == "missing_feature"]) * 10
+            60,
+            100
+            - len([i for i in issues if i["type"] == "missing_feature"]) * 10,
         )
         accuracy = max(
-            60, 100 - len([i for i in issues if i["type"] == "placeholder_data"]) * 10
+            60,
+            100
+            - len([i for i in issues if i["type"] == "placeholder_data"]) * 10,
         )
         priority = max(
             60,
-            100 - len([i for i in issues if i["type"] == "priority_distribution"]) * 15,
+            100
+            - len([i for i in issues if i["type"] == "priority_distribution"])
+            * 15,
         )
         duplication = max(60, 100 - len(duplicate_cases) * 10)
 
@@ -158,7 +170,9 @@ class CaseReviewAgent:
         }
 
     def _llm_review_batch(
-        self, cases: List[Dict[str, Any]], requirement_context: Optional[str] = None
+        self,
+        cases: List[Dict[str, Any]],
+        requirement_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """使用LLM进行用例评审"""
         if not self.llm_manager:
@@ -191,7 +205,9 @@ class CaseReviewAgent:
 """
         try:
             adapter = self.llm_manager.get_adapter()
-            response = adapter.generate(prompt, temperature=0.3, max_tokens=2048)
+            response = adapter.generate(
+                prompt, temperature=0.3, max_tokens=2048
+            )
 
             if response.success:
                 content = response.content
@@ -205,7 +221,12 @@ class CaseReviewAgent:
 
     def validate_review_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """校验并补全评审结果"""
-        required_scores = ["completeness", "accuracy", "priority", "duplication"]
+        required_scores = [
+            "completeness",
+            "accuracy",
+            "priority",
+            "duplication",
+        ]
         scores = result.get("scores", {})
         for s in required_scores:
             if s not in scores:
@@ -228,11 +249,15 @@ class CaseReviewAgent:
                 result[field] = []
 
         if "conclusion" not in result:
-            result["conclusion"] = f"综合得分 {overall}，决策：{result['decision']}"
+            result["conclusion"] = (
+                f"综合得分 {overall}，决策：{result['decision']}"
+            )
 
         return result
 
-    def aggregate_reviews(self, batch_reviews: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def aggregate_reviews(
+        self, batch_reviews: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """汇总多批次评审结果"""
         if not batch_reviews:
             return {
@@ -254,7 +279,8 @@ class CaseReviewAgent:
             }
 
         weighted_sum = sum(
-            b.get("overall_score", 0) * b.get("case_count", 0) for b in batch_reviews
+            b.get("overall_score", 0) * b.get("case_count", 0)
+            for b in batch_reviews
         )
         overall_score = round(weighted_sum / total_cases, 1)
 

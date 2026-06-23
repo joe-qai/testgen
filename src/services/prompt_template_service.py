@@ -76,7 +76,9 @@ class PromptTemplateService:
             logger.error(f"[Prompt加载] 加载模板失败: {e}")
             return None
 
-    def render_template(self, template_type: str, **variables) -> Dict[str, Any]:
+    def render_template(
+        self, template_type: str, **variables
+    ) -> Dict[str, Any]:
         """
         渲染模板，安全替换变量
 
@@ -168,7 +170,9 @@ class PromptTemplateService:
                 return False
 
             # 记录变更日志
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
             old_version = template.version or 1
             new_version = old_version + 1
 
@@ -194,7 +198,9 @@ class PromptTemplateService:
             template.updated_at = datetime.now(timezone.utc)
 
             self.db_session.commit()
-            logger.info(f"[Prompt更新] {resolved_type} 已更新到版本 {new_version}")
+            logger.info(
+                f"[Prompt更新] {resolved_type} 已更新到版本 {new_version}"
+            )
             return True
 
         except Exception as e:
@@ -275,7 +281,9 @@ class PromptTemplateService:
                 if existing:
                     continue
 
-                default_content = self._get_default_template_content(template_type)
+                default_content = self._get_default_template_content(
+                    template_type
+                )
                 if not default_content:
                     continue
 
@@ -304,7 +312,9 @@ class PromptTemplateService:
         """获取fallback模板内容"""
         return self._get_default_template_content(template_type) or ""
 
-    def _get_default_template_content(self, template_type: str) -> Optional[str]:
+    def _get_default_template_content(
+        self, template_type: str
+    ) -> Optional[str]:
         """获取指定类型的默认模板内容"""
         resolved_type = self._resolve_type(template_type)
 

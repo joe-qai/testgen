@@ -52,7 +52,9 @@ class DefectKnowledgeBase:
         self.db_session.commit()
         self.db_session.refresh(defect)
 
-        logging.info(f"[DefectKnowledgeBase] 创建缺陷: id={defect.id}, title={title}")
+        logging.info(
+            f"[DefectKnowledgeBase] 创建缺陷: id={defect.id}, title={title}"
+        )
         return self._to_dict(defect)
 
     def get_defect(self, defect_id: int) -> Optional[Dict[str, Any]]:
@@ -109,7 +111,12 @@ class DefectKnowledgeBase:
             )
 
         total = query.count()
-        items = query.order_by(Defect.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+        items = (
+            query.order_by(Defect.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
 
         return {
             "items": [self._to_dict(item) for item in items],
@@ -118,7 +125,9 @@ class DefectKnowledgeBase:
             "limit": limit,
         }
 
-    def update_defect(self, defect_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+    def update_defect(
+        self, defect_id: int, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """更新缺陷记录
 
         Args:
@@ -136,9 +145,16 @@ class DefectKnowledgeBase:
             raise ValueError(f"缺陷不存在: {defect_id}")
 
         allowed_fields = [
-            "defect_id", "title", "description", "module",
-            "severity", "category", "status", "related_case_id",
-            "related_requirement_id", "created_by",
+            "defect_id",
+            "title",
+            "description",
+            "module",
+            "severity",
+            "category",
+            "status",
+            "related_case_id",
+            "related_requirement_id",
+            "created_by",
         ]
 
         for field in allowed_fields:
@@ -194,16 +210,22 @@ class DefectKnowledgeBase:
                 imported_count += 1
             except Exception as e:
                 errors.append({"index": idx, "error": str(e)})
-                logging.warning(f"[DefectKnowledgeBase] 导入缺陷失败 index={idx}: {e}")
+                logging.warning(
+                    f"[DefectKnowledgeBase] 导入缺陷失败 index={idx}: {e}"
+                )
 
-        logging.info(f"[DefectKnowledgeBase] 批量导入: 成功 {imported_count}/{len(data_list)}")
+        logging.info(
+            f"[DefectKnowledgeBase] 批量导入: 成功 {imported_count}/{len(data_list)}"
+        )
         return {
             "imported_count": imported_count,
             "total": len(data_list),
             "errors": errors,
         }
 
-    def search_for_rag(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search_for_rag(
+        self, query: str, limit: int = 5
+    ) -> List[Dict[str, Any]]:
         """为RAG检索搜索相关缺陷
 
         Args:
@@ -244,5 +266,7 @@ class DefectKnowledgeBase:
             "related_case_id": defect.related_case_id,
             "related_requirement_id": defect.related_requirement_id,
             "created_by": defect.created_by,
-            "created_at": defect.created_at.isoformat() if defect.created_at else None,
+            "created_at": (
+                defect.created_at.isoformat() if defect.created_at else None
+            ),
         }
