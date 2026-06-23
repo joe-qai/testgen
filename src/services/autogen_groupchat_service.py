@@ -621,7 +621,6 @@ class AutogenGroupChatService:
 
     def _parse_freeform_case(self, title: str, body: str) -> Optional[Dict]:
         """解析自由格式的用例"""
-        import re
 
         # 从标题提取优先级
         priority = "P1"

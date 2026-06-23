@@ -2052,7 +2052,6 @@ class GenerationService:
         requirement_content = global_context.get("requirement_content", "")
 
         for point in uncovered_points:
-            point_id = point.get("point_id", "")
             point_title = point.get("point_title", "")
             item_title = point.get("item_title", "")
 
@@ -3416,8 +3415,6 @@ class GenerationService:
 
         try:
             from src.database.models import TestCase, CaseStatus, Priority
-            import time
-            import random
             import json as json_module
             import re
             from src.services.rag_influence_tracker import calc_rag_influence
@@ -3766,7 +3763,6 @@ class GenerationService:
         }
 
         lines = requirement_content.split("\n")
-        content_lower = requirement_content.lower()
 
         # ========== 1. 识别功能模块（按业务域划分）==========
         for line in lines:
@@ -4761,11 +4757,7 @@ class GenerationService:
         # 获取分析结果
         modules = requirement_analysis.get("modules", [])
         business_rules = requirement_analysis.get("business_rules", [])
-        data_constraints = requirement_analysis.get("data_constraints", [])
-        business_flows = requirement_analysis.get("business_flows", [])
         state_changes = requirement_analysis.get("state_changes", [])
-        test_points = requirement_analysis.get("test_points", [])
-        risks = requirement_analysis.get("risks", [])
 
         # ========== 1. LLM模块评审结果 ==========
         test_plan += "### 一、模块拆分评审（LLM评审）\n\n"

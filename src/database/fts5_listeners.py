@@ -7,7 +7,6 @@ FTS5增量更新监听器 - 通过SQLAlchemy事件自动同步FTS5索引
 自动更新对应的FTS5虚拟表。
 """
 
-import logging
 from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 

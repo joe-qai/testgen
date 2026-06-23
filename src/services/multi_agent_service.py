@@ -5,7 +5,6 @@
 基于 testcase-generator SKILL 整合，替换现有 GenerationService 的"用例生成"模块
 """
 
-import json
 import re
 import time
 from datetime import datetime, timezone

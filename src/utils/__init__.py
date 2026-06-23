@@ -8,7 +8,6 @@
 import logging
 import sys
 import os
-import inspect
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from linecache import getline
