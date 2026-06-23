@@ -33,7 +33,7 @@ from src.database.models import (
 from src.database.models import GenerationTask as GenerationTaskModel, TaskStatus
 
 # 创建蓝图
-api_bp = Bluelogger.info("api", __name__, url_prefix="/api")
+api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 # 全局服务实例（将在应用初始化时注入）
 db_session = None
@@ -2767,7 +2767,7 @@ def update_llm_config(config_id):
             # 先删除旧配置（使用旧名称）
             try:
                 llm_manager.delete_config(old_name)
-            except:
+            except Exception:
                 pass
 
             # 添加更新后的配置（使用新名称）
