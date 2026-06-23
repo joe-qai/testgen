@@ -6,7 +6,6 @@
 参考to_xmind.py脚本的能力进行重写
 """
 
-import os
 import json
 import re
 import uuid

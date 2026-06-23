@@ -5,7 +5,6 @@ LLM适配器层 - 支持多模型接入
 支持: OpenAI, Qwen(通义千问), DeepSeek, KIMI, 智谱, Minimax, iFlow, UniAIX
 """
 
-import os
 import json
 import time
 from abc import ABC, abstractmethod
