@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { WorkflowRunStore, WorkflowRunRecord, WorkflowEventRecord, WorkflowRunQuery } from '@testgen/workflow';
+import type { QueueAdapter } from '@testgen/queue';
 import { WorkflowRunService } from './workflow-runs.service.js';
 
 class InMemoryStore implements WorkflowRunStore {
@@ -118,5 +119,49 @@ describe('workflow run service', () => {
     expect(cancelled.progress).toBe(100);
     const events = await service.events(run.id);
     expect(events[events.length - 1].eventType).toBe('RUN_CANCELED');
+  });
+
+  it('enqueues a new run onto the queue exactly once', async () => {
+    const store = new InMemoryStore();
+    const enqueue = vi.fn<QueueAdapter['enqueueWorkflowRun']>(async () => {});
+    const queue: QueueAdapter = { enqueueWorkflowRun: enqueue, cancelWorkflowRun: async () => {}, healthCheck: async () => true };
+    const service = new WorkflowRunService(store, undefined, undefined, queue);
+    const input = makeInput({ idempotencyKey: 'idem-cccc0001' });
+    const first = await service.create(input);
+    await service.create(input);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith({ runId: first.id, organizationId: 'org-1', projectId: 'project-1' });
+  });
+
+  it('does not fail creation when queue enqueue fails', async () => {
+    const store = new InMemoryStore();
+    const queue: QueueAdapter = { enqueueWorkflowRun: async () => { throw new Error('queue down'); }, cancelWorkflowRun: async () => {}, healthCheck: async () => false };
+    const service = new WorkflowRunService(store, undefined, undefined, queue);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-dddd0001' }));
+    expect(run.status).toBe('QUEUED');
+  });
+
+  it('records a completed run with output data', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-eeee0001' }));
+    await service.transition(run.id, 'RUNNING');
+    const completed = await service.complete(run.id, { summary: 'OK', review: 'PASS', recommendations: ['a'] });
+    expect(completed.status).toBe('SUCCEEDED');
+    expect(completed.progress).toBe(100);
+    expect(completed.outputData).toEqual({ summary: 'OK', review: 'PASS', recommendations: ['a'] });
+    const events = await service.events(run.id);
+    expect(events[events.length - 1].eventType).toBe('RUN_COMPLETED');
+  });
+
+  it('records a failed run with error data', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-ffff0001' }));
+    await service.transition(run.id, 'RUNNING');
+    const failed = await service.fail(run.id, 'boom');
+    expect(failed.status).toBe('FAILED');
+    expect(failed.progress).toBe(100);
+    expect(failed.errorData).toEqual({ message: 'boom' });
   });
 });

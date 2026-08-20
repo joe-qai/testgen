@@ -42,6 +42,18 @@ export class WorkflowRunsController {
     return { data: run, meta: { requestId: createOpaqueToken(8) }, error: null };
   }
 
+  @Post(':id/complete')
+  async complete(@Param('id') id: string, @Body() body: { output?: Record<string, unknown> }) {
+    const run = await this.service.complete(id, body.output ?? {});
+    return { data: run, meta: { requestId: createOpaqueToken(8) }, error: null };
+  }
+
+  @Post(':id/fail')
+  async fail(@Param('id') id: string, @Body() body: { error?: string }) {
+    const run = await this.service.fail(id, body.error ?? 'Workflow failed');
+    return { data: run, meta: { requestId: createOpaqueToken(8) }, error: null };
+  }
+
   @Get(':id/stream')
   async stream(@Param('id') id: string, @Req() request: StreamRequest, @Res() response: StreamResponse) {
     response.setHeader('Content-Type', 'text/event-stream');
