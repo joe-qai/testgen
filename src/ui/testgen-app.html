@@ -241,6 +241,48 @@
             color: var(--success);
         }
 
+        .badge-default {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+
+        .badge-provider {
+            background: var(--info-light);
+            color: var(--info);
+        }
+
+        /* 分页 */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-top: 1px solid var(--border);
+        }
+        .pagination-center { display: flex; align-items: center; gap: 6px; }
+        .page-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+        .page-btn:hover:not(.disabled) { border-color: var(--primary); color: var(--primary); }
+        .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+        .pagination-info { color: var(--text-secondary); font-size: 13px; }
+        .page-size-select {
+            padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px;
+            font-size: 12px; background: var(--bg-card); color: var(--text-primary); cursor: pointer;
+        }
+        .page-size-select:focus { outline: none; border-color: var(--primary); }
+        .badge-rejected { background: rgba(220,38,38,0.1); color: #dc2626; }
+        .badge-default { background: var(--warning-light); color: var(--warning); }
+        .badge-provider { background: var(--info-light); color: var(--info); }
+
         .badge-p0 {
             background: rgba(255, 0, 255, 0.2);
             color: var(--danger);
@@ -275,6 +317,21 @@
         .action-btn:hover {
             border-color: var(--primary);
             color: var(--primary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .stats-grid {
@@ -572,7 +629,10 @@
             <div id="page-rag" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">RAG仓库</h1>
-                    <button class="btn btn-primary" onclick="showUploadDocumentModal()">+ 上传文档</button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-secondary" onclick="clearRAG()" style="color:var(--danger);border-color:var(--danger);">清空仓库</button>
+                        <button class="btn btn-primary" onclick="showUploadDocumentModal()">+ 上传文档</button>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -580,10 +640,10 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>文件名</th>
-                                <th>类型</th>
+                                <th>文档标题</th>
+                                <th>来源类型</th>
                                 <th>大小</th>
-                                <th>状态</th>
+                                <th>分片</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -610,7 +670,7 @@
             <div id="page-cases" class="page-content" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">测试用例</h1>
-                    <button class="btn btn-secondary" onclick="loadCases()">刷新</button>
+                    <button class="btn btn-secondary" onclick="casesPage=1;loadCases(1)">刷新</button>
                 </div>
 
                 <div class="stats-grid">
@@ -644,6 +704,7 @@
                             <tr><td colspan="7" class="empty-state">加载中...</td></tr>
                         </tbody>
                     </table>
+                    <div class="pagination-container" id="cases-pagination"></div>
                 </div>
             </div>
 
@@ -664,6 +725,7 @@
                     <div class="btn-group" style="display: flex; gap: 10px;">
                         <button class="btn btn-primary" onclick="startAutoGen()">🚀 一键生成</button>
                         <button class="btn btn-secondary" onclick="startPhase1()">🔄 Phase 1（分析+策略）</button>
+                        <button class="btn btn-success" id="autogen-phase2-btn" onclick="startAutoGenPhase2()" disabled>Phase 2（生成用例）</button>
                     </div>
                 </div>
 
@@ -692,6 +754,8 @@
 
                 <div class="pipeline">
                     <div class="pipeline-node" id="lg-start"><span class="emoji">🚀</span><span class="label">START</span></div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-node" id="lg-review-agent"><span class="emoji">🧠</span><span class="label">6D评审</span></div>
                     <span class="pipeline-arrow">→</span>
                     <div class="pipeline-node" id="lg-orchestrator"><span class="emoji">🎯</span><span class="label">Orchestrator</span></div>
                     <span class="pipeline-arrow">→</span>
@@ -749,11 +813,12 @@
                                     <th>提供商</th>
                                     <th>模型</th>
                                     <th>状态</th>
+                                    <th>默认</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody id="llm-configs-table">
-                                <tr><td colspan="5" class="empty-state">加载中...</td></tr>
+                                <tr><td colspan="6" class="empty-state">加载中...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -824,9 +889,34 @@
         </div>
     </div>
 
+    <div class="modal" id="view-requirement-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="view-req-title">需求详情</div>
+            <div class="form-group">
+                <label class="form-label">需求标题</label>
+                <input type="text" class="form-input" id="view-req-name" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">状态</label>
+                <input type="text" class="form-input" id="view-req-status" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">创建时间</label>
+                <input type="text" class="form-input" id="view-req-time" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">需求内容</label>
+                <textarea class="form-input form-textarea" id="view-req-content" readonly style="min-height: 180px;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('view-requirement-modal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="add-llm-config-modal">
         <div class="modal-content">
-            <div class="modal-title">添加LLM配置</div>
+            <div class="modal-title" id="llm-modal-title">添加LLM配置</div>
             <div class="form-group">
                 <label class="form-label">配置名称</label>
                 <input type="text" class="form-input" id="llm-name" placeholder="如：qwen-turbo">
@@ -853,7 +943,53 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('add-llm-config-modal')">取消</button>
-                <button class="btn btn-primary" onclick="addLLMConfig()">添加</button>
+                <button class="btn btn-primary" onclick="saveLLMConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="test-result-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="test-result-title">测试结果</div>
+            <div style="margin-bottom: 20px;">
+                <p id="test-result-message" style="white-space: pre-line; line-height: 1.6;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('test-result-modal')">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title">确认操作</div>
+            <div style="margin-bottom: 20px;">
+                <p id="confirmMessage">确定要执行此操作吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="confirmAsyncCancel()">取消</button>
+                <button class="btn btn-primary" onclick="confirmAsyncOk()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="lg-cases-modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-title" id="lg-cases-modal-title">用例预览</div>
+            <div id="lg-cases-modal-body" style="max-height: 500px; overflow-y: auto;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('lg-cases-modal')">关闭</button>
+                <button class="btn btn-success" id="lg-modal-save-btn" onclick="confirmSaveLG(_lgCurrentReqId)">确认入库</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rag-chunk-modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-title" id="rag-chunk-title">文档分片</div>
+            <div id="rag-chunk-list" style="max-height: 500px; overflow-y: auto;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('rag-chunk-modal')">关闭</button>
             </div>
         </div>
     </div>
@@ -871,6 +1007,7 @@
             if (pageId === 'requirements') loadRequirements();
             if (pageId === 'cases') loadCases();
             if (pageId === 'config') loadLLMConfigs();
+            if (pageId === 'rag') loadRAGDocuments();
             if (pageId === 'autogen') loadRequirementsForSelect('autogen-req-select');
             if (pageId === 'langgraph') loadRequirementsForSelect('lg-req-select');
         }
@@ -908,9 +1045,9 @@
             try {
                 const res = await fetch('/api/requirements');
                 const data = await res.json();
-                const requirements = data.requirements || [];
+                const requirements = data.items || data.requirements || [];
                 
-                document.getElementById('req-total').textContent = requirements.length;
+                document.getElementById('req-total').textContent = data.total != null ? data.total : requirements.length;
                 document.getElementById('req-analyzing').textContent = requirements.filter(r => r.status === 2).length;
                 document.getElementById('req-analyzed').textContent = requirements.filter(r => r.status === 3).length;
                 document.getElementById('req-completed').textContent = requirements.filter(r => r.status === 5).length;
@@ -957,7 +1094,7 @@
             const content = document.getElementById('req-content').value;
             
             if (!title || !content) {
-                alert('请填写完整信息');
+                showToast('请填写完整信息', 'info');
                 return;
             }
 
@@ -969,34 +1106,40 @@
                 });
                 
                 if (res.ok) {
-                    alert('需求创建成功');
+                    showToast('需求创建成功', 'info');
                     closeModal('add-requirement-modal');
                     document.getElementById('req-title').value = '';
                     document.getElementById('req-content').value = '';
                     loadRequirements();
                 }
             } catch (e) {
-                alert('创建失败');
+                showToast('创建失败', 'info');
             }
         }
 
         async function deleteRequirement(id) {
-            if (!confirm('确定删除此需求？')) return;
+            const confirmed = await showConfirmAsync('确定删除此需求？');
+            if (!confirmed) return;
             try {
                 await fetch(`/api/requirements/${id}`, { method: 'DELETE' });
                 loadRequirements();
             } catch (e) {
-                alert('删除失败');
+                showToast('删除失败', 'info');
             }
         }
 
-        async function loadCases() {
+        let casesPage = 1;
+        let casesLimit = 10;
+
+        async function loadCases(page = 1) {
+            casesPage = page;
             try {
-                const res = await fetch('/api/cases');
+                const res = await fetch(`/api/cases?page=${page}&limit=${casesLimit}`);
                 const data = await res.json();
-                const cases = data.cases || [];
+                const cases = data.items || [];
+                const total = data.total || 0;
                 
-                document.getElementById('cases-total').textContent = cases.length;
+                document.getElementById('cases-total').textContent = data.total != null ? data.total : cases.length;
                 document.getElementById('cases-pending').textContent = cases.filter(c => c.status === 2).length;
                 document.getElementById('cases-approved').textContent = cases.filter(c => c.status === 3).length;
                 document.getElementById('cases-rejected').textContent = cases.filter(c => c.status === 4).length;
@@ -1004,10 +1147,10 @@
                 document.getElementById('cases-table').innerHTML = cases.map(c => `
                     <tr>
                         <td><input type="checkbox" class="checkbox case-checkbox" data-id="${c.id}" onchange="toggleCaseSelect(${c.id})"></td>
-                        <td>${c.case_id}</td>
+                        <td>${c.case_id != null ? c.case_id : c.id}</td>
                         <td>${c.name}</td>
-                        <td>${c.module}</td>
-                        <td><span class="badge badge-${c.priority.toLowerCase()}">${c.priority}</span></td>
+                        <td>${c.module || '-'}</td>
+                        <td><span class="badge badge-${(c.priority || 'P3').toLowerCase()}">${c.priority || '-'}</span></td>
                         <td><span class="badge ${getCaseStatusBadge(c.status)}">${getCaseStatusText(c.status)}</span></td>
                         <td>
                             <div class="action-btns">
@@ -1017,19 +1160,59 @@
                         </td>
                     </tr>
                 `).join('');
+                renderCasesPagination(total, page);
             } catch (e) {
                 document.getElementById('cases-table').innerHTML = '<tr><td colspan="7" class="empty-state">加载失败</td></tr>';
+                document.getElementById('cases-pagination').innerHTML = '';
             }
         }
 
+        function renderCasesPagination(total, page) {
+            const el = document.getElementById('cases-pagination');
+            if (!el) return;
+            const totalPages = Math.max(1, Math.ceil(total / casesLimit));
+            let html = '<div class="pagination-left"><span class="pagination-info">共 ' + total + ' 条</span>';
+            html += '<select class="page-size-select" onchange="changeCasesPageSize(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;">';
+            [10, 20, 50, 100].forEach(n => { html += '<option value="' + n + '"' + (n === casesLimit ? ' selected' : '') + '>' + n + '条/页</option>'; });
+            html += '</select></div>';
+            html += '<div class="pagination-center">';
+            if (totalPages <= 1) { html += '</div>'; el.innerHTML = html; return; }
+            html += `<button class="page-btn ${page <= 1 ? 'disabled' : ''}" onclick="loadCases(${page - 1})" ${page <= 1 ? 'disabled' : ''}>‹</button>`;
+            const maxVisible = 7;
+            let start = Math.max(1, page - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+            if (start > 1) {
+                html += `<button class="page-btn" onclick="loadCases(1)">1</button>`;
+                if (start > 2) html += '<span class="page-ellipsis">…</span>';
+            }
+            for (let p = start; p <= end; p++) {
+                html += `<button class="page-btn ${p === page ? 'active' : ''}" onclick="loadCases(${p})">${p}</button>`;
+            }
+            if (end < totalPages) {
+                if (end < totalPages - 1) html += '<span class="page-ellipsis">…</span>';
+                html += `<button class="page-btn" onclick="loadCases(${totalPages})">${totalPages}</button>`;
+            }
+            html += `<button class="page-btn ${page >= totalPages ? 'disabled' : ''}" onclick="loadCases(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>›</button>`;
+            html += '</div>';
+            html += '<div class="pagination-right"><span class="pagination-info">第 ' + page + '/' + totalPages + ' 页</span></div>';
+            el.innerHTML = html;
+        }
+
+        function changeCasesPageSize(val) {
+            casesLimit = parseInt(val);
+            casesPage = 1;
+            loadCases(1);
+        }
+
         function getCaseStatusBadge(status) {
-            const classes = { 1: 'badge-pending', 2: 'badge-pending', 3: 'badge-approved', 4: 'badge-pending' };
+            const classes = { 1: 'badge-pending', 2: 'badge-pending', 3: 'badge-approved', 4: 'badge-rejected' };
             return classes[status] || 'badge-pending';
         }
 
         function getCaseStatusText(status) {
             const texts = { 1: '草稿', 2: '待评审', 3: '已通过', 4: '已拒绝' };
-            return texts[status] || '未知';
+            return texts[status] || (status == null ? '待评审' : String(status));
         }
 
         function toggleCaseSelect(id) {
@@ -1040,20 +1223,22 @@
 
         function toggleSelectAllCases() {
             const checkboxes = document.querySelectorAll('.case-checkbox');
-            if (selectedCases.length === checkboxes.length) {
-                selectedCases = [];
-                checkboxes.forEach(cb => cb.checked = false);
-            } else {
+            const header = document.querySelector('thead input[type="checkbox"].checkbox');
+            const shouldSelect = header ? header.checked : (selectedCases.length < checkboxes.length);
+            selectedCases = [];
+            if (shouldSelect) {
                 checkboxes.forEach(cb => {
                     cb.checked = true;
                     selectedCases.push(parseInt(cb.dataset.id));
                 });
+            } else {
+                checkboxes.forEach(cb => cb.checked = false);
             }
         }
 
         async function batchApproveCases() {
             if (selectedCases.length === 0) {
-                alert('请选择用例');
+                showToast('请选择用例', 'info');
                 return;
             }
             await updateCasesStatus(selectedCases, 3);
@@ -1061,7 +1246,7 @@
 
         async function batchRejectCases() {
             if (selectedCases.length === 0) {
-                alert('请选择用例');
+                showToast('请选择用例', 'info');
                 return;
             }
             await updateCasesStatus(selectedCases, 4);
@@ -1075,28 +1260,35 @@
                     body: JSON.stringify({ case_ids: ids, status })
                 });
                 selectedCases = [];
-                loadCases();
+                loadCases(casesPage);
             } catch (e) {
-                alert('操作失败');
+                showToast('操作失败', 'info');
             }
         }
 
         async function batchDeleteCases() {
             if (selectedCases.length === 0) {
-                alert('请选择用例');
+                showToast('请选择用例', 'info');
                 return;
             }
-            if (!confirm('确定删除选中的用例？')) return;
+            const confirmed = await showConfirmAsync(`确定删除选中的 ${selectedCases.length} 条用例？`);
+            if (!confirmed) return;
             try {
-                await fetch('/api/cases/batch-delete', {
+                const res = await fetch('/api/cases/batch-delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ case_ids: selectedCases })
+                    body: JSON.stringify({ ids: selectedCases })
                 });
+                if (res.ok) {
+                    showToast('删除成功', 'success');
+                } else {
+                    const data = await res.json();
+                    showToast('删除失败: ' + (data.error || '未知错误'), 'error');
+                }
                 selectedCases = [];
-                loadCases();
+                loadCases(casesPage);
             } catch (e) {
-                alert('删除失败');
+                showToast('删除失败: ' + e.message, 'error');
             }
         }
 
@@ -1107,9 +1299,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status })
                 });
-                loadCases();
+                loadCases(casesPage);
             } catch (e) {
-                alert('操作失败');
+                showToast('操作失败', 'info');
             }
         }
 
@@ -1117,63 +1309,224 @@
             try {
                 const res = await fetch('/api/requirements');
                 const data = await res.json();
+                const requirements = data.items || data.requirements || [];
                 const select = document.getElementById(selectId);
                 select.innerHTML = '<option value="">请选择需求...</option>' + 
-                    data.requirements.map(r => `<option value="${r.id}">${r.title}</option>`).join('');
+                    requirements.map(r => `<option value="${r.id}">${r.title}</option>`).join('');
             } catch (e) {}
         }
 
-        function startAutoGen() {
-            const reqId = document.getElementById('autogen-req-select').value;
-            if (!reqId) {
-                alert('请选择需求');
-                return;
-            }
-            simulateGeneration('autogen');
-        }
+        // ===== AutoGen & LangGraph =====
+        let _lgCurrentReqId = null;
+        let _lgPhase1Result = null;
+        let _autogenTaskId = null;
+        let _autogenPhase1TaskId = null;  // Phase 1 的 task_id，用于 Phase 2
+        let _autogenPollTimer = null;
 
-        function startPhase1() {
+        async function startAutoGen() {
             const reqId = document.getElementById('autogen-req-select').value;
-            if (!reqId) {
-                alert('请选择需求');
-                return;
-            }
-            simulatePhase1();
-        }
-
-        function simulateGeneration(type) {
+            if (!reqId) { showToast('请选择需求', 'info'); return; }
+            // 清除旧轮询
+            if (_autogenPollTimer) { clearTimeout(_autogenPollTimer); _autogenPollTimer = null; }
+            _autogenTaskId = null;
             const progress = document.getElementById('autogen-progress');
             const status = document.getElementById('autogen-status');
             const percent = document.getElementById('autogen-percent');
             const log = document.getElementById('autogen-log');
-            
-            progress.style.width = '0%';
-            status.textContent = '开始生成...';
-            percent.textContent = '0%';
-            log.innerHTML = '';
-            
-            addLog('开始生成测试用例...', 'phase1');
-            setTimeout(() => { progress.style.width = '25%'; percent.textContent = '25%'; status.textContent = '分析需求...'; addLog('Phase 1: 需求分析中...', 'phase1'); }, 500);
-            setTimeout(() => { progress.style.width = '50%'; percent.textContent = '50%'; status.textContent = '测试规划...'; addLog('Phase 1: 测试规划完成', 'phase1'); }, 1500);
-            setTimeout(() => { progress.style.width = '75%'; percent.textContent = '75%'; status.textContent = '生成用例...'; addLog('Phase 2: RAG检索...', 'phase2'); }, 2500);
-            setTimeout(() => { progress.style.width = '90%'; percent.textContent = '90%'; addLog('Phase 2: LLM生成中...', 'phase2'); }, 3500);
-            setTimeout(() => { progress.style.width = '100%'; percent.textContent = '100%'; status.textContent = '完成'; addLog('生成完成！共生成9条用例', 'done'); }, 4500);
+            progress.style.width = '0%'; percent.textContent = '0%'; log.innerHTML = '';
+            status.textContent = '启动中...';
+            addLog('🚀 提交 AutoGen 生成任务...', 'phase1');
+            try {
+                const res = await fetch('/api/autogen/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirement_id: parseInt(reqId) })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                _autogenTaskId = data.task_id;
+                addLog('任务已提交，task_id=' + _autogenTaskId, 'phase1');
+                await pollAutogenStatus(_autogenTaskId, log, progress, status, percent);
+            } catch (e) {
+                addLog('❌ 提交失败: ' + e.message, 'error');
+                status.textContent = '失败';
+                percent.textContent = '0%';
+            }
         }
 
-        function simulatePhase1() {
+        async function pollAutogenStatus(taskId, log, progress, status, percent) {
+            const maxPolls = 36; // 36 * 5s = 180s
+            for (let i = 0; i < maxPolls; i++) {
+                await new Promise(r => _autogenPollTimer = setTimeout(r, 5000));
+                if (_autogenTaskId !== taskId) return; // 已重置
+                try {
+                    const res = await fetch('/api/autogen/task/' + taskId);
+                    const task = await res.json();
+                    if (task.status === 1) {
+                        percent.textContent = '25%'; progress.style.width = '25%';
+                        status.textContent = '分析中...';
+                        addLog('Phase 1: 需求分析与测试规划中...', 'phase1');
+                    } else if (task.status === 2) {
+                        const elapsed = (i + 1) * 5;
+                        percent.textContent = Math.min(90, Math.round(elapsed / 180 * 100)) + '%';
+                        progress.style.width = Math.min(90, Math.round(elapsed / 180 * 100)) + '%';
+                        status.textContent = '生成中...（' + elapsed + '秒）';
+                        if (i % 3 === 0) addLog('  LLM 调用中，请稍候...', 'phase1');
+                    } else if (task.status === 3) {
+                        percent.textContent = '100%'; progress.style.width = '100%';
+                        status.textContent = '完成';
+                        addLog('✅ 生成完成！', 'done');
+                        if (task.cases_generated) addLog('生成用例数: ' + task.cases_generated, 'done');
+                        _autogenTaskId = null;
+                        return;
+                    } else if (task.status === 4) {
+                        addLog('❌ 任务失败: ' + (task.error || '未知错误'), 'error');
+                        status.textContent = '失败';
+                        _autogenTaskId = null;
+                        return;
+                    }
+                } catch (e) {
+                    addLog('轮询失败: ' + e.message, 'error');
+                    break;
+                }
+            }
+            addLog('⏱️ 运行超过3分钟，任务仍在后台执行中...', 'warning');
+            status.textContent = '后台运行中...';
+            // 继续后台轮询，完成后通知用户
+            const bgTaskId = _autogenTaskId;
+            if (bgTaskId) {
+                addLog('💡 结果将在完成后自动通知，请保持页面开启', 'info');
+                _continueBgPoll(bgTaskId, progress, status, percent, log);
+            }
+        }
+
+        async function _continueBgPoll(taskId, progress, status, percent, log) {
+            for (let i = 0; i < 60; i++) {
+                await new Promise(r => setTimeout(r, 10000));
+                try {
+                    const res = await fetch('/api/autogen/task/' + taskId);
+                    const task = await res.json();
+                    if (task.status === 2) {
+                        progress.style.width = '100%'; percent.textContent = '100%';
+                        status.textContent = '完成';
+                        addLog('✅ 后台任务完成！生成用例数: ' + (task.cases_generated || 0), 'done');
+                        loadCases(casesPage);
+                        _autogenTaskId = null;
+                        return;
+                    } else if (task.status === 3) {
+                        status.textContent = '失败';
+                        addLog('❌ 后台任务失败: ' + (task.error || '未知错误'), 'error');
+                        _autogenTaskId = null;
+                        return;
+                    }
+                } catch(e) { break; }
+            }
+            addLog('⏳ 后台轮询超时，请切换页面后刷新查看结果', 'warning');
+            _autogenTaskId = null;
+        }
+
+        async function startPhase1() {
+            const reqId = document.getElementById('autogen-req-select').value;
+            if (!reqId) { showToast('请选择需求', 'info'); return; }
             const progress = document.getElementById('autogen-progress');
             const status = document.getElementById('autogen-status');
             const percent = document.getElementById('autogen-percent');
             const log = document.getElementById('autogen-log');
-            
-            progress.style.width = '0%';
+            progress.style.width = '0%'; percent.textContent = '0%'; log.innerHTML = '';
             status.textContent = 'Phase 1 启动...';
-            percent.textContent = '0%';
-            log.innerHTML = '';
-            
-            addLog('Phase 1 启动（分析+策略）', 'phase1');
-            setTimeout(() => { progress.style.width = '50%'; percent.textContent = '50%'; status.textContent = '分析中...'; addLog('Analyst: 需求解析中...', 'phase1'); }, 500);
-            setTimeout(() => { progress.style.width = '100%'; percent.textContent = '100%'; status.textContent = 'Phase 1 完成'; addLog('Designer: 测试规划完成，等待确认', 'phase1'); }, 2000);
+            addLog('🔄 提交 Phase 1（分析+策略）...', 'phase1');
+            try {
+                const res = await fetch('/api/autogen/phase1', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirement_id: parseInt(reqId) })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                _autogenPhase1TaskId = data.task_id;
+                addLog('Phase 1 任务已提交，task_id=' + data.task_id, 'phase1');
+                addLog('正在分析中，完成后将提示继续 Phase 2', 'info');
+                status.textContent = '分析中...';
+                percent.textContent = '30%';
+                progress.style.width = '30%';
+                // 轮询 Phase 1 进度，完成后显示 Phase 2 按钮
+                pollPhase1Status(data.task_id, progress, status, percent, log);
+            } catch (e) {
+                addLog('❌ Phase 1 失败: ' + e.message, 'error');
+                status.textContent = '失败';
+            }
+        }
+
+        async function pollPhase1Status(taskId, progress, status, percent, log) {
+            for (let i = 0; i < 36; i++) {
+                await new Promise(r => setTimeout(r, 5000));
+                try {
+                    const res = await fetch('/api/autogen/task/' + taskId);
+                    const task = await res.json();
+                    // 兼容两种完成条件：status=2 或 phase=phase1_done
+                    if (task.phase === 'phase1_done') {
+                        percent.textContent = '50%';
+                        status.textContent = 'Phase 1 完成';
+                        progress.style.width = '50%';
+                        log.innerHTML += `<div class="log-line"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-phase1">✅ Phase 1 完成，等待人工评审</span></div>`;
+                        log.scrollTop = log.scrollHeight;
+                        const btn = document.getElementById('autogen-phase2-btn');
+                        if (btn) btn.disabled = false;
+                        return;
+                    } else if (task.status === 1) {
+                        percent.textContent = '30%';
+                        status.textContent = '分析中...';
+                        addLog('  LLM 分析中，请稍候...', 'phase1');
+                    } else if (task.status === 3) {
+                        percent.textContent = '100%';
+                        status.textContent = '失败';
+                        progress.style.width = '100%';
+                        addLog('❌ Phase 1 失败: ' + (task.error_message || task.error || '未知错误'), 'error');
+                        _autogenPhase1TaskId = null;
+                        return;
+                    }
+                } catch(e) { break; }
+            }
+            addLog('⏱️ Phase 1 超时，请切换到需求管理页面查看状态', 'warning');
+        }
+
+        async function startAutoGenPhase2() {
+            const taskId = _autogenPhase1TaskId;
+            if (!taskId) { showToast('请先执行 Phase 1', 'info'); return; }
+            const progress = document.getElementById('autogen-progress');
+            const status = document.getElementById('autogen-status');
+            const percent = document.getElementById('autogen-percent');
+            const log = document.getElementById('autogen-log');
+            status.textContent = 'Phase 2 启动...';
+            addLog('📝 Phase 2：生成测试用例...', 'phase2');
+            try {
+                const res = await fetch('/api/autogen/phase2/' + taskId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                _autogenTaskId = data.task_id || taskId;
+                addLog('Phase 2 已启动，task_id=' + _autogenTaskId, 'phase2');
+                status.textContent = '生成中...';
+                percent.textContent = '60%';
+                progress.style.width = '60%';
+                // 轮询 Phase 2 进度
+                pollAutogenStatus(_autogenTaskId, log, progress, status, percent);
+            } catch (e) {
+                addLog('❌ Phase 2 失败: ' + e.message, 'error');
+                status.textContent = '失败';
+            }
         }
 
         function addLog(message, type) {
@@ -1183,61 +1536,294 @@
             log.scrollTop = log.scrollHeight;
         }
 
-        function startLangGraph() {
+        async function startLangGraph() {
             const reqId = document.getElementById('lg-req-select').value;
-            if (!reqId) {
-                alert('请选择需求');
-                return;
+            if (!reqId) { showToast('请选择需求', 'info'); return; }
+            _lgCurrentReqId = parseInt(reqId);
+            resetLGNodes();
+            const resultEl = document.getElementById('lg-result');
+            resultEl.innerHTML = '<div class="empty-state">生成中...</div>';
+            document.getElementById('lg-start').classList.add('active');
+            try {
+                const res = await fetch('/api/langgraph/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirement_id: _lgCurrentReqId })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                const taskId = data.task_id;
+                addLog('🚀 LangGraph 任务已提交，task_id=' + taskId, 'phase1');
+                await pollLangGraphStatus(taskId, resultEl);
+            } catch (e) {
+                resultEl.innerHTML = `<div style="padding: 16px; color: var(--danger);">❌ 生成失败: ${e.message}</div>`;
             }
-            simulateLangGraph();
         }
 
-        function startLGPhase1() {
+        async function pollLangGraphStatus(taskId, resultEl) {
+            const maxPolls = 30;
+            for (let i = 0; i < maxPolls; i++) {
+                await new Promise(r => setTimeout(r, 5000));
+                try {
+                    const res = await fetch('/api/langgraph/task/' + taskId);
+                    const task = await res.json();
+                    if (task.status === 1) {
+                        addLog('Phase 1: 分析中...', 'phase1');
+                        if (i % 3 === 0) addLog('  LLM 调用中，请稍候...', 'phase1');
+                    } else if (task.status === 2) {
+                        addLog('Phase 2: 生成用例中...', 'phase2');
+                    } else if (task.status === 3) {
+                        addLog('✅ 生成完成！', 'done');
+                        const cases = task.cases_generated || 0;
+                        const duration = task.duration_seconds || '?';
+                        // 保存结果供预览和入库使用
+                        _lgPhase1Result = { case_count: cases, duration_seconds: duration };
+                        resultEl.innerHTML = `
+                            <div style="padding: 16px;">
+                                <h3 style="color: var(--success); margin-bottom: 12px;">✅ 生成完成</h3>
+                                <p><strong>用例数量:</strong> ${cases} 条</p>
+                                <p><strong>耗时:</strong> ${duration} 秒</p>
+                                <div style="margin-top: 16px;display:flex;gap:8px;">
+                                    <button class="btn btn-primary" onclick="showLGCasesPreview()">预览用例</button>
+                                    <button class="btn btn-success" onclick="confirmSaveLG(${_lgCurrentReqId})">确认入库</button>
+                                </div>
+                            </div>`;
+                        loadCases(casesPage);
+                        return;
+                    } else if (task.status === 4) {
+                        addLog('❌ 生成失败: ' + (task.error || '未知错误'), 'error');
+                        resultEl.innerHTML = `<div style="padding: 16px; color: var(--danger);">❌ 生成失败: ${task.error || '未知错误'}</div>`;
+                        return;
+                    }
+                } catch (e) {
+                    addLog('轮询失败: ' + e.message, 'error');
+                    break;
+                }
+            }
+            addLog('⏱️ 超时，请稍后查看结果', 'warning');
+        }
+
+        async function startLGPhase1() {
             const reqId = document.getElementById('lg-req-select').value;
-            if (!reqId) {
-                alert('请选择需求');
-                return;
+            if (!reqId) { showToast('请选择需求', 'info'); return; }
+            _lgCurrentReqId = parseInt(reqId);
+            resetLGNodes();
+            const resultEl = document.getElementById('lg-result');
+            resultEl.innerHTML = '<div class="empty-state">🧠 六维度需求评审分析中...</div>';
+            document.getElementById('lg-start').classList.add('active');
+            try {
+                const res = await fetch('/api/langgraph/phase1', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirement_id: _lgCurrentReqId })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                const taskId = data.task_id;
+                _lgPhase1Result = { task_id: taskId, status: 'running' };
+                addLog('🧠 Phase 1 任务已提交，task_id=' + taskId, 'phase1');
+                addLog('正在并行评审中（6个专家视角），请稍候...', 'info');
+                // 轮询 Phase 1 完成状态
+                await pollLGPhase1Status(taskId, resultEl);
+            } catch (e) {
+                resultEl.innerHTML = `<div style="padding: 16px; color: var(--danger);">❌ Phase 1 失败: ${e.message}</div>`;
             }
-            simulateLGPhase1();
         }
 
-        function simulateLangGraph() {
-            resetLGNodes();
-            document.getElementById('lg-start').classList.add('active');
-            setTimeout(() => { document.getElementById('lg-start').classList.add('done'); document.getElementById('lg-start').classList.remove('active'); document.getElementById('lg-orchestrator').classList.add('active'); }, 300);
-            setTimeout(() => { document.getElementById('lg-orchestrator').classList.add('done'); document.getElementById('lg-orchestrator').classList.remove('active'); document.getElementById('lg-analyst').classList.add('active'); }, 800);
-            setTimeout(() => { document.getElementById('lg-analyst').classList.add('done'); document.getElementById('lg-analyst').classList.remove('active'); document.getElementById('lg-designer').classList.add('active'); }, 1500);
-            setTimeout(() => { document.getElementById('lg-designer').classList.add('done'); document.getElementById('lg-designer').classList.remove('active'); document.getElementById('lg-generator').classList.add('active'); }, 2200);
-            setTimeout(() => { document.getElementById('lg-generator').classList.add('done'); document.getElementById('lg-generator').classList.remove('active'); document.getElementById('lg-reviewer').classList.add('active'); }, 2900);
-            setTimeout(() => { document.getElementById('lg-reviewer').classList.add('done'); document.getElementById('lg-reviewer').classList.remove('active'); document.getElementById('lg-end').classList.add('active'); }, 3600);
-            setTimeout(() => {
-                document.getElementById('lg-result').innerHTML = `
-                    <div style="padding: 20px;">
-                        <h3 style="color: var(--success); margin-bottom: 15px;">✅ 生成完成</h3>
-                        <p><strong>用例数量:</strong> 9条</p>
-                        <p><strong>评审结果:</strong> APPROVED</p>
-                        <p><strong>耗时:</strong> 约4秒</p>
-                    </div>
-                `;
-            }, 4000);
+        async function pollLGPhase1Status(taskId, resultEl) {
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 5000));
+                try {
+                    const res = await fetch('/api/langgraph/task/' + taskId);
+                    const task = await res.json();
+                    if (task.status === 1) {
+                        addLog('  LLM 分析中，请稍候...', 'phase1');
+                    } else if (task.status === 3) {
+                        // Phase 1 完成
+                        _lgPhase1Result = task;
+                        document.getElementById('lg-review-agent').classList.add('done');
+                        document.getElementById('lg-review-agent').classList.remove('active');
+                        document.getElementById('lg-orchestrator').classList.add('active');
+                        setTimeout(() => {
+                            document.getElementById('lg-orchestrator').classList.add('done');
+                            document.getElementById('lg-orchestrator').classList.remove('active');
+                            document.getElementById('lg-analyst').classList.add('active');
+                        }, 600);
+                        setTimeout(() => {
+                            document.getElementById('lg-analyst').classList.add('done');
+                            document.getElementById('lg-analyst').classList.remove('active');
+                            document.getElementById('lg-designer').classList.add('active');
+                        }, 1200);
+                        setTimeout(() => {
+                            document.getElementById('lg-designer').classList.add('done');
+                            document.getElementById('lg-phase2-btn').disabled = false;
+                            const reviewHtml = task.requirement_review_output || '';
+                            if (reviewHtml) {
+                                const styleEl = document.createElement('style');
+                                const styles = reviewHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+                                if (styles) { styleEl.textContent = styles[1]; document.head.appendChild(styleEl); }
+                                resultEl.innerHTML = '';
+                                const wrap = document.createElement('div');
+                                wrap.innerHTML = reviewHtml;
+                                const content = wrap.querySelector('.wrap');
+                                if (content) {
+                                    while (content.firstChild) resultEl.appendChild(content.firstChild);
+                                }
+                                const btnBar = document.createElement('div');
+                                btnBar.style.cssText = 'margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;';
+                                btnBar.innerHTML = `
+                                    <button class="btn btn-primary" onclick="startLGPhase2()">→ 继续 Phase 2 生成用例</button>
+                                    <button class="btn btn-secondary" onclick="downloadReviewReport()">💾 下载报告</button>
+                                    <button class="btn btn-secondary" onclick="printReviewReport()">🖨️ 打印报告</button>`;
+                                resultEl.appendChild(btnBar);
+                            } else {
+                                resultEl.innerHTML = `<div style="padding:16px;"><p><strong>分析完成</strong></p><p style="margin-top:8px;"><button class="btn btn-primary" onclick="startLGPhase2()">→ 继续 Phase 2 生成用例</button></p></div>`;
+                            }
+                        }, 1800);
+                        return;
+                    } else if (task.status === 4) {
+                        addLog('❌ Phase 1 失败: ' + (task.error_message || '未知错误'), 'error');
+                        resultEl.innerHTML = `<div style="padding: 16px; color: var(--danger);">❌ Phase 1 失败: ${task.error_message || '未知错误'}</div>`;
+                        return;
+                    }
+                } catch(e) { break; }
+            }
+            addLog('⏱️ Phase 1 超时，请切换页面后刷新查看结果', 'warning');
         }
 
-        function simulateLGPhase1() {
+        function downloadReviewReport() {
+            const html = _lgPhase1Result?.requirement_review_output || '';
+            if (!html) { showToast('暂无报告可下载', 'info'); return; }
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = '需求评审报告.html'; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function printReviewReport() {
+            const html = _lgPhase1Result?.requirement_review_output || '';
+            if (!html) { showToast('暂无报告可打印', 'info'); return; }
+            const w = window.open('', '_blank');
+            w.document.write(html);
+            w.document.close();
+            w.print();
+        }
+
+        async function startLGPhase2() {
+            if (!_lgCurrentReqId) { showToast('请先执行 Phase 1', 'info'); return; }
             resetLGNodes();
-            document.getElementById('lg-start').classList.add('active');
-            setTimeout(() => { document.getElementById('lg-start').classList.add('done'); document.getElementById('lg-start').classList.remove('active'); document.getElementById('lg-orchestrator').classList.add('active'); }, 300);
-            setTimeout(() => { document.getElementById('lg-orchestrator').classList.add('done'); document.getElementById('lg-orchestrator').classList.remove('active'); document.getElementById('lg-analyst').classList.add('active'); }, 800);
-            setTimeout(() => { document.getElementById('lg-analyst').classList.add('done'); document.getElementById('lg-analyst').classList.remove('active'); document.getElementById('lg-designer').classList.add('active'); }, 1500);
-            setTimeout(() => { document.getElementById('lg-designer').classList.add('done'); document.getElementById('lg-designer').classList.remove('active'); }, 2200);
-            setTimeout(() => {
-                document.getElementById('lg-phase2-btn').disabled = false;
-                document.getElementById('lg-result').innerHTML = `
-                    <div style="padding: 20px;">
-                        <h3 style="color: var(--primary); margin-bottom: 15px;">🔄 Phase 1 完成</h3>
-                        <p>需求分析和测试规划已完成，请点击"Phase 2"继续生成用例</p>
-                    </div>
-                `;
-            }, 2500);
+            const resultEl = document.getElementById('lg-result');
+            resultEl.innerHTML = '<div class="empty-state">生成中...</div>';
+            document.getElementById('lg-generator').classList.add('active');
+            try {
+                const res = await fetch(`/api/langgraph/phase2/${_lgCurrentReqId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ edited_data: _lgPhase1Result || {} })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '请求失败');
+                }
+                const data = await res.json();
+                // 保存 Phase 2 结果，供预览和入库使用
+                _lgPhase1Result = data;
+                // 动画
+                setTimeout(() => { document.getElementById('lg-generator').classList.add('done'); document.getElementById('lg-generator').classList.remove('active'); document.getElementById('lg-reviewer').classList.add('active'); }, 800);
+                setTimeout(() => { document.getElementById('lg-reviewer').classList.add('done'); document.getElementById('lg-reviewer').classList.remove('active'); document.getElementById('lg-end').classList.add('active'); }, 1600);
+                setTimeout(() => {
+                    const cases = data.cases_preview || [];
+                    resultEl.innerHTML = `
+                        <div style="padding: 16px;">
+                            <h3 style="color: var(--success); margin-bottom: 12px;">✅ Phase 2 完成</h3>
+                            <p><strong>用例数量:</strong> ${cases.length} 条</p>
+                            <p><strong>评审结果:</strong> ${data.review_decision || 'APPROVED'}</p>
+                            <div style="margin-top: 16px;">
+                                <button class="btn btn-primary" onclick="showLGCasesPreview()">预览用例</button>
+                                <button class="btn btn-success" onclick="confirmSaveLG(${_lgCurrentReqId})" style="margin-left:8px;">确认入库</button>
+                            </div>
+                        </div>`;
+                }, 2200);
+            } catch (e) {
+                resultEl.innerHTML = `<div style="padding: 16px; color: var(--danger);">❌ Phase 2 失败: ${e.message}</div>`;
+            }
+        }
+
+        async function showLGCasesPreview() {
+            const modal = document.getElementById('lg-cases-modal');
+            const titleEl = document.getElementById('lg-cases-modal-title');
+            const listEl = document.getElementById('lg-cases-modal-body');
+            listEl.innerHTML = '<div class="empty-state">加载中...</div>';
+            const reqId = _lgCurrentReqId;
+            if (!reqId) { showToast('请先选择需求', 'info'); return; }
+            // 优先使用内存中的生成结果（精确条数），否则从DB拉取
+            let cases = [];
+            let total = 0;
+            if (_lgPhase1Result && _lgPhase1Result.cases_preview && _lgPhase1Result.cases_preview.length > 0) {
+                cases = _lgPhase1Result.cases_preview;
+                total = cases.length;
+            } else {
+                try {
+                    const res = await fetch(`/api/cases?requirement_id=${reqId}&limit=200`);
+                    const data = await res.json();
+                    cases = data.items || [];
+                    total = data.total || 0;
+                } catch(e) {
+                    listEl.innerHTML = '<div class="empty-state">加载失败: ' + e.message + '</div>';
+                    modal.classList.add('active');
+                    return;
+                }
+            }
+            try {
+                titleEl.textContent = '📋 生成用例预览（共 ' + total + ' 条）';
+                listEl.innerHTML = cases.length === 0
+                    ? '<div class="empty-state">暂无用例，请先生成</div>'
+                    : cases.map((c, i) => `
+                        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
+                            <div style="font-weight:600;margin-bottom:4px;">${i+1}. ${c.title || c.name || '未命名用例'}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">
+                                模块: ${c.module || '-'} | 优先级: ${c.priority || 'P2'}
+                            </div>
+                        </div>
+                    `).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div class="empty-state">加载失败: ' + e.message + '</div>';
+            }
+            modal.classList.add('active');
+        }
+
+        async function confirmSaveLG(requirementId) {
+            const reqId = requirementId || _lgCurrentReqId;
+            if (!reqId) { showToast('请先选择需求', 'info'); return; }
+            // Phase 2 已经自动入库，直接提示成功即可
+            const cases = _lgPhase1Result?.cases_preview || [];
+            if (cases.length === 0) {
+                // 回退：从数据库查询
+                try {
+                    const res = await fetch(`/api/cases?requirement_id=${reqId}&limit=100`);
+                    const data = await res.json();
+                    const dbCases = data.items || [];
+                    if (dbCases.length === 0) {
+                        showToast('暂无可入库的用例，请先生成', 'info');
+                        return;
+                    }
+                    showToast(`✅ 已入库 ${dbCases.length} 条用例`, 'success');
+                    loadCases(casesPage);
+                    return;
+                } catch(e) {
+                    showToast('查询失败: ' + e.message, 'error');
+                    return;
+                }
+            }
+            showToast(`✅ 已入库 ${cases.length} 条用例`, 'success');
+            loadCases(casesPage);
         }
 
         function resetLGNodes() {
@@ -1246,37 +1832,27 @@
             });
         }
 
-        function startLGPhase2() {
-            document.getElementById('lg-designer').classList.add('active');
-            setTimeout(() => { document.getElementById('lg-designer').classList.add('done'); document.getElementById('lg-designer').classList.remove('active'); document.getElementById('lg-generator').classList.add('active'); }, 500);
-            setTimeout(() => { document.getElementById('lg-generator').classList.add('done'); document.getElementById('lg-generator').classList.remove('active'); document.getElementById('lg-reviewer').classList.add('active'); }, 1200);
-            setTimeout(() => { document.getElementById('lg-reviewer').classList.add('done'); document.getElementById('lg-reviewer').classList.remove('active'); document.getElementById('lg-end').classList.add('active'); }, 1900);
-            setTimeout(() => {
-                document.getElementById('lg-result').innerHTML = `
-                    <div style="padding: 20px;">
-                        <h3 style="color: var(--success); margin-bottom: 15px;">✅ Phase 2 完成</h3>
-                        <p><strong>用例数量:</strong> 9条</p>
-                        <p><strong>评审结果:</strong> APPROVED</p>
-                    </div>
-                `;
-            }, 2200);
-        }
+        let llmConfigs = [];
 
         async function loadLLMConfigs() {
             try {
                 const res = await fetch('/api/llm-configs');
                 const data = await res.json();
-                const configs = data.configs || [];
+                llmConfigs = data.configs || [];
                 
-                document.getElementById('llm-configs-table').innerHTML = configs.map(c => `
+                document.getElementById('llm-configs-table').innerHTML = llmConfigs.map(c => `
                     <tr>
-                        <td>${c.name}</td>
+                        <td>${c.name} ${c.is_default ? '<span class="badge badge-default">默认</span>' : ''}</td>
                         <td>${c.provider}</td>
                         <td>${c.model_id}</td>
                         <td><span class="badge ${c.is_active ? 'badge-approved' : 'badge-pending'}">${c.is_active ? '启用' : '禁用'}</span></td>
                         <td>
+                            ${c.is_default ? '<span style="color: var(--warning);">★</span>' : `<button class="action-btn" onclick="setDefaultLLM(${c.id})">设为默认</button>`}
+                        </td>
+                        <td>
                             <div class="action-btns">
-                                <button class="action-btn" onclick="testLLMConfig(${c.id})">测试</button>
+                                <button class="action-btn" onclick="testLLMConfig(${c.id}, this)">测试</button>
+                                <button class="action-btn" onclick="editLLMConfig(${c.id})">编辑</button>
                                 <button class="action-btn" onclick="deleteLLMConfig(${c.id})">删除</button>
                             </div>
                         </td>
@@ -1287,11 +1863,36 @@
             }
         }
 
+        let editingLLMConfigId = null;
+
         function showAddLLMConfigModal() {
+            editingLLMConfigId = null;
+            document.getElementById('llm-modal-title').textContent = '添加LLM配置';
+            document.getElementById('llm-name').value = '';
+            document.getElementById('llm-provider').value = 'openai';
+            document.getElementById('llm-url').value = '';
+            document.getElementById('llm-key').value = '';
+            document.getElementById('llm-model').value = '';
             document.getElementById('add-llm-config-modal').classList.add('active');
         }
 
-        async function addLLMConfig() {
+        function editLLMConfig(id) {
+            const config = llmConfigs.find(c => c.id === id);
+            if (!config) {
+                showToast('未找到该配置', 'error');
+                return;
+            }
+            editingLLMConfigId = id;
+            document.getElementById('llm-modal-title').textContent = '编辑LLM配置';
+            document.getElementById('llm-name').value = config.name || '';
+            document.getElementById('llm-provider').value = config.provider || 'openai';
+            document.getElementById('llm-url').value = config.base_url || '';
+            document.getElementById('llm-key').value = config.api_key || '';
+            document.getElementById('llm-model').value = config.model_id || config.model || '';
+            document.getElementById('add-llm-config-modal').classList.add('active');
+        }
+
+        async function saveLLMConfig() {
             const name = document.getElementById('llm-name').value;
             const provider = document.getElementById('llm-provider').value;
             const url = document.getElementById('llm-url').value;
@@ -1299,25 +1900,112 @@
             const model = document.getElementById('llm-model').value;
             
             if (!name || !provider || !url || !key || !model) {
-                alert('请填写完整信息');
+                showToast('请填写完整信息', 'info');
                 return;
             }
 
+            const isEditing = editingLLMConfigId !== null;
+            const urlPath = isEditing ? `/api/llm-configs/${editingLLMConfigId}` : '/api/llm-configs';
+            const method = isEditing ? 'PATCH' : 'POST';
+
             try {
-                const res = await fetch('/api/llm-configs', {
-                    method: 'POST',
+                const res = await fetch(urlPath, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, provider, base_url: url, api_key: key, model_id: model })
                 });
                 
                 if (res.ok) {
-                    alert('配置添加成功');
+                    showToast(isEditing ? '配置更新成功' : '配置添加成功', 'success');
                     closeModal('add-llm-config-modal');
+                    editingLLMConfigId = null;
                     loadLLMConfigs();
+                } else {
+                    const data = await res.json();
+                    showToast('保存失败: ' + (data.error || '未知错误'), 'error');
                 }
             } catch (e) {
-                alert('添加失败');
+                showToast('保存失败: ' + e.message, 'error');
             }
+        }
+
+        async function testLLMConfig(id, btn) {
+            const originalHTML = btn ? btn.innerHTML : null;
+            const originalDisabled = btn ? btn.disabled : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>';
+            }
+            try {
+                const listRes = await fetch('/api/llm-configs');
+                const listData = await listRes.json();
+                const config = (listData.configs || []).find(c => c.id === id);
+                if (!config) {
+                    showToast('未找到该配置', 'error');
+                    return;
+                }
+                const res = await fetch('/api/llm-configs/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: config.provider,
+                        base_url: config.base_url || '',
+                        api_key: config.api_key || '',
+                        model_id: config.model_id || config.model || ''
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showTestResult(true, '连接成功', (data.response || data.message || ''));
+                } else {
+                    showTestResult(false, '连接失败', (data.error || data.message || '未知错误'));
+                }
+            } catch (e) {
+                showTestResult(false, '连接失败', e.message);
+            } finally {
+                if (btn && originalHTML !== null) {
+                    btn.disabled = originalDisabled;
+                    btn.innerHTML = originalHTML;
+                }
+            }
+        }
+
+        function showTestResult(success, title, message) {
+            document.getElementById('test-result-title').textContent = title;
+            document.getElementById('test-result-message').textContent = message;
+            document.getElementById('test-result-modal').classList.add('active');
+        }
+
+        async function setDefaultLLM(id) {
+            try {
+                const res = await fetch(`/api/llm-configs/${id}/set-default`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('已设为默认配置', 'success');
+                } else {
+                    const data = await res.json();
+                    showToast('设置失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('设置失败: ' + e.message, 'error');
+            }
+            loadLLMConfigs();
+        }
+
+        async function deleteLLMConfig(id) {
+            const confirmed = await showConfirmAsync('确定删除此LLM配置？');
+            if (!confirmed) return;
+            try {
+                const res = await fetch(`/api/llm-configs/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('删除成功', 'success');
+                } else {
+                    const data = await res.json();
+                    showToast('删除失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            }
+            loadLLMConfigs();
         }
 
         function switchConfigTab(index) {
@@ -1328,37 +2016,226 @@
         }
 
         function saveRAGConfig() {
-            alert('RAG配置保存成功');
+            showToast('RAG配置保存成功', 'info');
         }
 
         function saveSystemConfig() {
-            alert('系统配置保存成功');
+            showToast('系统配置保存成功', 'info');
         }
 
-        function viewRequirement(id) {
-            alert(`查看需求 ID: ${id}`);
-        }
-
-        function showUploadDocumentModal() {
-            alert('上传文档功能');
-        }
-
-        function searchRAG() {
-            const query = document.getElementById('rag-search-query').value;
-            document.getElementById('rag-search-results').innerHTML = `<div style="padding: 20px;">搜索关键词: ${query}</div>`;
-        }
-
-        function testLLMConfig(id) {
-            alert(`测试 LLM 配置 ID: ${id}`);
-        }
-
-        function deleteLLMConfig(id) {
-            if (confirm('确定删除此配置？')) {
-                loadLLMConfigs();
+        async function viewRequirement(id) {
+            try {
+                const res = await fetch(`/api/requirements/${id}`);
+                const data = await res.json();
+                document.getElementById('view-req-title').textContent = '需求详情';
+                document.getElementById('view-req-name').value = data.title || '';
+                document.getElementById('view-req-status').value = getStatusText(data.status) + (data.status ? ' (状态码 ' + data.status + ')' : '');
+                document.getElementById('view-req-time').value = data.created_at ? String(data.created_at).substring(0, 19) : '-';
+                document.getElementById('view-req-content').value = data.content || '';
+                document.getElementById('view-requirement-modal').classList.add('active');
+            } catch (e) {
+                showToast('加载需求详情失败: ' + e.message, 'error');
             }
         }
 
+        async function loadRAGDocuments() {
+            const container = document.getElementById('rag-documents-table');
+            container.innerHTML = '<tr><td colspan="5" class="empty-state">加载中...</td></tr>';
+            try {
+                const res = await fetch('/api/rag/list?type=requirements&limit=1000');
+                const data = await res.json();
+                const items = data.items || [];
+                if (items.length === 0) {
+                    container.innerHTML = '<tr><td colspan="5" class="empty-state">暂无文档，请上传文档或从数据库导入</td></tr>';
+                    return;
+                }
+                // 按 original_id 聚合显示（每个原文档一行，显示分片数）
+                const docMap = {};
+                items.forEach(item => {
+                    const oid = item.original_id || item.id;
+                    if (!docMap[oid]) {
+                        docMap[oid] = { id: oid, title: item.metadata?.title || '未命名', type: item.metadata?.source_type || 'requirements', chunks: 0, totalLen: 0 };
+                    }
+                    docMap[oid].chunks++;
+                    docMap[oid].totalLen += item.content ? item.content.length : 0;
+                });
+                const docs = Object.values(docMap);
+                container.innerHTML = docs.map(d => `
+                    <tr>
+                        <td>${d.title}</td>
+                        <td><span class="badge badge-provider">${d.type}</span></td>
+                        <td>${d.totalLen} 字符</td>
+                        <td>${d.chunks > 1 ? '<span class="badge badge-approved">' + d.chunks + ' 片</span>' : '<span class="badge badge-pending">原文</span>'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" onclick="viewRAGDoc('${d.id}')">查看</button>
+                                <button class="action-btn" onclick="deleteRAGDoc('${d.id}', 'requirements')">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<tr><td colspan="5" class="empty-state">加载失败: ' + e.message + '</td></tr>';
+            }
+        }
+
+        async function clearRAG() {
+            const confirmed = await showConfirmAsync('确定清空整个 RAG 仓库？此操作不可恢复。');
+            if (!confirmed) return;
+            try {
+                const res = await fetch('/api/rag/clear-all', { method: 'POST' });
+                if (res.ok) {
+                    showToast('RAG仓库已清空', 'success');
+                    loadRAGDocuments();
+                } else {
+                    const data = await res.json();
+                    showToast('清空失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('清空失败: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteRAGDoc(id, type) {
+            const confirmed = await showConfirmAsync('确定删除该文档？');
+            if (!confirmed) return;
+            try {
+                const res = await fetch('/api/rag/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type === 'requirements' ? 'requirement' : type, id })
+                });
+                if (res.ok) {
+                    showToast('删除成功', 'success');
+                    loadRAGDocuments();
+                } else {
+                    const data = await res.json();
+                    showToast('删除失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            }
+        }
+
+        function showUploadDocumentModal() {
+            showToast('请使用顶部导航"RAG检索"页面进行文档上传', 'info');
+        }
+
+        async function searchRAG() {
+            const query = document.getElementById('rag-search-query').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词', 'info');
+                return;
+            }
+            document.getElementById('rag-search-results').innerHTML = '<div class="empty-state">搜索中...</div>';
+            try {
+                const res = await fetch('/api/rag/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, top_k: 5 })
+                });
+                const data = await res.json();
+                const resultsObj = data.results || data.items || [];
+                let results = Array.isArray(resultsObj) ? resultsObj : [];
+                if (!Array.isArray(resultsObj) && typeof resultsObj === 'object') {
+                    Object.values(resultsObj).forEach(v => {
+                        if (Array.isArray(v)) results = results.concat(v);
+                    });
+                }
+                if (results.length === 0) {
+                    document.getElementById('rag-search-results').innerHTML = '<div class="empty-state">未找到相关结果</div>';
+                    return;
+                }
+                document.getElementById('rag-search-results').innerHTML = results.map((r, i) => `
+                    <div style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">${i + 1}. ${(r.metadata && (r.metadata.title || r.metadata.name)) || r.id}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">${(r.content || '').substring(0, 150)}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('rag-search-results').innerHTML = '<div class="empty-state">搜索失败: ' + e.message + '</div>';
+            }
+        }
+
+        async function viewRAGDoc(originalId) {
+            const modal = document.getElementById('rag-chunk-modal');
+            const titleEl = document.getElementById('rag-chunk-title');
+            const listEl = document.getElementById('rag-chunk-list');
+            listEl.innerHTML = '<div class="empty-state">加载中...</div>';
+            try {
+                const res = await fetch('/api/rag/list?type=requirements&limit=1000');
+                const data = await res.json();
+                const chunks = (data.items || []).filter(
+                    item => (item.original_id || item.id) === originalId
+                );
+                if (chunks.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state">未找到该文档</div>';
+                    return;
+                }
+                const title = chunks[0].metadata?.title || '未命名';
+                titleEl.textContent = title + '（' + chunks.length + ' 个分片）';
+                listEl.innerHTML = chunks
+                    .sort((a, b) => (a.metadata?.chunk_index || 0) - (b.metadata?.chunk_index || 0))
+                    .map((chunk, idx) => {
+                        const meta = chunk.metadata || {};
+                        const isLast = idx === chunks.length - 1;
+                        return `
+                            <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+                                <div style="background:var(--bg-secondary);padding:8px 14px;font-size:12px;color:var(--text-secondary);
+                                    display:flex;justify-content:space-between;align-items:center;">
+                                    <span>📄 分片 ${meta.chunk_index != null ? meta.chunk_index + 1 : idx + 1} / ${meta.total_chunks || chunks.length}</span>
+                                    <span>${chunk.content ? chunk.content.length + ' 字符' : '0 字符'}</span>
+                                </div>
+                                <div style="padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text-primary);">
+                                    ${chunk.content || ''}
+                                </div>
+                            </div>`;
+                    }).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div class="empty-state">加载失败: ' + e.message + '</div>';
+            }
+            modal.classList.add('active');
+        }
+
         loadRequirements();
-    </script>
-</body>
+    
+        let _toastTimer = null;
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; document.body.appendChild(container); }
+            var icons = {success:'&#x2713;', error:'&#x2717;', info:'&#x2139;', warning:'&#x26a0;'};
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() { toast.style.opacity='0'; setTimeout(function(){toast.remove();},200); }, 3000);
+        }
+
+        function showConfirmAsync(message) {
+            return new Promise(function(resolve) {
+                var modal = document.getElementById('confirmModal');
+                var msgEl = document.getElementById('confirmMessage');
+                if (modal && msgEl) {
+                    msgEl.textContent = message;
+                    modal.classList.add('active');
+                    window._confirmResolve = resolve;
+                } else {
+                    resolve(false);
+                }
+            });
+        }
+        function confirmAsyncOk() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(true); }
+        }
+        function confirmAsyncCancel() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(false); }
+        }
+</script>
+<div id="toastContainer"></div></body>
 </html>

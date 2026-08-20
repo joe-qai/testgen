@@ -6,237 +6,218 @@
     <title>TestGen - AI测试用例生成平台</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
-            --neon-cyan: #00f5ff;
-            --neon-pink: #ff00ff;
-            --neon-purple: #b829dd;
-            --neon-green: #00ff88;
-            --dark-bg: #0a0a0f;
-            --dark-sidebar: #08080c;
-            --dark-card: #12121a;
-            --dark-border: #1e1e2e;
-            --text-primary: #e0e0e0;
-            --text-secondary: #888;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-sidebar: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-elevated: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-light: rgba(59, 130, 246, 0.08);
+            --success: #16a34a;
+            --success-light: rgba(22, 163, 74, 0.08);
+            --danger: #dc2626;
+            --danger-light: rgba(220, 38, 38, 0.08);
+            --warning: #d97706;
+            --warning-light: rgba(217, 119, 6, 0.08);
+            --info: #0891b2;
+            --info-light: rgba(8, 145, 178, 0.08);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
-        }
-        
-        /* 扫描线 */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 245, 255, 0.02) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 1000;
+            line-height: 1.5;
         }
         
         .layout {
             display: flex;
             min-height: 100vh;
         }
-        
+
         /* 侧边栏 */
         .sidebar {
-            width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
-            padding: 30px 0;
-            position: relative;
+            width: 240px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
         }
-        
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 1px;
-            height: 100%;
-            background: linear-gradient(180deg, transparent, var(--neon-cyan), transparent);
-            opacity: 0.5;
-        }
-        
+
         .logo {
-            padding: 0 30px 30px;
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
-            letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
-        }
-        
-        .nav-menu {
-            list-style: none;
-            padding: 20px 0;
-        }
-        
-        .nav-item {
-            padding: 16px 30px;
-            cursor: pointer;
-            transition: all 0.3s;
+            padding: 20px 24px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+        }
+
+        .logo span {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            letter-spacing: 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 12px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             color: var(--text-secondary);
-            border-left: 3px solid transparent;
-            position: relative;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            margin-bottom: 2px;
         }
-        
+
         .nav-item:hover {
-            background: rgba(0, 245, 255, 0.05);
-            color: var(--text-primary);
+            background: var(--primary-light);
+            color: var(--primary);
         }
-        
+
         .nav-item.active {
-            background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 500;
         }
-        
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 20px;
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan);
-        }
-        
+
         .nav-icon {
-            width: 24px;
+            width: 20px;
             text-align: center;
-            font-size: 18px;
+            font-size: 16px;
         }
         
         /* 主内容 */
         .main-content {
             flex: 1;
-            padding: 40px;
+            margin-left: 240px;
+            padding: 32px;
             overflow-y: auto;
+            background: var(--bg-secondary);
+            min-height: 100vh;
         }
-        
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            position: relative;
-            z-index: 10;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
         }
 
         .header-actions {
             display: flex;
-            gap: 10px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .header-actions > * {
-            position: relative;
-            z-index: 11;
+            gap: 8px;
         }
 
         .header h1 {
-            font-size: 32px;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
-            letter-spacing: 2px;
-        }
-
-        .header h1::before {
-            content: '// ';
-            color: var(--neon-pink);
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            position: relative;
-            z-index: 12;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
         }
-        
+
         .btn-primary {
-            background: transparent;
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+            background: var(--primary);
+            color: #ffffff;
         }
-        
+
         .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
-            box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+            background: var(--primary-hover);
         }
-        
+
         .btn-secondary {
-            background: transparent;
+            background: var(--bg-card);
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
-        
+
         .btn-secondary:hover {
-            border-color: var(--neon-pink);
-            color: var(--neon-pink);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+            background: var(--bg-elevated);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-light);
+            border-color: var(--danger);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
         }
         
         /* 卡片 */
         .card {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
-            opacity: 0.5;
-        }
-        
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
             margin-bottom: 24px;
-            color: var(--text-primary);
-            letter-spacing: 1px;
+            box-shadow: var(--shadow-sm);
         }
-        
-        .card-title::after {
-            content: '';
-            display: block;
-            width: 40px;
-            height: 2px;
-            background: var(--neon-cyan);
-            margin-top: 8px;
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
         }
         
         /* 表格 */
@@ -244,85 +225,76 @@
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .data-table th {
-            padding: 16px;
+            padding: 12px 16px;
             text-align: left;
             font-weight: 600;
-            color: var(--neon-cyan);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid var(--dark-border);
-        }
-        
-        .data-table td {
-            padding: 16px;
-            border-bottom: 1px solid var(--dark-border);
             color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: none;
+            letter-spacing: 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
         }
-        
-        .data-table tr:hover td {
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
             color: var(--text-primary);
-            background: rgba(0, 245, 255, 0.03);
+            font-size: 14px;
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg-secondary);
         }
         
         .status-badge {
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 1px solid;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
         }
-        
+
         .status-1, .status-pending_analysis {
-            background: rgba(255, 193, 7, 0.1);
-            color: #ffc107;
-            border-color: rgba(255, 193, 7, 0.3);
+            background: var(--warning-light);
+            color: var(--warning);
         }
-        
+
         .status-2, .status-completed-task {
-            background: rgba(0, 255, 136, 0.1);
-            color: #00ff88;
-            border-color: rgba(0, 255, 136, 0.3);
+            background: var(--info-light);
+            color: var(--info);
         }
-        
+
         .status-3, .status-failed-task {
-            background: rgba(255, 0, 85, 0.1);
-            color: #ff0055;
-            border-color: rgba(255, 0, 85, 0.3);
+            background: var(--danger-light);
+            color: var(--danger);
         }
-        
+
         .status-4, .status-cancelled {
-            background: rgba(255, 170, 0, 0.1);
-            color: #ffaa00;
-            border-color: rgba(255, 170, 0, 0.3);
+            background: rgba(107, 114, 128, 0.08);
+            color: #6b7280;
         }
-        
+
         .status-5, .status-completed {
-            background: rgba(0, 255, 136, 0.1);
-            color: var(--neon-green);
-            border-color: rgba(0, 255, 136, 0.3);
+            background: var(--success-light);
+            color: var(--success);
         }
-        
+
         .status-6, .status-failed {
-            background: rgba(255, 0, 85, 0.1);
-            color: #ff0055;
-            border-color: rgba(255, 0, 85, 0.3);
+            background: var(--danger-light);
+            color: var(--danger);
         }
-        
-        .status-7, .status-cancelled {
-            background: rgba(255, 170, 0, 0.1);
-            color: #ffaa00;
-            border-color: rgba(255, 170, 0, 0.3);
+
+        .status-7, .status-cancelled-alt {
+            background: rgba(107, 114, 128, 0.08);
+            color: #6b7280;
         }
-        
+
         .status-pending_review {
-            background: rgba(210, 153, 34, 0.1);
-            color: #d29922;
-            border-color: rgba(210, 153, 34, 0.3);
+            background: var(--warning-light);
+            color: var(--warning);
         }
         
         @keyframes pulse {
@@ -337,7 +309,7 @@
         
         .action-btn {
             padding: 6px 12px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             background: transparent;
             border-radius: 4px;
             cursor: pointer;
@@ -347,14 +319,14 @@
         }
         
         .action-btn:hover {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
         }
         
         .action-btn.generate:hover {
-            border-color: var(--neon-green);
-            color: var(--neon-green);
+            border-color: var(--success);
+            color: var(--success);
             box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
         }
         
@@ -368,7 +340,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 0;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
         }
         
         .pagination-left {
@@ -381,8 +353,8 @@
         
         .page-size-select {
             padding: 8px 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
             font-size: 13px;
@@ -391,12 +363,12 @@
         }
         
         .page-size-select:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .page-size-select:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -416,7 +388,7 @@
         
         .page-btn {
             padding: 8px 14px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             background: transparent;
             color: var(--text-secondary);
             cursor: pointer;
@@ -428,14 +400,14 @@
         }
         
         .page-btn:hover:not(.disabled) {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
         }
         
         .page-btn.active {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
-            border-color: var(--neon-cyan);
+            background: var(--primary);
+            color: var(--bg-secondary);
+            border-color: var(--primary);
             box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
         }
         
@@ -452,8 +424,8 @@
         .page-jump-input {
             width: 60px;
             padding: 8px 10px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
             font-size: 13px;
@@ -464,7 +436,7 @@
         
         .page-jump-input:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -484,7 +456,7 @@
             display: block;
             margin-bottom: 10px;
             font-weight: 500;
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -493,7 +465,7 @@
         /* 评审结果面板 */
         .review-info-panel {
             background: rgba(0, 255, 136, 0.08);
-            border: 1px solid var(--neon-green);
+            border: 1px solid var(--success);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 16px;
@@ -502,7 +474,7 @@
         .review-score {
             font-size: 18px;
             font-weight: bold;
-            color: var(--neon-green);
+            color: var(--success);
             margin-bottom: 8px;
         }
         
@@ -515,8 +487,8 @@
         .form-control {
             width: 100%;
             padding: 14px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
             color: var(--text-primary);
@@ -525,7 +497,7 @@
         
         .form-control:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
         }
         
@@ -555,8 +527,8 @@
         }
         
         .modal-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 700px;
@@ -572,19 +544,19 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
         }
         
         .modal-header {
             padding: 24px 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .modal-header h3 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 20px;
             letter-spacing: 2px;
         }
@@ -595,7 +567,7 @@
         
         .modal-footer {
             padding: 20px 30px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -611,7 +583,7 @@
         }
         
         .close-btn:hover {
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         /* 进度条 */
@@ -621,15 +593,15 @@
         
         .progress-bar {
             height: 8px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 4px;
             overflow: hidden;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
             transition: width 0.3s;
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
         }
@@ -643,9 +615,9 @@
         
         .info-item {
             padding: 12px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 8px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .info-label {
@@ -657,7 +629,7 @@
         
         .info-value {
             font-size: 14px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             margin-top: 4px;
             font-family: monospace;
         }
@@ -667,7 +639,7 @@
             margin: 20px 0;
             padding: 20px;
             background: rgba(0, 245, 255, 0.05);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             border-radius: 8px;
         }
         
@@ -684,21 +656,21 @@
             flex-direction: column;
             align-items: center;
             padding: 15px;
-            background: var(--dark-card);
-            border: 2px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 2px solid var(--border);
             border-radius: 12px;
             min-width: 120px;
             transition: all 0.3s;
         }
         
         .workflow-step.active {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
             animation: pulse 1.5s infinite;
         }
         
         .workflow-step.completed {
-            border-color: var(--neon-green);
+            border-color: var(--success);
             box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
         }
         
@@ -726,11 +698,11 @@
         }
         
         .workflow-step.active .step-status {
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
         
         .workflow-step.completed .step-status {
-            color: var(--neon-green);
+            color: var(--success);
         }
         
         .workflow-step.error .step-status {
@@ -752,8 +724,8 @@
             position: fixed;
             top: 100px;
             right: 30px;
-            background: var(--dark-card);
-            border: 2px solid var(--neon-green);
+            background: var(--bg-card);
+            border: 2px solid var(--success);
             border-radius: 12px;
             box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
             z-index: 10000;
@@ -790,7 +762,7 @@
         .notification-title {
             font-size: 16px;
             font-weight: 600;
-            color: var(--neon-green);
+            color: var(--success);
             margin-bottom: 4px;
         }
         
@@ -801,8 +773,8 @@
         
         .notification-btn {
             padding: 8px 16px;
-            background: var(--neon-green);
-            color: var(--dark-bg);
+            background: var(--success);
+            color: var(--bg-secondary);
             border: none;
             border-radius: 6px;
             font-weight: 600;
@@ -817,7 +789,7 @@
         
         .notification-btn-close {
             background: transparent;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             color: var(--text-secondary);
             padding: 8px 12px;
         }
@@ -846,8 +818,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             margin-bottom: 20px;
         }
@@ -876,8 +848,8 @@
         }
 
         .generation-progress-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 600px;
@@ -892,7 +864,7 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
         }
 
         .generation-progress-header {
@@ -903,7 +875,7 @@
         }
 
         .generation-progress-header h3 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 20px;
             letter-spacing: 2px;
         }
@@ -918,21 +890,21 @@
         }
 
         .generation-progress-close:hover {
-            color: var(--neon-pink);
+            color: var(--danger);
         }
 
         .generation-progress-bar {
             height: 8px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 4px;
             overflow: hidden;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             margin: 20px 0;
         }
 
         .generation-progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
             transition: width 0.3s;
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
         }
@@ -946,9 +918,9 @@
 
         .generation-progress-item {
             padding: 12px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 8px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
 
         .generation-progress-label {
@@ -960,7 +932,7 @@
 
         .generation-progress-value {
             font-size: 14px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             margin-top: 4px;
             font-family: monospace;
         }
@@ -974,18 +946,18 @@
             align-items: center;
             padding: 10px;
             margin-bottom: 8px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 8px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
 
         .generation-progress-step.active {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
         }
 
         .generation-progress-step.completed {
-            border-color: var(--neon-green);
+            border-color: var(--success);
         }
 
         .generation-progress-step-icon {
@@ -997,20 +969,20 @@
             margin-right: 12px;
             font-size: 12px;
             border-radius: 50%;
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
         }
 
         .generation-progress-step.active .generation-progress-step-icon {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
-            border-color: var(--neon-cyan);
+            background: var(--primary);
+            color: var(--bg-secondary);
+            border-color: var(--primary);
         }
 
         .generation-progress-step.completed .generation-progress-step-icon {
-            background: var(--neon-green);
-            color: var(--dark-bg);
-            border-color: var(--neon-green);
+            background: var(--success);
+            color: var(--bg-secondary);
+            border-color: var(--success);
         }
 
         .generation-progress-step-text {
@@ -1052,13 +1024,13 @@
         
         .btn-success {
             background: transparent;
-            color: var(--neon-green);
-            border: 1px solid var(--neon-green);
+            color: var(--success);
+            border: 1px solid var(--success);
         }
         
         .btn-success:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
+            background: var(--success);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
         }
         
@@ -1066,16 +1038,16 @@
         .cyber-checkbox {
             width: 18px;
             height: 18px;
-            border: 1px solid var(--dark-border);
-            background: var(--dark-bg);
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
             cursor: pointer;
             appearance: none;
             position: relative;
         }
         
         .cyber-checkbox:checked {
-            background: var(--neon-cyan);
-            border-color: var(--neon-cyan);
+            background: var(--primary);
+            border-color: var(--primary);
         }
         
         .cyber-checkbox:checked::after {
@@ -1084,7 +1056,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: var(--dark-bg);
+            color: var(--bg-secondary);
             font-size: 12px;
             font-weight: bold;
         }
@@ -1104,7 +1076,7 @@
         }
         
         .selected-count {
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-weight: 600;
         }
 
@@ -1130,8 +1102,8 @@
         }
 
         .confirm-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 420px;
@@ -1169,7 +1141,7 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: linear-gradient(90deg, var(--neon-pink), var(--neon-cyan));
+            background: linear-gradient(90deg, var(--danger), var(--primary));
         }
 
         .confirm-header {
@@ -1229,7 +1201,7 @@
 
         .confirm-btn-cancel {
             background: transparent;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             color: var(--text-secondary);
         }
 
@@ -1250,83 +1222,62 @@
             box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
         }
 
-        /* 提示弹窗 */
-        .toast-modal {
-            display: none;
+        /* 提示通知 */
+        #toastContainer {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .toast-modal.active {
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
             display: flex;
-            opacity: 1;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
         }
 
-        .toast-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 360px;
-            padding: 24px;
-            text-align: center;
-            animation: toastSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            min-width: 280px;
+            max-width: 400px;
+            pointer-events: auto;
+            animation: toastSlideIn 0.2s ease-out;
+            font-size: 14px;
         }
 
         @keyframes toastSlideIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         @keyframes toastFadeOut {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.9); }
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
         }
 
-        .toast-box.success { border-color: var(--neon-green); }
-        .toast-box.error { border-color: #ff0055; }
-        .toast-box.info { border-color: var(--neon-cyan); }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--info); }
+        .toast.warning { border-left: 3px solid var(--warning); }
 
         .toast-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: 18px;
+            flex-shrink: 0;
         }
-
-        .toast-box.success .toast-icon { color: var(--neon-green); }
-        .toast-box.error .toast-icon { color: #ff0055; }
-        .toast-box.info .toast-icon { color: var(--neon-cyan); }
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.info .toast-icon { color: var(--info); }
+        .toast.warning .toast-icon { color: var(--warning); }
 
         .toast-message {
-            font-size: 15px;
+            flex: 1;
             color: var(--text-primary);
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-        .toast-btn {
-            padding: 10px 32px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
-            background: transparent;
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
-        }
-
-        .toast-btn:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            line-height: 1.4;
         }
         
         /* Theme: Dark Minimal */
@@ -1366,7 +1317,7 @@
 
         body.theme-minimal .btn-primary {
             background: var(--text-primary);
-            color: var(--dark-bg);
+            color: var(--bg-secondary);
             border-color: var(--text-primary);
             box-shadow: none;
         }
@@ -1393,35 +1344,35 @@
         }
 
         body.theme-ocean .logo {
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
         }
 
         body.theme-ocean .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 180, 216, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
 
         body.theme-ocean .nav-item.active::before {
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan);
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
         }
 
         body.theme-ocean .header h1 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
         }
 
         body.theme-ocean .btn-primary {
-            color: var(--neon-cyan);
-            border-color: var(--neon-cyan);
+            color: var(--primary);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 180, 216, 0.2);
         }
 
         body.theme-ocean .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 30px rgba(0, 180, 216, 0.5);
         }
 
@@ -1429,26 +1380,25 @@
             padding-bottom: 220px;
         }
 
-        /* Tab structure */
+        /* Tab导航 */
         .tab-nav {
             display: flex;
             gap: 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--dark-border);
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
         }
 
         .tab-btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
             color: var(--text-secondary);
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s;
+            font-weight: 500;
+            transition: all 0.15s;
+            margin-bottom: -1px;
         }
 
         .tab-btn:hover {
@@ -1456,8 +1406,9 @@
         }
 
         .tab-btn.active {
-            color: var(--neon-cyan);
-            border-bottom-color: var(--neon-cyan);
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
         .tab-panel {
@@ -1478,8 +1429,8 @@
 
         .progress-filters select,
         .progress-filters input {
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             color: var(--text-primary);
             padding: 8px 12px;
             border-radius: 6px;
@@ -1493,7 +1444,7 @@
         .progress-filters select:focus,
         .progress-filters input:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
 
         .status-cancelled {
@@ -1505,16 +1456,16 @@
         .stage-item {
             padding: 12px;
             margin: 8px 0;
-            background: var(--dark-bg);
-            border-left: 3px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--border);
         }
 
         .stage-item.completed {
-            border-left-color: var(--neon-green);
+            border-left-color: var(--success);
         }
 
         .stage-item.active {
-            border-left-color: var(--neon-cyan);
+            border-left-color: var(--primary);
             background: rgba(0, 245, 255, 0.05);
         }
 
@@ -1525,7 +1476,7 @@
         .case-item {
             padding: 8px;
             margin: 4px 0;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1741,7 +1692,7 @@
                 </div>
                 <div class="form-group">
                     <label>创建时间</label>
-                    <input type="text" class="form-control" id="viewReqCreatedAt" readonly style="background: var(--dark-bg);">
+                    <input type="text" class="form-control" id="viewReqCreatedAt" readonly style="background: var(--bg-secondary);">
                 </div>
             </div>
             <div class="modal-footer">
@@ -2050,15 +2001,6 @@
         </div>
     </div>
 
-    <!-- 提示弹窗 -->
-    <div class="toast-modal" id="toastModal">
-        <div class="toast-box" id="toastBox">
-            <div class="toast-icon" id="toastIcon">✓</div>
-            <div class="toast-message" id="toastMessage">操作成功</div>
-            <button class="toast-btn" onclick="closeToast()">确定</button>
-        </div>
-    </div>
-
     <!-- 任务详情弹窗 -->
     <div class="modal" id="detailModal">
         <div class="modal-content">
@@ -2138,14 +2080,14 @@
             // 生成选项列表
             const optionsList = document.getElementById('confirmOptionsList');
             optionsList.innerHTML = options.map((option, index) => `
-                <label style="display: block; padding: 10px; margin: 5px 0; border: 1px solid ${option.danger ? 'rgba(255, 0, 85, 0.3)' : 'var(--dark-border)'}; border-radius: 4px; cursor: pointer; ${index === defaultIndex ? 'background: rgba(0, 255, 255, 0.05);' : ''}" 
+                <label style="display: block; padding: 10px; margin: 5px 0; border: 1px solid ${option.danger ? 'rgba(255, 0, 85, 0.3)' : 'var(--border)'}; border-radius: 4px; cursor: pointer; ${index === defaultIndex ? 'background: rgba(0, 255, 255, 0.05);' : ''}" 
                        onmouseover="this.style.background='${option.danger ? 'rgba(255, 0, 85, 0.05)' : 'rgba(0, 255, 255, 0.05)'}'" 
                        onmouseout="this.style.background='transparent'">
                     <input type="radio" name="confirmOption" value="${option.value}" 
                            ${index === defaultIndex ? 'checked' : ''} 
                            onchange="selectedOptionValue='${option.value}'"
                            style="margin-right: 10px;">
-                    <strong style="${option.danger ? 'color: #ff0055;' : 'color: var(--neon-cyan);'}">${option.label}</strong>
+                    <strong style="${option.danger ? 'color: #ff0055;' : 'color: var(--primary);'}">${option.label}</strong>
                     <br><small style="color: var(--text-secondary); margin-left: 25px;">${option.description}</small>
                 </label>
             `).join('');
@@ -2172,21 +2114,26 @@
             }
         }
 
-        // 提示弹窗
+        // 提示通知
+        let _toastTimer = null;
+
         function showToast(message, type = 'info') {
-            const toastModal = document.getElementById('toastModal');
-            const toastBox = document.getElementById('toastBox');
-            const toastIcon = document.getElementById('toastIcon');
-            const toastMessage = document.getElementById('toastMessage');
-
-            toastBox.className = 'toast-box ' + type;
-            toastIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
-            toastMessage.textContent = message;
-            toastModal.classList.add('active');
-        }
-
-        function closeToast() {
-            document.getElementById('toastModal').classList.remove('active');
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                document.body.appendChild(container);
+            }
+            const icons = { success: '✓', error: '✗', info: 'ℹ', warning: '⚠' };
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || 'ℹ') + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() {
+                toast.style.animation = 'toastFadeOut 0.2s ease forwards';
+                setTimeout(function() { toast.remove(); }, 200);
+            }, 3000);
         }
 
         // 导入按钮点击事件
@@ -2203,12 +2150,15 @@
             try {
                 currentPage = page;
                 if (limit) currentLimit = limit;
-                
+
                 const response = await fetch(`/api/requirements?page=${page}&limit=${currentLimit}`);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 const data = await response.json();
-                
+
                 const tbody = document.getElementById('requirementList');
-                if (data.items.length === 0) {
+                if (!tbody) { console.error('requirementList not found'); return; }
+
+                if (!data.items || data.items.length === 0) {
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="6" class="empty-state">
@@ -2222,8 +2172,15 @@
                 }
 
                 // 获取进行中的任务列表
-                const processingTasks = await getProcessingTasks();
-                const processingReqIds = new Set(processingTasks.map(t => t.requirement_id));
+                let processingReqIds = new Set();
+                try {
+                    const tasksResp = await fetch('/api/tasks?status=1');
+                    if (tasksResp.ok) {
+                        const tasksData = await tasksResp.json();
+                        const processingTasks = tasksData.tasks || [];
+                        processingReqIds = new Set(processingTasks.map(t => t.requirement_id).filter(Boolean));
+                    }
+                } catch(e) { /* ignore */ }
 
                 tbody.innerHTML = data.items.map(req => {
                     const hasProcessingTask = processingReqIds.has(req.id);
@@ -2272,6 +2229,17 @@
                 renderPagination(data.total, data.page, data.limit);
             } catch (error) {
                 console.error('加载需求失败:', error);
+                const tbody = document.getElementById('requirementList');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">!</div>
+                                <p>加载失败，请刷新页面重试</p>
+                            </td>
+                        </tr>
+                    `;
+                }
             }
         }
 
@@ -3624,13 +3592,13 @@
                 uncoveredDiv.innerHTML = uncoveredPoints.map(point => `
                     <div class="case-item">
                         <div>
-                            <span style="color: var(--neon-cyan);">[${point.item_id}] ${point.item_title}</span>
+                            <span style="color: var(--primary);">[${point.item_id}] ${point.item_title}</span>
                             <span style="color: var(--text-secondary); margin-left: 10px;">→ ${point.point_title}</span>
                         </div>
                     </div>
                 `).join('');
             } else {
-                uncoveredDiv.innerHTML = '<div style="color: var(--neon-green); padding: 10px; text-align: center;">✓ 所有测试点已覆盖</div>';
+                uncoveredDiv.innerHTML = '<div style="color: var(--success); padding: 10px; text-align: center;">✓ 所有测试点已覆盖</div>';
             }
             
             // 填充低质量用例
@@ -3647,7 +3615,7 @@
                     </div>
                 `).join('');
             } else {
-                lowQualityDiv.innerHTML = '<div style="color: var(--neon-green); padding: 10px; text-align: center;">✓ 无低质量用例</div>';
+                lowQualityDiv.innerHTML = '<div style="color: var(--success); padding: 10px; text-align: center;">✓ 无低质量用例</div>';
             }
             
             // 填充建议
@@ -3660,7 +3628,7 @@
                     </div>
                 `).join('');
             } else {
-                recommendationsDiv.innerHTML = '<div style="color: var(--neon-green); padding: 10px; text-align: center;">✓ 暂无建议</div>';
+                recommendationsDiv.innerHTML = '<div style="color: var(--success); padding: 10px; text-align: center;">✓ 暂无建议</div>';
             }
             
             // 显示弹窗
@@ -3891,7 +3859,7 @@
                         <td><code>${task.task_id}</code></td>
                         <td>${task.requirement_title || '-'}</td>
                         <td>
-                            <div class="progress-bar" style="width: 100px; height: 8px; background: var(--dark-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--dark-border);">
+                            <div class="progress-bar" style="width: 100px; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
                                 <div class="progress-fill" style="width: ${progress}%"></div>
                             </div>
                             <small>${progress}%</small>
@@ -4082,8 +4050,8 @@
                 const ragStats = task.result ? (typeof task.result === 'string' ? JSON.parse(task.result) : task.result)?.rag_stats || {} : {};
                 
                 const progress = task.progress || 0;
-                let stagesHtml = '<h4 style="margin: 16px 0 12px; color: var(--neon-cyan); font-size: 14px;">阶段明细</h4>';
-                stagesHtml += '<div style="border: 1px solid var(--dark-border); border-radius: 6px; overflow: hidden;">';
+                let stagesHtml = '<h4 style="margin: 16px 0 12px; color: var(--primary); font-size: 14px;">阶段明细</h4>';
+                stagesHtml += '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">';
                 
                 stages.forEach((stage, index) => {
                     let status = 'waiting';
@@ -4108,7 +4076,7 @@
                     const borderColor = status === 'completed' ? '#00ff88' :
                                        status === 'active' ? '#00f5ff' :
                                        status === 'failed' ? '#ff0055' :
-                                       status === 'cancelled' ? '#ffaa00' : 'var(--dark-border)';
+                                       status === 'cancelled' ? '#ffaa00' : 'var(--border)';
                     const textColor = status === 'completed' ? '#00ff88' :
                                      status === 'active' ? '#00f5ff' :
                                      status === 'failed' ? '#ff0055' :
@@ -4119,7 +4087,7 @@
                                       status === 'failed' ? '失败' :
                                       status === 'cancelled' ? '已取消' : '等待中';
                     
-                    if (index > 0) stagesHtml += `<div style="height: 1px; background: var(--dark-border);"></div>`;
+                    if (index > 0) stagesHtml += `<div style="height: 1px; background: var(--border);"></div>`;
                     
                     stagesHtml += `
                         <div class="stages-stage" data-key="${stage.key}" style="padding: 12px 16px; background: ${bgColor}; border-left: 3px solid ${borderColor}; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
@@ -4180,8 +4148,8 @@ stagesHtml += '</div>';
                 //     
                 //     snapshotHtml = `
                 //         <div style="margin-top: 16px;">
-                //             <h4 style="margin: 16px 0 12px; color: var(--neon-cyan); font-size: 14px;">需求分析快照</h4>
-                //             <div style="border: 1px solid var(--dark-border); border-radius: 6px; padding: 12px;">
+                //             <h4 style="margin: 16px 0 12px; color: var(--primary); font-size: 14px;">需求分析快照</h4>
+                //             <div style="border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
                 //                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 //                     <div><strong>测试项数:</strong> ${itemCounts}</div>
                 //                     <div><strong>测试点数:</strong> ${pointCount}</div>
@@ -4189,13 +4157,13 @@ stagesHtml += '</div>';
                 //                 ${modules.length > 0 ? `
                 //                     <div style="margin-bottom: 8px;">
                 //                         <strong>功能模块:</strong>
-                //                         <div style="margin-top: 4px; padding: 8px; background: var(--dark-bg); border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 13px; white-space: pre-wrap;">${typeof modules === 'string' ? modules : JSON.stringify(modules, null, 2)}</div>
+                //                         <div style="margin-top: 4px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 13px; white-space: pre-wrap;">${typeof modules === 'string' ? modules : JSON.stringify(modules, null, 2)}</div>
                 //                     </div>
                 //                 ` : ''}
                 //                 ${points ? `
                 //                     <div>
                 //                         <strong>测试点:</strong>
-                //                         <div style="margin-top: 4px; padding: 8px; background: var(--dark-bg); border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 13px; white-space: pre-wrap;">${typeof points === 'string' ? points : JSON.stringify(points, null, 2)}</div>
+                //                         <div style="margin-top: 4px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 13px; white-space: pre-wrap;">${typeof points === 'string' ? points : JSON.stringify(points, null, 2)}</div>
                 //                     </div>
                 //                 ` : ''}
                 //             </div>
@@ -4212,33 +4180,33 @@ stagesHtml += '</div>';
                     const qualityReport = ragStats.quality_report || {};
 
                     if (Object.keys(ragStats).length > 0 || Object.keys(ragLevelDist).length > 0) {
-                        ragHtml = '<div id="rag-stats-container" style="margin: 16px 0 12px; border: 1px solid var(--dark-border); border-radius: 6px; overflow: hidden;">';
+                        ragHtml = '<div id="rag-stats-container" style="margin: 16px 0 12px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">';
                         const cases = ragStats.cases || 0;
                         const defects = ragStats.defects || 0;
                         const reqs = ragStats.requirements || 0;
                         const ragSummary = '📊 RAG增强统计 (' + cases + '用例/' + defects + '缺陷/' + reqs + '需求)';
-                        ragHtml += '<div onclick="toggleRagStats()" style="padding:12px 16px;cursor:pointer;background:var(--dark-bg);border-bottom:1px solid var(--dark-border);">' +
-                            '<span style="color:var(--neon-cyan);font-size:14px;">' + ragSummary + ' <span id="rag-arrow">▼</span></span>' +
+                        ragHtml += '<div onclick="toggleRagStats()" style="padding:12px 16px;cursor:pointer;background:var(--bg-secondary);border-bottom:1px solid var(--border);">' +
+                            '<span style="color:var(--primary);font-size:14px;">' + ragSummary + ' <span id="rag-arrow">▼</span></span>' +
                             '</div>';
                         ragHtml += '<div id="rag-stats-detail" style="display:none;">';
-                        ragHtml += `<div style="padding: 12px 16px; border-bottom: 1px solid var(--dark-border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">`;
+                        ragHtml += `<div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">`;
                         ragHtml += `<div style="text-align:center;"><div style="font-size:11px;color:#888;">历史用例</div><div style="font-size:18px;font-weight:700;color:#00ff88;">${cases}</div></div>`;
                         ragHtml += `<div style="text-align:center;"><div style="font-size:11px;color:#888;">历史缺陷</div><div style="font-size:18px;font-weight:700;color:#ff4466;">${defects}</div></div>`;
                         ragHtml += `<div style="text-align:center;"><div style="font-size:11px;color:#888;">相似需求</div><div style="font-size:18px;font-weight:700;color:#00aaff;">${reqs}</div></div>`;
                         ragHtml += '</div>';
                         // 检索质量指标
                         if (qualityReport.avg_similarity !== undefined) {
-                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--dark-border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">平均相似度</span><span>${(qualityReport.avg_similarity * 100).toFixed(1)}%</span></div>`;
+                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">平均相似度</span><span>${(qualityReport.avg_similarity * 100).toFixed(1)}%</span></div>`;
                         }
                         if (qualityReport.diversity_index !== undefined) {
-                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--dark-border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">多样性指数</span><span>${(qualityReport.diversity_index * 100).toFixed(1)}%</span></div>`;
+                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">多样性指数</span><span>${(qualityReport.diversity_index * 100).toFixed(1)}%</span></div>`;
                         }
                         if (qualityReport.quality_alert) {
-                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--dark-border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">质量告警</span><span style="color:#ff4466;">${qualityReport.quality_alert}</span></div>`;
+                            ragHtml += `<div style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 12px;"><span style="color:#888;">质量告警</span><span style="color:#ff4466;">${qualityReport.quality_alert}</span></div>`;
                         }
                         const ragAlerts = result.rag_alerts || [];
                         if (ragAlerts.length > 0) {
-                            ragHtml += '<div style="padding: 10px 16px; border-bottom: 1px solid var(--dark-border);">';
+                            ragHtml += '<div style="padding: 10px 16px; border-bottom: 1px solid var(--border);">';
                             ragHtml += '<div style="color:#ffaa00; font-size: 12px; font-weight: bold; margin-bottom: 6px;">⚠ RAG检索告警</div>';
                             for (const a of ragAlerts) {
                                 const alertText = a.alert === 'low_similarity' ? '低相似度，已扩大检索' : '无结果，已跳过RAG增强';
@@ -4273,8 +4241,8 @@ stagesHtml += '</div>';
                         const cases = ragStats.cases || 0;
                         const defects = ragStats.defects || 0;
                         const reqs = ragStats.requirements || 0;
-                        // ragToggleHtml = `<div id="rag-stats-toggle" style="padding:12px 16px;cursor:pointer;background:var(--dark-bg);border-bottom:1px solid var(--dark-border);" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
-                        //     <span style="color:var(--neon-cyan);font-size:14px;">📊 RAG增强统计 (${cases}用例/${defects}缺陷/${reqs}需求) ▼</span>
+                        // ragToggleHtml = `<div id="rag-stats-toggle" style="padding:12px 16px;cursor:pointer;background:var(--bg-secondary);border-bottom:1px solid var(--border);" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+                        //     <span style="color:var(--primary);font-size:14px;">📊 RAG增强统计 (${cases}用例/${defects}缺陷/${reqs}需求) ▼</span>
                         // </div>`;
                     }
                 } catch(e) { }

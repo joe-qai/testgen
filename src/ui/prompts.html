@@ -26,7 +26,7 @@
         
         body {
             font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -35,8 +35,8 @@
         
         .sidebar {
             width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             padding: 30px 0;
         }
         
@@ -44,10 +44,10 @@
             padding: 0 30px 30px;
             font-size: 28px;
             font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
             letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .nav-menu { list-style: none; padding: 20px 0; }
@@ -64,8 +64,8 @@
         .nav-item:hover { background: rgba(0, 245, 255, 0.05); color: var(--text-primary); }
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
         .nav-icon { width: 24px; text-align: center; font-size: 18px; }
         
@@ -79,11 +79,11 @@
         }
         .header h1 {
             font-size: 32px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
             letter-spacing: 2px;
         }
-        .header h1::before { content: '// '; color: var(--neon-pink); }
+        .header h1::before { content: '// '; color: var(--danger); }
         
         .btn {
             padding: 12px 24px;
@@ -98,34 +98,34 @@
         }
         .btn-primary {
             background: transparent;
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
+            color: var(--primary);
+            border: 1px solid var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
         }
         .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
         }
         .btn-secondary {
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         .btn-secondary:hover { border-color: var(--text-primary); color: var(--text-primary); }
         .btn-success {
             background: transparent;
-            color: var(--neon-green);
-            border: 1px solid var(--neon-green);
+            color: var(--success);
+            border: 1px solid var(--success);
         }
         .btn-success:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
+            background: var(--success);
+            color: var(--bg-secondary);
         }
         
         .card {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
@@ -147,18 +147,18 @@
         
         .prompt-item {
             padding: 16px 20px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 0;
             transition: all 0.3s;
             display: flex;
             flex-direction: row;
             align-items: center;
             min-height: 60px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         .prompt-item:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.1);
             background: rgba(0, 245, 255, 0.02);
         }
@@ -174,7 +174,7 @@
         .prompt-name {
             font-size: 14px;
             font-weight: 600;
-            color: var(--neon-cyan);
+            color: var(--primary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -188,7 +188,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             background: rgba(0, 245, 255, 0.1);
-            color: var(--neon-cyan);
+            color: var(--primary);
             border: 1px solid rgba(0, 245, 255, 0.3);
         }
         
@@ -215,7 +215,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -223,8 +223,8 @@
         .form-control {
             width: 100%;
             padding: 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
             color: var(--text-primary);
@@ -232,7 +232,7 @@
         }
         .form-control:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
         }
         textarea.form-control {
@@ -258,8 +258,8 @@
         }
         .modal.active { display: flex; }
         .modal-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 1000px;
@@ -270,13 +270,13 @@
         }
         .modal-header {
             padding: 24px 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
-        .modal-header h3 { color: var(--neon-cyan); font-size: 20px; letter-spacing: 2px; }
+        .modal-header h3 { color: var(--primary); font-size: 20px; letter-spacing: 2px; }
         .modal-body { 
             padding: 30px; 
             flex: 1;
@@ -287,19 +287,19 @@
             width: 8px;
         }
         .modal-body::-webkit-scrollbar-track {
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 4px;
         }
         .modal-body::-webkit-scrollbar-thumb {
-            background: var(--dark-border);
+            background: var(--border);
             border-radius: 4px;
         }
         .modal-body::-webkit-scrollbar-thumb:hover {
-            background: var(--neon-cyan);
+            background: var(--primary);
         }
         .modal-footer {
             padding: 20px 30px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -312,7 +312,7 @@
             cursor: pointer;
             color: var(--text-secondary);
         }
-        .close-btn:hover { color: var(--neon-pink); }
+        .close-btn:hover { color: var(--danger); }
         
         .toast-modal {
             display: none;
@@ -328,15 +328,15 @@
         }
         .toast-modal.active { display: flex; }
         .toast-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 380px;
             text-align: center;
             padding: 40px 30px;
         }
-        .toast-box.success { border-color: var(--neon-green); }
+        .toast-box.success { border-color: var(--success); }
         .toast-box.error { border-color: #ff0055; }
         .toast-icon {
             width: 60px;
@@ -349,12 +349,12 @@
             margin: 0 auto 20px;
             background: rgba(0, 245, 255, 0.15);
             border: 2px solid rgba(0, 245, 255, 0.4);
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
         .toast-box.success .toast-icon {
             background: rgba(0, 255, 136, 0.15);
             border-color: rgba(0, 255, 136, 0.4);
-            color: var(--neon-green);
+            color: var(--success);
         }
         .toast-box.error .toast-icon {
             background: rgba(255, 0, 85, 0.15);
@@ -369,10 +369,10 @@
             font-weight: 600;
             cursor: pointer;
             background: transparent;
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
+            border: 1px solid var(--primary);
+            color: var(--primary);
         }
-        .toast-box.success .toast-btn { border-color: var(--neon-green); color: var(--neon-green); }
+        .toast-box.success .toast-btn { border-color: var(--success); color: var(--success); }
         .toast-box.error .toast-btn { border-color: #ff0055; color: #ff0055; }
         
         /* 响应式 */
@@ -596,7 +596,7 @@
         }
 
         async function deletePrompt(id, name) {
-            if (!confirm(`确定要删除 Prompt 模板「${name}」吗？此操作不可恢复。`)) {
+            if (!showConfirmAsync(`确定要删除 Prompt 模板「${name}」吗？此操作不可恢复。`)) {
                 return;
             }
 
@@ -638,6 +638,30 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadPrompts();
         });
-    </script>
-</body>
+    
+        function showConfirmAsync(message) {
+            return new Promise(function(resolve) {
+                var modal = document.getElementById('confirmModal');
+                var msgEl = document.getElementById('confirmMessage');
+                if (modal && msgEl) {
+                    msgEl.textContent = message;
+                    modal.classList.add('active');
+                    window._confirmResolve = resolve;
+                } else {
+                    resolve(false);
+                }
+            });
+        }
+        function confirmAsyncOk() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(true); }
+        }
+        function confirmAsyncCancel() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(false); }
+        }
+</script>
+<div id="toastContainer"></div></body>
 </html>

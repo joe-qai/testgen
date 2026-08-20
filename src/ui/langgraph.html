@@ -213,7 +213,7 @@ function resetPipeline() {
 // One-click generate
 async function startGenerate() {
   const reqId = document.getElementById('req-select').value;
-  if (!reqId) return alert('请选择需求');
+  if (!reqId) return showToast('请选择需求', 'info');
 
   resetPipeline();
   document.getElementById('btn-generate').disabled = true;
@@ -292,7 +292,7 @@ async function startGenerate() {
 // Phase 1
 async function startPhase1() {
   const reqId = document.getElementById('req-select-phase1').value;
-  if (!reqId) return alert('请选择需求');
+  if (!reqId) return showToast('请选择需求', 'info');
 
   resetPipeline();
   log('🔄 Phase 1 启动（分析+策略，interrupt在Generator前）', 'info');
@@ -438,6 +438,18 @@ async function loadCases(reqId) {
 
 // Init
 loadRequirements();
+
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; document.body.appendChild(container); }
+            var icons = {success:'&#x2713;', error:'&#x2717;', info:'&#x2139;', warning:'&#x26a0;'};
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type]||icons.info) + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function() { toast.style.opacity='0'; setTimeout(function(){toast.remove();},200); }, 3000);
+        }
 </script>
-</body>
+<div id="toastContainer"></div></body>
 </html>
