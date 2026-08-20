@@ -1,5 +1,10 @@
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Worker } from 'bullmq';
 import { DemoWorkflowProcessor } from './workflow-processor.js';
+
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
 export function createWorkflowWorker(redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6380') {
   const processor = new DemoWorkflowProcessor();

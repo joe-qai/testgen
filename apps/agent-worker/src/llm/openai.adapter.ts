@@ -41,8 +41,9 @@ export class OpenAILLMAdapter implements LLMAdapter {
       throw new Error('OpenAI API error');
     }
 
-    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
-    const text = data.choices?.[0]?.message?.content ?? '';
+    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string; reasoning_content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+    const message = data.choices?.[0]?.message;
+    const text = message?.content?.trim() || message?.reasoning_content?.trim() || '';
     const usage: LLMUsage = { inputTokens: data.usage?.prompt_tokens, outputTokens: data.usage?.completion_tokens };
     return { text, usage };
   }
