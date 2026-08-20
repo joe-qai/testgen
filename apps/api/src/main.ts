@@ -14,6 +14,9 @@ import { createDatabase, runMigrations, runSeed, PostgresWorkflowRunStore, Postg
 import type { WorkflowRunStore } from '@testgen/workflow';
 import type { QueueAdapter } from '@testgen/queue';
 import { BullMQQueueAdapter } from '@testgen/queue';
+import { SseEventBus } from './sse-event-bus.js';
+
+const eventBus = new SseEventBus();
 
 let databaseInstance: { db: Database; pool: { end(): Promise<unknown> } } | null = null;
 
@@ -70,7 +73,8 @@ export class HealthController {
   controllers: [HealthController, AuthController, OrganizationsController, ProjectsController, WorkflowRunsController],
   providers: [
     AppService,
-    { provide: WorkflowRunService, useFactory: () => new WorkflowRunService(resolveRunStore(), undefined, undefined, resolveQueue()) },
+    { provide: SseEventBus, useValue: eventBus },
+    { provide: WorkflowRunService, useFactory: () => new WorkflowRunService(resolveRunStore(), undefined, undefined, resolveQueue(), eventBus) },
     { provide: OrganizationsService, useFactory: () => new OrganizationsService(resolveOrganizationStore()) },
     { provide: ProjectsService, useFactory: () => new ProjectsService(resolveProjectStore()) },
   ],

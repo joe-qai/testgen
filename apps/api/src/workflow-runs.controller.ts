@@ -1,13 +1,19 @@
 import { Body, Controller, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { createOpaqueToken } from '@testgen/auth';
 import { WorkflowRunService } from './workflow-runs.service.js';
+import { SseEventBus } from './sse-event-bus.js';
 
 type StreamRequest = { headers: Record<string, string | string[] | undefined> };
-type StreamResponse = { setHeader(name: string, value: string): void; write(value: string): void; end(): void };
+type StreamResponse = {
+  setHeader(name: string, value: string): void;
+  write(value: string): void;
+  end(): void;
+  once?(event: string, listener: () => void): void;
+};
 
 @Controller('api/v1/workflow-runs')
 export class WorkflowRunsController {
-  constructor(private readonly service: WorkflowRunService) {}
+  constructor(private readonly service: WorkflowRunService, private readonly eventBus: SseEventBus) {}
 
   @Post()
   async create(@Body() body: { organizationId: string; projectId: string; workflowCode?: string; idempotencyKey: string; input?: Record<string, unknown> }) {
@@ -64,6 +70,8 @@ export class WorkflowRunsController {
     for (const event of events.filter((item) => item.sequence > after)) {
       response.write(`id: ${event.sequence}\nevent: ${event.eventType}\ndata: ${JSON.stringify(event)}\n\n`);
     }
-    response.end();
+    const unsubscribe = this.eventBus.subscribe(id, (chunk) => response.write(chunk));
+    response.once?.('close', () => unsubscribe());
+    response.write(`: connected - listening for live events on run ${id}\n\n`);
   }
 }

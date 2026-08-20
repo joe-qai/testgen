@@ -164,4 +164,19 @@ describe('workflow run service', () => {
     expect(failed.progress).toBe(100);
     expect(failed.errorData).toEqual({ message: 'boom' });
   });
+
+  it('publishes emitted events to the SSE bus for realtime delivery', async () => {
+    const store = new InMemoryStore();
+    const { SseEventBus } = await import('./sse-event-bus.js');
+    const bus = new SseEventBus();
+    const received: string[] = [];
+    const service = new WorkflowRunService(store, undefined, undefined, undefined, bus);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-aaaa0009' }));
+    const unsubscribe = bus.subscribe(run.id, (chunk) => received.push(chunk));
+    await service.transition(run.id, 'RUNNING');
+    await service.complete(run.id, { summary: 'OK' });
+    unsubscribe();
+    expect(received.length).toBeGreaterThanOrEqual(1);
+    expect(received[received.length - 1]).toContain('event: RUN_COMPLETED');
+  });
 });
