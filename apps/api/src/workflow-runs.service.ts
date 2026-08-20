@@ -1,25 +1,90 @@
-import { assertTransition } from '@testgen/workflow';
-import { WorkflowEventTypeSchema, WorkflowRunStatus, WorkflowRunStatusSchema } from '@testgen/contracts';
+import { assertTransition, type WorkflowRunStore } from '@testgen/workflow';
+import { WorkflowRunStatus, WorkflowEventType } from '@testgen/contracts';
 
 export type WorkflowRunInput = { organizationId: string; projectId: string; requestedBy: string; workflowCode: string; idempotencyKey: string; input: Record<string, unknown> };
-export type WorkflowRun = WorkflowRunInput & { id: string; status: WorkflowRunStatus; progress: number; createdAt: string };
-export type WorkflowEvent = { id: string; runId: string; sequence: number; eventType: string; payload: Record<string, unknown>; createdAt: string };
 
-export class InMemoryWorkflowRunService {
-  private readonly runs = new Map<string, WorkflowRun>();
-  private readonly eventsByRun = new Map<string, WorkflowEvent[]>();
-  private key(input: WorkflowRunInput) { return `${input.organizationId}:${input.requestedBy}:${input.idempotencyKey}`; }
-  create(input: WorkflowRunInput): WorkflowRun {
-    const existing = [...this.runs.values()].find((run) => this.key(run) === this.key(input));
+export class WorkflowRunService {
+  constructor(
+    private readonly store: WorkflowRunStore,
+    private readonly now: () => Date = () => new Date(),
+    private readonly idGenerator: () => string = () => crypto.randomUUID(),
+  ) {}
+
+  async create(input: WorkflowRunInput) {
+    const existing = await this.store.findByIdempotencyKey(input.organizationId, input.requestedBy, input.idempotencyKey);
     if (existing) return existing;
-    const run: WorkflowRun = { ...input, id: crypto.randomUUID(), status: 'QUEUED', progress: 0, createdAt: new Date().toISOString() };
-    this.runs.set(run.id, run);
-    this.emit(run.id, 'RUN_STARTED', { status: run.status });
+    const timestamp = this.now().toISOString();
+    const run = {
+      id: this.idGenerator(),
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      workflowDefinitionId: null,
+      workflowVersionId: null,
+      workflowCode: input.workflowCode,
+      requestedBy: input.requestedBy,
+      status: 'QUEUED' as WorkflowRunStatus,
+      inputData: input.input,
+      outputData: null,
+      errorData: null,
+      currentNode: null,
+      progress: 0,
+      idempotencyKey: input.idempotencyKey,
+      queuedAt: null,
+      startedAt: null,
+      completedAt: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    await this.store.create(run);
+    await this.emit(run.id, 'RUN_STARTED', { status: run.status });
     return run;
   }
-  get(id: string) { const run = this.runs.get(id); if (!run) throw new Error('Workflow run not found'); return run; }
-  events(id: string) { return this.eventsByRun.get(id) ?? []; }
-  transition(id: string, next: WorkflowRunStatus) { const run = this.get(id); assertTransition(run.status, next); run.status = WorkflowRunStatusSchema.parse(next); if (next === 'SUCCEEDED' || next === 'FAILED' || next === 'CANCELLED') run.progress = 100; this.emit(id, next === 'SUCCEEDED' ? 'RUN_COMPLETED' : 'NODE_PROGRESS', { status: next, progress: run.progress }); return run; }
-  cancel(id: string) { const run = this.get(id); if (['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(run.status)) throw new Error('Workflow run is terminal'); return this.transition(id, 'CANCELLED'); }
-  private emit(runId: string, eventType: string, payload: Record<string, unknown>) { const parsed = WorkflowEventTypeSchema.safeParse(eventType); if (!parsed.success) throw new Error(`Unsupported event type: ${eventType}`); const events = this.eventsByRun.get(runId) ?? []; events.push({ id: crypto.randomUUID(), runId, sequence: events.length + 1, eventType: parsed.data, payload, createdAt: new Date().toISOString() }); this.eventsByRun.set(runId, events); }
+
+  async get(id: string) {
+    const run = await this.store.findById(id);
+    if (!run) throw new Error('Workflow run not found');
+    return run;
+  }
+
+  async events(id: string) {
+    return this.store.listEvents(id);
+  }
+
+  async findByQuery(query: Parameters<WorkflowRunStore['findByQuery']>[0]) {
+    return this.store.findByQuery(query);
+  }
+
+  async transition(id: string, next: WorkflowRunStatus) {
+    const run = await this.get(id);
+    assertTransition(run.status, next);
+    const progress = next === 'SUCCEEDED' || next === 'FAILED' || next === 'CANCELLED' ? 100 : run.progress;
+    const updated = await this.store.update(id, { status: next, progress });
+    if (next === 'RUNNING') {
+      await this.emit(id, 'NODE_STARTED', { status: next, progress });
+    } else if (next === 'SUCCEEDED') {
+      await this.emit(id, 'RUN_COMPLETED', { status: next, progress });
+    }
+    return updated;
+  }
+
+  async cancel(id: string) {
+    const run = await this.get(id);
+    if (['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(run.status)) throw new Error('Workflow run is terminal');
+    const updated = await this.store.update(id, { status: 'CANCELLED', progress: 100, completedAt: this.now().toISOString() });
+    await this.emit(id, 'RUN_CANCELED', { status: 'CANCELLED', progress: 100 });
+    return updated;
+  }
+
+  private async emit(runId: string, eventType: WorkflowEventType, payload: Record<string, unknown>) {
+    const sequence = await this.store.nextSequence(runId);
+    await this.store.appendEvent({
+      id: this.idGenerator(),
+      runId,
+      sequence,
+      eventType,
+      nodeName: null,
+      payload,
+      createdAt: this.now().toISOString(),
+    });
+  }
 }
