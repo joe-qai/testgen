@@ -44,7 +44,20 @@ function LoginPage() {
     <label>密码<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
     {error && <p className="error">{error}</p>}
     <button type="submit" disabled={submitting}>{submitting ? '登录中...' : '登录'}</button>
+    <div className="divider"><span>或</span></div>
+    <a className="feishu-btn" href="/api/v1/auth/feishu">使用飞书登录</a>
   </form></div>;
+}
+
+function FeishuCallbackPage() {
+  const { logout } = useAuth();
+  const params = new URLSearchParams(window.location.search);
+  const accessToken = params.get('accessToken');
+  useEffect(() => {
+    if (accessToken) { setToken(accessToken); window.location.href = '/dashboard'; }
+    else { logout(); }
+  }, [accessToken, logout]);
+  return <div className="login-wrap"><p className="muted">飞书登录处理中...</p></div>;
 }
 
 function Layout({ children }: { children: React.ReactNode }) { const { token, logout } = useAuth(); if (!token) return <Navigate to="/login" replace />; return <div className="app-shell"><aside><strong>TestGen Agent</strong><nav><Link to="/dashboard">工作台</Link><Link to="/projects">项目管理</Link><Link to="/workflow-runs">Agent 任务</Link><Link className="disabled" to="/requirements">需求管理（建设中）</Link><Link className="disabled" to="/cases">用例管理（建设中）</Link><Link className="disabled" to="/knowledge">RAG 知识库（建设中）</Link></nav></aside><main><header><span>当前组织：默认组织</span><span className="logout" onClick={logout}>退出登录　⌄</span></header>{children}</main></div>; }
@@ -90,6 +103,6 @@ function RunDetail() {
   </> : <p className="muted">加载中...</p>}</div></section>;
 }
 
-function App() { return <AuthProvider><BrowserRouter><Routes><Route path="/login" element={<LoginPage />} /><Route path="/" element={<Layout><Dashboard /></Layout>} /><Route path="/dashboard" element={<Layout><Dashboard /></Layout>} /><Route path="/projects" element={<Layout><Projects /></Layout>} /><Route path="/workflow-runs" element={<Layout><WorkflowRuns /></Layout>} /><Route path="/workflow-runs/:id" element={<Layout><RunDetail /></Layout>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></BrowserRouter></AuthProvider>; }
+function App() { return <AuthProvider><BrowserRouter><Routes><Route path="/login" element={<LoginPage />} /><Route path="/feishu-callback" element={<FeishuCallbackPage />} /><Route path="/" element={<Layout><Dashboard /></Layout>} /><Route path="/dashboard" element={<Layout><Dashboard /></Layout>} /><Route path="/projects" element={<Layout><Projects /></Layout>} /><Route path="/workflow-runs" element={<Layout><WorkflowRuns /></Layout>} /><Route path="/workflow-runs/:id" element={<Layout><RunDetail /></Layout>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></BrowserRouter></AuthProvider>; }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></StrictMode>);
