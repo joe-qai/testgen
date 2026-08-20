@@ -51,6 +51,7 @@ class TestGenState(TypedDict):
     test_points: List[Dict[str, Any]]
     designer_output: str
     review_conclusion: str  # PASS / CONDITIONAL / FAIL
+    requirement_review_output: str  # 6维度需求评审HTML报告
 
     # Phase 2: 生成
     cases_raw: str  # LLM 原始输出
@@ -129,6 +130,37 @@ C. 四维评分（各0-25）：PRD覆盖/清晰度/明确性/完整性
 
 注意：不要过度严格，用例只要步骤清晰、预期可验证、覆盖主要场景就应通过。
 """,
+    # ---- 6维度需求评审专家 ----
+    "review_pm": """你是拥有10年产品经验的PM。请从产品完整性角度分析以下需求：
+1. 核心功能是否完整（是否有遗漏的关键功能点）
+2. 用户场景是否完整（正常流/异常流/边界流）
+3. 业务规则是否明确（有无模糊或矛盾之处）
+请给出：完整性评分(0-100)、主要发现(3-5条)、改进建议。纯文本输出。""",
+    "review_qa": """你是拥有8年经验的测试主管。请从可测试性角度分析以下需求：
+1. 测试点是否可提取（需求描述是否足以设计测试用例）
+2. 输入条件是否明确（边界值/枚举值/范围是否清晰）
+3. 预期结果是否可验证（是否有明确的验收标准）
+请给出：可测性评分(0-100)、主要发现(3-5条)、改进建议。纯文本输出。""",
+    "review_cto": """你是拥有12年经验的CTO。请从技术可行性角度分析以下需求：
+1. 技术风险点（依赖/性能/安全性）
+2. 实现复杂度评估（高/中/低）
+3. 是否有技术盲区（未考虑的技术限制）
+请给出：可行性评分(0-100)、主要风险(3-5条)、技术建议。纯文本输出。""",
+    "review_dev": """你是刚入职的新手开发者。请用朴素的语言分析以下需求：
+1. 哪些地方容易理解错误（歧义表达）
+2. 哪些地方没有讲清楚（缺少细节）
+3. 作为开发者你需要知道什么但需求没说
+请给出：清晰度评分(0-100)、主要歧义(3-5条)、需要澄清的问题。纯文本输出。""",
+    "review_code": """你是代码审查专家。请从一致性角度分析以下需求：
+1. 术语使用是否统一（同一概念是否用不同名称）
+2. 规格是否自洽（前后是否有矛盾）
+3. 与行业标准是否一致（命名/分类是否符合惯例）
+请给出：一致性评分(0-100)、主要问题(3-5条)、修正建议。纯文本输出。""",
+    "review_architect": """你是拥有15年经验的业务架构师。请从逻辑性角度分析以下需求：
+1. 业务流程是否闭环（有没有断点或死循环）
+2. 模块划分是否合理（职责是否清晰）
+3. 依赖关系是否合理（是否存在循环依赖）
+请给出：逻辑性评分(0-100)、主要问题(3-5条)、架构建议。纯文本输出。""",
 }
 
 
@@ -192,6 +224,196 @@ def orchestrator_node(state: TestGenState) -> dict:
     )
     logger.info("[LangGraph] ✅ Orchestrator 完成")
     return {"orchestrator_output": output}
+
+
+def requirement_review_node(state: TestGenState) -> dict:
+    """6维度需求评审：生成HTML分析报告"""
+    from src.utils import get_logger
+
+    logger = get_logger("langgraph_testgen")
+    logger.info("[LangGraph] 📊 6维度需求评审启动")
+
+    llm_manager = _current_llm_manager
+    requirement_text = state['requirement_text']
+
+    # 六维度并行调用（控制 rate limit）
+    dimensions = [
+        ("完整性", "review_pm", "10年产品经理", "#FF6B6B"),
+        ("可测性", "review_qa", "8年测试主管", "#4ECDC4"),
+        ("可行性", "review_cto", "12年CTO", "#45B7D1"),
+        ("清晰度", "review_dev", "新手开发者", "#96CEB4"),
+        ("一致性", "review_code", "代码审查专家", "#FFEAA7"),
+        ("逻辑性", "review_architect", "15年业务架构师", "#DDA0DD"),
+    ]
+
+    # 使用线程池并行调用，每个维度独立超时，总耗时约等于单个最慢调用
+    import concurrent.futures as _cfx
+    results = []
+    call_errors = {}
+
+    def _call_one(dim):
+        name, prompt_key, persona, color = dim
+        try:
+            output = call_llm(
+                llm_manager,
+                AGENT_PROMPTS[prompt_key],
+                requirement_text,
+                temperature=0.3,
+            )
+            import re as _re
+            score_match = _re.search(r'(\d{1,3})\s*分', output)
+            score = int(score_match.group(1)) if score_match else 50
+            return {"name": name, "persona": persona, "color": color,
+                    "score": min(100, max(0, score)), "content": output, "error": None}
+        except Exception as e:
+            return {"name": name, "persona": persona, "color": color,
+                    "score": 0, "content": f"评审失败: {e}", "error": str(e)}
+
+    with _cfx.ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(_call_one, d): d[0] for d in dimensions}
+        for future in _cfx.as_completed(futures):
+            results.append(future.result())
+
+    # 按原始顺序排序
+    order = {d[0]: i for i, d in enumerate(dimensions)}
+    results.sort(key=lambda r: order.get(r["name"], 99))
+    call_errors = {r["name"]: r["content"] for r in results if r.get("error")}
+
+    # 合成综合评分
+    total_score = sum(r["score"] for r in results) // len(results) if results else 0
+    verdict = "优秀" if total_score >= 80 else "良好" if total_score >= 60 else "需改进"
+
+    html = _generate_review_html(requirement_text, results, total_score, verdict)
+    logger.info(f"[LangGraph] ✅ 6维度需求评审完成，综合评分={total_score}，verdict={verdict}")
+    return {"requirement_review_output": html}
+
+
+def _md_to_html(text: str) -> str:
+    """简单 Markdown → HTML（仅处理加粗、列表、标题、换行）"""
+    import re as _re
+    # 转义 HTML 特殊字符（保留后续 markdown 标记）
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # 标题
+    text = _re.sub(r"^### (.+)$", r"<strong>\1</strong>", text, flags=_re.MULTILINE)
+    text = _re.sub(r"^## (.+)$", r"<strong style='font-size:14px;'>\1</strong>", text, flags=_re.MULTILINE)
+    # 加粗
+    text = _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    # 有序/无序列表
+    lines = text.split("\n")
+    result = []
+    in_list = False
+    for line in lines:
+        m_bullet = _re.match(r"^[\s]*[-*] (.+)$", line)
+        m_ol = _re.match(r"^\d+\.\s+(.+)$", line)
+        if m_bullet:
+            if not in_list:
+                result.append("<ul>")
+                in_list = True
+            result.append(f'<li>{m_bullet.group(1)}</li>')
+        elif m_ol:
+            if not in_list:
+                result.append("<ul>")
+                in_list = True
+            result.append(f'<li>{m_ol.group(1)}</li>')
+        else:
+            if in_list:
+                result.append("</ul>")
+                in_list = False
+            result.append(line if line.strip() else "<br>")
+    if in_list:
+        result.append("</ul>")
+    return "\n".join(result)
+
+
+def _generate_review_html(
+    requirement_text: str,
+    results: List[Dict],
+    total_score: int,
+    verdict: str,
+) -> str:
+    """生成六维度需求评审HTML报告 — 左右两栏布局"""
+    color_map = {
+        "优秀": "#22c55e",
+        "良好": "#3b82f6",
+        "需改进": "#f59e0b",
+    }
+    primary_color = color_map.get(verdict, "#6b7280")
+
+    rows = []
+    for r in results:
+        score_color = (
+            "#22c55e" if r["score"] >= 80
+            else "#3b82f6" if r["score"] >= 60
+            else "#f59e0b" if r["score"] >= 40
+            else "#ef4444"
+        )
+        # 简单 Markdown 转 HTML
+        content_html = _md_to_html(r["content"])
+        rows.append(f"""
+        <div class="dim-row">
+            <div class="dim-left" style="border-left-color:{r['color']};">
+                <div class="dim-label">{r['name']}</div>
+                <div class="dim-persona">{r['persona']}</div>
+                <div class="dim-score-val" style="color:{score_color};">{r['score']}分</div>
+                <div class="dim-score-bar"><div class="dim-score-fill" style="width:{r['score']}%;background:{score_color};"></div></div>
+            </div>
+            <div class="dim-right">{content_html}</div>
+        </div>""")
+
+    text_escaped = requirement_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>需求评审报告</title>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ font-family:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif; background:#0b1120; color:#e2e8f0; padding:20px; line-height:1.7; }}
+  .wrap {{ max-width:1100px; margin:0 auto; }}
+  .hdr {{ text-align:center; padding:24px 0 20px; border-bottom:1px solid #1e2d4a; margin-bottom:20px; }}
+  .hdr h1 {{ font-size:22px; color:#f1f5f9; letter-spacing:1px; }}
+  .hdr .sub {{ color:#64748b; font-size:12px; margin-top:4px; }}
+  .score-area {{ display:flex; align-items:center; justify-content:center; gap:20px; margin:16px 0 20px; }}
+  .circle {{ width:88px; height:88px; border-radius:50%; background:conic-gradient({primary_color} {total_score*3.6}deg, #1e2d4a 0); display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; }}
+  .circle::before {{ content:''; position:absolute; width:72px; height:72px; border-radius:50%; background:#0b1120; }}
+  .circle span {{ position:relative; z-index:1; font-size:26px; font-weight:800; color:{primary_color}; }}
+  .score-meta {{ font-size:13px; color:#94a3b8; }}
+  .score-meta strong {{ color:#f1f5f9; font-size:16px; display:block; margin-bottom:2px; }}
+  .req-box {{ background:#1e2d4a; border-radius:8px; padding:12px 16px; font-size:13px; color:#94a3b8; margin-bottom:20px; white-space:pre-wrap; word-break:break-all; max-height:120px; overflow-y:auto; }}
+  .req-box strong {{ color:#f1f5f9; }}
+  .sec-title {{ font-size:14px; color:#f1f5f9; font-weight:600; margin-bottom:12px; padding-left:10px; border-left:3px solid #3b82f6; }}
+  .dim-row {{ display:flex; gap:0; margin-bottom:10px; border-radius:10px; overflow:hidden; background:#1e2d4a; border:1px solid #253554; }}
+  .dim-left {{ width:160px; min-width:160px; padding:14px 12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-left:4px solid; background:#0f1a2e; text-align:center; }}
+  .dim-label {{ font-size:15px; font-weight:700; color:#f8fafc; }}
+  .dim-persona {{ font-size:10px; color:#64748b; background:#1e2d4a; padding:2px 8px; border-radius:10px; }}
+  .dim-score-val {{ font-size:22px; font-weight:800; }}
+  .dim-score-bar {{ width:80%; height:4px; background:#253554; border-radius:2px; overflow:hidden; }}
+  .dim-score-fill {{ height:100%; border-radius:2px; transition:width 0.6s; }}
+  .dim-right {{ flex:1; padding:14px 16px; font-size:13px; color:#cbd5e1; white-space:pre-wrap; word-break:break-word; }}
+  .ft {{ text-align:center; color:#334155; font-size:11px; margin-top:20px; padding-top:12px; border-top:1px solid #1e2d4a; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <h1>📋 需求六维度智能评审报告</h1>
+    <div class="sub">基于多维度专家视角的综合分析</div>
+  </div>
+  <div class="score-area">
+    <div class="circle"><span>{total_score}</span></div>
+    <div class="score-meta">
+      <strong>综合评分：{verdict}</strong>
+      由6位不同角色专家独立评审后合成
+    </div>
+  </div>
+  <div class="req-box"><strong>需求原文：</strong>{text_escaped}</div>
+  <div class="sec-title">🧠 六维度专家分析详情</div>
+  {''.join(rows)}
+  <div class="ft">TestGen AI · 智能需求评审系统 · {datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
+</div>
+</body></html>"""
+    return html
 
 
 def analyst_node(state: TestGenState) -> dict:
@@ -305,12 +527,15 @@ def route_after_review(state: TestGenState) -> str:
 
 
 def build_testgen_graph(
-    checkpoint_path: str = "data/langgraph_checkpoints.db",
+    checkpoint_path: str = None,
 ):
     """构建 TestGen LangGraph StateGraph"""
+    import tempfile as _tf
 
-    # 确保 data 目录存在
-    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+    # 如果没有指定路径，使用临时文件（每个实例独立 checkpoint）
+    if checkpoint_path is None:
+        fd, checkpoint_path = _tf.mkstemp(suffix='.db', prefix='lg_checkpoint_')
+        os.close(fd)
 
     # Checkpoint
     conn = sqlite3.connect(checkpoint_path, check_same_thread=False)
@@ -319,6 +544,7 @@ def build_testgen_graph(
     builder = StateGraph(TestGenState)
 
     # 添加 node
+    builder.add_node("requirement_review", requirement_review_node)
     builder.add_node("orchestrator", orchestrator_node)
     builder.add_node("analyst", analyst_node)
     builder.add_node("designer", designer_node)
@@ -326,7 +552,8 @@ def build_testgen_graph(
     builder.add_node("reviewer", reviewer_node)
 
     # 线性边
-    builder.add_edge(START, "orchestrator")
+    builder.add_edge(START, "requirement_review")
+    builder.add_edge("requirement_review", "orchestrator")
     builder.add_edge("orchestrator", "analyst")
     builder.add_edge("analyst", "designer")
     builder.add_edge("designer", "generator")
@@ -500,10 +727,10 @@ def _balance_priorities(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 class LangGraphTestGenService:
     """LangGraph 版 TestGen 服务 — Flask API 集成"""
 
-    def __init__(self, db_session=None, llm_manager=None):
+    def __init__(self, db_session=None, llm_manager=None, checkpoint_path=None):
         self.db_session = db_session
         self.llm_manager = llm_manager
-        self.graph, self.conn = build_testgen_graph()
+        self.graph, self.conn = build_testgen_graph(checkpoint_path)
 
     def generate_cases(
         self, requirement_id: int, max_attempts: int = 2
@@ -556,6 +783,7 @@ class LangGraphTestGenService:
             "test_points": [],
             "designer_output": "",
             "review_conclusion": "",
+            "requirement_review_output": "",
             "cases_raw": "",
             "cases": [],
             "review_output": "",
@@ -712,6 +940,7 @@ class LangGraphTestGenService:
                 expected_results=json.dumps(
                     case_data.get("expected_results", []), ensure_ascii=False
                 ),
+                status=2,  # CaseStatus.PENDING_REVIEW
             )
             self.db_session.add(tc)
             case_ids.append(tc.case_id)

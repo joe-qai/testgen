@@ -29,7 +29,7 @@ from src.utils import init_global_logging
 
 init_global_logging()
 
-from flask import Flask, send_from_directory, make_response, g, request, jsonify
+from flask import Flask, send_from_directory, make_response, g, request, jsonify, abort
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 
@@ -223,55 +223,65 @@ def create_app():
             emit("subscribed", {"task_id": task_id, "status": "subscribed"})
 
     # ==================== 前端路由 ====================
-    @app.route("/")
-    def index():
-        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
-
-    @app.route("/chat")
-    def chat_page():
+    def _serve_ui_page(filename):
         response = make_response(
-            send_from_directory(app.config["UI_FOLDER"], "chat.html")
+            send_from_directory(app.config["UI_FOLDER"], filename)
         )
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
         return response
 
+    @app.route("/")
+    def index():
+        return _serve_ui_page("testgen-app.html")
+
+    @app.route("/chat")
+    def chat_page():
+        return _serve_ui_page("chat.html")
+
     @app.route("/requirements")
     def requirements_page():
-        return send_from_directory(app.config["UI_FOLDER"], "requirements.html")
+        return _serve_ui_page("requirements.html")
 
     @app.route("/cases")
     def cases_page():
-        return send_from_directory(app.config["UI_FOLDER"], "cases.html")
+        return _serve_ui_page("cases.html")
 
     @app.route("/rag")
     def rag_page():
-        return send_from_directory(app.config["UI_FOLDER"], "rag.html")
+        return _serve_ui_page("rag.html")
 
     @app.route("/prompts")
     def prompts_page():
-        return send_from_directory(app.config["UI_FOLDER"], "prompts.html")
+        return _serve_ui_page("prompts.html")
 
     @app.route("/config")
     def config_page():
-        return send_from_directory(app.config["UI_FOLDER"], "config.html")
+        return _serve_ui_page("config.html")
 
     @app.route("/defects")
     def defects_page():
-        return send_from_directory(app.config["UI_FOLDER"], "defects.html")
+        return _serve_ui_page("defects.html")
 
     @app.route("/autogen")
     def autogen_page():
-        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
+        return _serve_ui_page("testgen-app.html")
 
     @app.route("/langgraph")
     def langgraph_page():
-        return send_from_directory(app.config["UI_FOLDER"], "testgen-app.html")
+        return _serve_ui_page("testgen-app.html")
 
     @app.route("/<path:path>")
     def static_files(path):
-        return send_from_directory(app.config["UI_FOLDER"], path)
+        ui_folder = app.config["UI_FOLDER"]
+        safe_path = os.path.normpath(path).replace("..", "")
+        full_path = os.path.join(ui_folder, safe_path)
+        if os.path.isfile(full_path):
+            return _serve_ui_page(safe_path)
+        if os.path.isfile(full_path + ".html"):
+            return _serve_ui_page(safe_path + ".html")
+        abort(404)
 
     @app.route("/health/live")
     def health_live():
@@ -297,6 +307,10 @@ def create_app():
         else:
             g.request_id = str(uuid.uuid4())
         g.start_time = time.time()
+
+    @app.errorhandler(404)
+    def handle_404(e):
+        return jsonify({"error": "资源不存在", "code": "NOT_FOUND"}), 404
 
     @app.errorhandler(Exception)
     def handle_unhandled_exception(e):
