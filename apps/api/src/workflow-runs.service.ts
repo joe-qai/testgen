@@ -1,6 +1,7 @@
 import { assertTransition, type WorkflowRunStore, type WorkflowRunRecord } from '@testgen/workflow';
 import { WorkflowRunStatus, WorkflowEventType } from '@testgen/contracts';
 import type { QueueAdapter } from '@testgen/queue';
+import type { SseEventBus } from './sse-event-bus.js';
 
 export type WorkflowRunInput = { organizationId: string; projectId: string; requestedBy: string; workflowCode: string; idempotencyKey: string; input: Record<string, unknown> };
 
@@ -10,6 +11,7 @@ export class WorkflowRunService {
     private readonly now: () => Date = () => new Date(),
     private readonly idGenerator: () => string = () => crypto.randomUUID(),
     private readonly queue?: QueueAdapter,
+    private readonly eventBus?: SseEventBus,
   ) {}
 
   async create(input: WorkflowRunInput) {
@@ -103,7 +105,7 @@ export class WorkflowRunService {
 
   private async emit(runId: string, eventType: WorkflowEventType, payload: Record<string, unknown>) {
     const sequence = await this.store.nextSequence(runId);
-    await this.store.appendEvent({
+    const event = {
       id: this.idGenerator(),
       runId,
       sequence,
@@ -111,6 +113,8 @@ export class WorkflowRunService {
       nodeName: null,
       payload,
       createdAt: this.now().toISOString(),
-    });
+    };
+    await this.store.appendEvent(event);
+    this.eventBus?.publish(runId, event);
   }
 }
