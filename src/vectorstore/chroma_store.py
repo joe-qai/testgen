@@ -174,21 +174,20 @@ class ChromaVectorStore:
         chunker = self._get_chunker()
         if chunker and len(content) > 512:
             try:
-                chunks = chunker.chunk_requirement(content)
+                chunks = chunker.chunk_requirement(content, requirement_id)
                 for i, chunk in enumerate(chunks):
-                    chunk_id = f"{requirement_id}_chunk_{i}"
-                    chunk_meta = (
-                        {
-                            **metadata,
-                            "original_id": requirement_id,
-                            "chunk_index": i,
-                        }
-                        if metadata
-                        else {"original_id": requirement_id, "chunk_index": i}
-                    )
+                    chunk_content = chunk.get("content", chunk) if isinstance(chunk, dict) else chunk
+                    chunk_meta_from_chunk = chunk.get("metadata", {}) if isinstance(chunk, dict) else {}
+                    chunk_id = chunk.get("chunk_id", f"{requirement_id}_chunk_{i}")
+                    chunk_meta = {
+                        **metadata,
+                        **chunk_meta_from_chunk,
+                        "original_id": requirement_id,
+                        "chunk_index": i,
+                    } if metadata else {**chunk_meta_from_chunk, "original_id": requirement_id, "chunk_index": i}
                     self.requirement_collection.add(
                         ids=[chunk_id],
-                        documents=[chunk],
+                        documents=[chunk_content],
                         metadatas=[chunk_meta],
                     )
                 return
@@ -221,17 +220,20 @@ class ChromaVectorStore:
         chunker = self._get_chunker()
         if chunker and len(content) > 512:
             try:
-                chunks = chunker.chunk_case(content)
+                chunks = chunker.chunk_case(content, case_id)
                 for i, chunk in enumerate(chunks):
-                    chunk_id = f"{case_id}_chunk_{i}"
-                    chunk_meta = (
-                        {**metadata, "original_id": case_id, "chunk_index": i}
-                        if metadata
-                        else {"original_id": case_id, "chunk_index": i}
-                    )
+                    chunk_content = chunk.get("content", chunk) if isinstance(chunk, dict) else chunk
+                    chunk_meta_from_chunk = chunk.get("metadata", {}) if isinstance(chunk, dict) else {}
+                    chunk_id = chunk.get("chunk_id", f"{case_id}_chunk_{i}")
+                    chunk_meta = {
+                        **metadata,
+                        **chunk_meta_from_chunk,
+                        "original_id": case_id,
+                        "chunk_index": i,
+                    } if metadata else {**chunk_meta_from_chunk, "original_id": case_id, "chunk_index": i}
                     self.case_collection.add(
                         ids=[chunk_id],
-                        documents=[chunk],
+                        documents=[chunk_content],
                         metadatas=[chunk_meta],
                     )
                 return
@@ -264,21 +266,20 @@ class ChromaVectorStore:
         chunker = self._get_chunker()
         if chunker and len(content) > 300:
             try:
-                chunks = chunker.chunk_defect(content)
+                chunks = chunker.chunk_defect(content, defect_id)
                 for i, chunk in enumerate(chunks):
-                    chunk_id = f"{defect_id}_chunk_{i}"
-                    chunk_meta = (
-                        {
-                            **metadata,
-                            "original_id": defect_id,
-                            "chunk_index": i,
-                        }
-                        if metadata
-                        else {"original_id": defect_id, "chunk_index": i}
-                    )
+                    chunk_content = chunk.get("content", chunk) if isinstance(chunk, dict) else chunk
+                    chunk_meta_from_chunk = chunk.get("metadata", {}) if isinstance(chunk, dict) else {}
+                    chunk_id = chunk.get("chunk_id", f"{defect_id}_chunk_{i}")
+                    chunk_meta = {
+                        **metadata,
+                        **chunk_meta_from_chunk,
+                        "original_id": defect_id,
+                        "chunk_index": i,
+                    } if metadata else {**chunk_meta_from_chunk, "original_id": defect_id, "chunk_index": i}
                     self.defect_collection.add(
                         ids=[chunk_id],
-                        documents=[chunk],
+                        documents=[chunk_content],
                         metadatas=[chunk_meta],
                     )
                 return
@@ -459,16 +460,95 @@ class ChromaVectorStore:
         return formatted
 
     def delete_requirement(self, requirement_id: str):
-        """删除需求"""
-        self.requirement_collection.delete(ids=[requirement_id])
+        """删除需求（支持删除所有分块）"""
+        try:
+            result = self.requirement_collection.get(ids=[requirement_id])
+            if result["ids"]:
+                self.requirement_collection.delete(ids=[requirement_id])
+            else:
+                # 删除该需求的所有分块
+                all_result = self.requirement_collection.get(include=[])
+                chunk_ids = [
+                    aid for aid in all_result.get("ids", [])
+                    if aid.startswith(requirement_id + "_chunk_")
+                ]
+                if chunk_ids:
+                    self.requirement_collection.delete(ids=chunk_ids)
+        except Exception:
+            pass
 
     def delete_case(self, case_id: str):
-        """删除用例"""
-        self.case_collection.delete(ids=[case_id])
+        """删除用例（支持删除所有分块）"""
+        try:
+            result = self.case_collection.get(ids=[case_id])
+            if result["ids"]:
+                self.case_collection.delete(ids=[case_id])
+            else:
+                all_result = self.case_collection.get(include=[])
+                chunk_ids = [
+                    cid for cid in all_result.get("ids", [])
+                    if cid.startswith(case_id + "_chunk_")
+                ]
+                if chunk_ids:
+                    self.case_collection.delete(ids=chunk_ids)
+        except Exception:
+            pass
 
     def delete_defect(self, defect_id: str):
-        """删除缺陷"""
-        self.defect_collection.delete(ids=[defect_id])
+        """删除缺陷（支持删除所有分块）"""
+        try:
+            result = self.defect_collection.get(ids=[defect_id])
+            if result["ids"]:
+                self.defect_collection.delete(ids=[defect_id])
+            else:
+                all_result = self.defect_collection.get(include=[])
+                chunk_ids = [
+                    did for did in all_result.get("ids", [])
+                    if did.startswith(defect_id + "_chunk_")
+                ]
+                if chunk_ids:
+                    self.defect_collection.delete(ids=chunk_ids)
+        except Exception:
+            pass
+
+    def delete_all_chunks(self, doc_id: str, collection: str):
+        """删除某文档的所有分块"""
+        try:
+            all_result = self._get_collection(collection).get(include=[])
+            chunk_ids = [
+                cid for cid in all_result.get("ids", [])
+                if cid.startswith(doc_id + "_chunk_")
+            ]
+            if chunk_ids:
+                self._get_collection(collection).delete(ids=chunk_ids)
+            return len(chunk_ids)
+        except Exception:
+            return 0
+
+    def _get_collection(self, name: str):
+        """按名称获取集合"""
+        collections = {
+            "requirements": self.requirement_collection,
+            "cases": self.case_collection,
+            "defects": self.defect_collection,
+        }
+        return collections.get(name)
+
+    def clear_all(self):
+        """清空所有集合数据"""
+        try:
+            # 注意属性名: requirement_collection (单数) / case_collection / defect_collection
+            collections = [
+                ("requirement", self.requirement_collection),
+                ("case", self.case_collection),
+                ("defect", self.defect_collection),
+            ]
+            for prefix, col in collections:
+                all_result = col.get(include=[])
+                if all_result and all_result.get("ids"):
+                    col.delete(ids=all_result["ids"])
+        except Exception as e:
+            logger.warning(f"清空RAG数据失败: {e}")
 
     def get_stats(self) -> Dict[str, int]:
         """获取统计信息"""

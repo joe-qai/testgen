@@ -825,7 +825,7 @@ class AutogenGroupChatService:
                         test_steps=case_data.get("test_steps", []),
                         expected_results=case_data.get("expected_results", []),
                         preconditions=case_data.get("preconditions", ""),
-                        status=0,
+                        status=2,  # CaseStatus.PENDING_REVIEW
                     )
                     bg_session.add(case)
                     saved += 1
@@ -896,14 +896,30 @@ class AutogenGroupChatService:
                 task.status = 3
                 task.error_message = "Phase 1 失败"
                 self._emit(task_id, "error", {"error": "Phase 1 失败"})
+                # 更新需求状态为失败
+                if requirement and self.db_session:
+                    from src.database.models import RequirementStatus
+                    requirement.status = RequirementStatus.FAILED
+                    self.db_session.commit()
                 return
 
             task.analysis_data = phase1_result.get("analysis")
             task.plan_data = phase1_result.get("plan")
             task.phase = "phase1_done"
+            task.status = 2  # 标记为完成，供前端轮询识别
             task.progress = 40.0
             task.message = "Phase 1 完成，等待人工评审"
             task.updated_at = datetime.now(timezone.utc).isoformat()
+
+            # 同步保存到需求记录，供需求管理页面预览
+            if requirement:
+                from src.database.models import RequirementStatus
+                requirement.analysis_data = phase1_result
+                requirement.status = RequirementStatus.ANALYZED
+                bg_session = self.db_session
+                if bg_session:
+                    bg_session.commit()
+
             self._emit(
                 task_id,
                 "phase1_done",

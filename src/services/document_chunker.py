@@ -25,6 +25,22 @@ CHUNK_CONFIGS = {
     "defect": {"chunk_size": 300, "overlap": 30, "max_size": 300},
 }
 
+# tiktoken 编码器（延迟初始化）
+_tokenizer = None
+
+
+def _get_tokenizer():
+    """获取 tiktoken 编码器，失败时降级到简单估算"""
+    global _tokenizer
+    if _tokenizer is not None:
+        return _tokenizer
+    try:
+        import tiktoken
+        _tokenizer = tiktoken.get_encoding("cl100k_base")
+        return _tokenizer
+    except ImportError:
+        return None
+
 
 class DocumentChunker:
     """文档分块器"""
@@ -188,12 +204,12 @@ class DocumentChunker:
         """
         带重叠的分块，保留语义边界
 
-        不在句子中间切分（句号、换行符、分号处切分）。
+        不在句子中间切分（句号、换行符、分号、冒号处切分）。
         """
         chunks = []
 
-        # 按句子分割
-        sentences = re.split(r"(?<=[。！？.\n；;])", content)
+        # 按句子分割：支持中英文标点边界
+        sentences = re.split(r"(?<=[。！？.\n；;：\)\]》\】])", content)
         sentences = [s for s in sentences if s.strip()]
 
         current_chunk = ""
@@ -222,48 +238,67 @@ class DocumentChunker:
     def _extract_overlap(
         self, text: str, overlap_tokens: int
     ) -> Tuple[str, int]:
-        """从文本末尾提取重叠部分"""
-        if overlap_tokens <= 0:
+        """从文本末尾提取重叠部分，保留完整句子"""
+        if overlap_tokens <= 0 or not text:
             return "", 0
 
-        # 从后往前取大约overlap_tokens的内容
-        # 中文1字符=1token，英文约3字符=1token
-        chars_to_take = overlap_tokens * 2  # 保守估计
+        # 先尝试取末尾 2x overlap_tokens 的内容作为候选
+        chars_to_take = max(overlap_tokens * 3, overlap_tokens * 2)
+        candidate = text[-chars_to_take:] if len(text) > chars_to_take else text
 
-        overlap_text = (
-            text[-chars_to_take:] if len(text) > chars_to_take else text
-        )
-
-        # 找到最近的句子边界
+        # 找到最后一个完整句子边界（句号/问号/感叹号/换行）
+        boundary_positions = []
         for boundary in ["。", "！", "？", ".", "\n", "；", ";"]:
-            idx = overlap_text.find(boundary)
+            idx = candidate.rfind(boundary)
             if idx >= 0:
-                overlap_text = overlap_text[idx + 1 :]
-                break
+                boundary_positions.append(idx)
 
-        return overlap_text, self._estimate_token_count(overlap_text)
+        if boundary_positions:
+            # 取最后一个边界之后的内容作为 overlap
+            last_boundary = max(boundary_positions)
+            overlap_text = candidate[last_boundary + 1 :]
+            if not overlap_text.strip():
+                # 如果边界后没有内容，取边界本身及之后的内容
+                overlap_text = candidate[last_boundary:]
+        else:
+            # 没有边界，直接取末尾
+            overlap_text = candidate
+
+        overlap_text = overlap_text.strip()
+        token_count = self._estimate_token_count(overlap_text)
+
+        # 如果 overlap 过大，截断
+        if token_count > overlap_tokens:
+            # 逐步截断到目标大小
+            while token_count > overlap_tokens and len(overlap_text) > 10:
+                # 在句子边界处截断
+                cut_at = -1
+                for boundary in ["。", "！", "？", ".", "\n"]:
+                    idx = overlap_text.rfind(boundary, 0, -10)
+                    if idx > cut_at:
+                        cut_at = idx
+                if cut_at >= 0:
+                    overlap_text = overlap_text[: cut_at + 1]
+                else:
+                    overlap_text = overlap_text[: -10]
+                token_count = self._estimate_token_count(overlap_text)
+
+        return overlap_text, token_count
 
     def _estimate_token_count(self, text: str) -> int:
-        """
-        估算token数量
-
-        简化规则:
-        - 中文字符: 1字符 = 1 token
-        - 英文单词: 1单词 = 1 token
-        - 数字/符号: 按字符计
-        """
+        """使用 tiktoken 精确计算 token 数，失败时降级到简单估算"""
         if not text:
             return 0
-
-        # 中文字符数
+        tokenizer = _get_tokenizer()
+        if tokenizer:
+            try:
+                return len(tokenizer.encode(text))
+            except Exception:
+                pass
+        # 降级：简单估算
         chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
-
-        # 英文单词数
         english_words = len(re.findall(r"[a-zA-Z]+", text))
-
-        # 数字和符号
         other_chars = len(re.findall(r"[0-9\s\W]", text))
-
         return chinese_chars + english_words + (other_chars // 4)
 
     def aggregate_chunk_results(
