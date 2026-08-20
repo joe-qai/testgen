@@ -37,4 +37,16 @@ describe('auth service', () => {
     expect(claims.sub).toBe(result.user.id);
     expect(claims.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
   });
+
+  it('issues tokens for an external (feishu) user idempotently by external id', async () => {
+    const service = new AuthService('access-secret-123456789012345678901234', 'refresh-secret-123456789012345678901234');
+    const first = await service.issueTokensForExternalUser({ externalId: 'ou_abc', name: '张三', email: 'zhangsan@example.com' });
+    const second = await service.issueTokensForExternalUser({ externalId: 'ou_abc', name: '张三', email: 'zhangsan@example.com' });
+    expect(first.user.id).toBe(second.user.id);
+    expect(first.user.email).toContain('ou_abc');
+    expect(first.accessToken).toContain('.');
+    // 该用户不需要密码即可获得 token，且 refresh 可用
+    const rotated = await service.refresh(first.refreshToken);
+    expect(rotated.user.id).toBe(first.user.id);
+  });
 });

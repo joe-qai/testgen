@@ -1,5 +1,6 @@
 import type { LLMAdapter } from './llm/adapter.js';
 import { createMockLLMAdapter } from './llm/adapter.js';
+import { createOpenAILLMAdapterFromEnv } from './llm/openai.adapter.js';
 import { executeWorkflow } from './workflow.executor.js';
 import type { NodeRunRecord } from './node-runner.js';
 
@@ -14,7 +15,7 @@ export type DemoJobResult = {
 };
 
 export class DemoWorkflowProcessor {
-  constructor(private readonly llm: LLMAdapter = createMockLLMAdapter()) {}
+  constructor(private readonly llm: LLMAdapter = createOpenAILLMAdapterFromEnv() ?? createMockLLMAdapter()) {}
 
   async process(job: DemoJob): Promise<DemoJobResult> {
     try {

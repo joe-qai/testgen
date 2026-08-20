@@ -9,6 +9,7 @@ import { WorkflowRunService } from './workflow-runs.service.js';
 import { OrganizationsService } from './organizations.service.js';
 import { ProjectsService } from './projects.service.js';
 import { AuthService } from './auth.service.js';
+import { FeishuOAuthService } from './feishu-oauth.service.js';
 import { createMemoryWorkflowRunStore } from './workflow-runs.memory-store.js';
 import { createMemoryOrganizationStore, createMemoryProjectStore } from './org-project.memory-store.js';
 import { createDatabase, runMigrations, runSeed, PostgresWorkflowRunStore, PostgresOrganizationStore, PostgresProjectStore, type Database, type OrganizationStore, type ProjectStore } from '@testgen/database';
@@ -84,6 +85,16 @@ export class HealthController {
         const service = new AuthService(process.env.JWT_ACCESS_SECRET ?? 'development-access-secret-please-change-32', process.env.JWT_REFRESH_SECRET ?? 'development-refresh-secret-please-change-32');
         await service.createUser({ email: process.env.BOOTSTRAP_ADMIN_EMAIL ?? 'admin@example.com', password: process.env.BOOTSTRAP_ADMIN_PASSWORD ?? 'Admin#123456', displayName: process.env.BOOTSTRAP_ADMIN_NAME ?? '平台管理员' }).catch(() => undefined);
         return service;
+      },
+    },
+    {
+      provide: FeishuOAuthService,
+      useFactory: () => {
+        const appId = process.env.FEISHU_APP_ID;
+        const appSecret = process.env.FEISHU_APP_SECRET;
+        if (!appId || !appSecret) return undefined;
+        const redirectUri = process.env.FEISHU_REDIRECT_URI ?? 'http://localhost:5173/api/v1/auth/feishu/callback';
+        return new FeishuOAuthService({ appId, appSecret, redirectUri });
       },
     },
   ],
