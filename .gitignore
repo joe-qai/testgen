@@ -40,3 +40,15 @@ sitecustomize.py
 
 # Local worktrees
 .worktrees/
+
+# Ad-hoc / temporary debug scripts (not part of project)
+test_phase1_async.py
+test_phase1_async2.py
+test_db.py
+test_route.py
+test_langgraph.py
+test_lg_gen.py
+fix_nav.py
+modles.txt
+multiplication_table.py
+server.err
