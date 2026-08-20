@@ -23,7 +23,7 @@
         
         body {
             font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -35,8 +35,8 @@
         
         .sidebar {
             width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             padding: 30px 0;
         }
         
@@ -44,10 +44,10 @@
             padding: 0 30px 30px;
             font-size: 28px;
             font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
             letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .nav-menu {
@@ -73,8 +73,8 @@
         
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
         
         .nav-icon {
@@ -98,14 +98,14 @@
         
         .header h1 {
             font-size: 32px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
             letter-spacing: 2px;
         }
         
         .header h1::before {
             content: '// ';
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .stats {
@@ -115,8 +115,8 @@
         }
         
         .stat-card {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 20px;
             min-width: 150px;
@@ -125,7 +125,7 @@
         .stat-value {
             font-size: 32px;
             font-weight: 700;
-            color: var(--neon-cyan);
+            color: var(--primary);
             margin-bottom: 8px;
         }
         
@@ -154,21 +154,21 @@
         
         .filter-input {
             padding: 8px 12px;
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
             font-size: 14px;
         }
         
         .filter-input:focus {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             outline: none;
         }
         
         .cases-table {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             overflow: hidden;
         }
@@ -179,17 +179,17 @@
         }
         
         th {
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             padding: 16px;
             text-align: left;
             font-weight: 600;
-            color: var(--neon-cyan);
-            border-bottom: 1px solid var(--dark-border);
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
         }
         
         td {
             padding: 16px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         tr:hover {
@@ -211,17 +211,17 @@
         
         .priority-p0 {
             background: rgba(255, 0, 255, 0.2);
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .priority-p1 {
             background: rgba(255, 238, 0, 0.2);
-            color: var(--neon-yellow);
+            color: var(--warning);
         }
         
         .priority-p2 {
             background: rgba(0, 245, 255, 0.2);
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
         
         .priority-p3 {
@@ -238,17 +238,17 @@
         
         .status-pending {
             background: rgba(255, 238, 0, 0.2);
-            color: var(--neon-yellow);
+            color: var(--warning);
         }
         
         .status-approved {
             background: rgba(0, 255, 136, 0.2);
-            color: var(--neon-green);
+            color: var(--success);
         }
         
         .status-rejected {
             background: rgba(255, 0, 255, 0.2);
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .action-btn {
@@ -257,14 +257,14 @@
             font-size: 12px;
             cursor: pointer;
             transition: all 0.3s;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             background: transparent;
             color: var(--text-secondary);
         }
         
         .action-btn:hover {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
         }
         
         .batch-actions {
@@ -275,7 +275,7 @@
         
         .btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
             border: none;
             border-radius: 8px;
             color: white;
@@ -292,20 +292,20 @@
         }
         
         .btn-success {
-            background: linear-gradient(135deg, var(--neon-green), #00cc6a);
+            background: linear-gradient(135deg, var(--success), #00cc6a);
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, var(--neon-pink), #cc0066);
+            background: linear-gradient(135deg, var(--danger), #cc0066);
         }
         
         .btn-secondary {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
         }
         
         .btn-secondary:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -339,8 +339,8 @@
         }
         
         .modal-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             max-width: 600px;
@@ -350,7 +350,7 @@
         .modal-header {
             font-size: 20px;
             font-weight: 600;
-            color: var(--neon-cyan);
+            color: var(--primary);
             margin-bottom: 20px;
         }
         
@@ -370,7 +370,7 @@
         <div class="sidebar">
             <div class="logo">TestGen</div>
             <ul class="nav-menu">
-                <li class="nav-item" onclick="window.location.href='index.html'">
+                <li class="nav-item" onclick="window.location.href='/'">
                     <span class="nav-icon">📊</span>
                     <span>仪表盘</span>
                 </li>
@@ -603,7 +603,7 @@
                 renderCasesTable();
             } catch (error) {
                 console.error('筛选失败:', error);
-                alert('筛选失败');
+                showToast('筛选失败', 'info');
             }
         }
         
@@ -615,7 +615,7 @@
         
         async function batchApprove() {
             if (selectedCases.length === 0) {
-                alert('请先选择用例');
+                showToast('请先选择用例', 'info');
                 return;
             }
             
@@ -631,21 +631,21 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert(result.message);
+                    showToast(result.message, 'info');
                     selectedCases = [];
                     loadPendingCases();
                 } else {
-                    alert('批量通过失败: ' + result.error);
+                    showToast('批量通过失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('批量通过失败:', error);
-                alert('批量通过失败');
+                showToast('批量通过失败', 'info');
             }
         }
         
         async function batchReject() {
             if (selectedCases.length === 0) {
-                alert('请先选择用例');
+                showToast('请先选择用例', 'info');
                 return;
             }
             
@@ -661,21 +661,21 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert(result.message);
+                    showToast(result.message, 'info');
                     selectedCases = [];
                     loadPendingCases();
                 } else {
-                    alert('批量拒绝失败: ' + result.error);
+                    showToast('批量拒绝失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('批量拒绝失败:', error);
-                alert('批量拒绝失败');
+                showToast('批量拒绝失败', 'info');
             }
         }
         
         function batchEdit() {
             if (selectedCases.length === 0) {
-                alert('请先选择用例');
+                showToast('请先选择用例', 'info');
                 return;
             }
             
@@ -691,7 +691,7 @@
             if (module) updates.module = module;
             
             if (Object.keys(updates).length === 0) {
-                alert('请至少修改一个字段');
+                showToast('请至少修改一个字段', 'info');
                 return;
             }
             
@@ -707,15 +707,15 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert(result.message);
+                    showToast(result.message, 'info');
                     closeEditModal();
                     loadPendingCases();
                 } else {
-                    alert('批量编辑失败: ' + result.error);
+                    showToast('批量编辑失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('批量编辑失败:', error);
-                alert('批量编辑失败');
+                showToast('批量编辑失败', 'info');
             }
         }
         
@@ -727,11 +727,11 @@
         
         async function batchDelete() {
             if (selectedCases.length === 0) {
-                alert('请先选择用例');
+                showToast('请先选择用例', 'info');
                 return;
             }
             
-            if (!confirm(`确定要删除 ${selectedCases.length} 条用例吗？此操作不可恢复！`)) {
+            if (!showConfirmAsync(`确定要删除 ${selectedCases.length} 条用例吗？此操作不可恢复！`)) {
                 return;
             }
             
@@ -744,15 +744,15 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert(result.message || '批量删除成功');
+                    showToast(result.message || '批量删除成功', 'info');
                     selectedCases = [];
                     loadPendingCases();
                 } else {
-                    alert('批量删除失败: ' + result.error);
+                    showToast('批量删除失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('批量删除失败:', error);
-                alert('批量删除失败');
+                showToast('批量删除失败', 'info');
             }
         }
         
@@ -773,14 +773,14 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('用例已通过');
+                    showToast('用例已通过', 'info');
                     loadPendingCases();
                 } else {
-                    alert('通过失败: ' + result.error);
+                    showToast('通过失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('通过失败:', error);
-                alert('通过失败');
+                showToast('通过失败', 'info');
             }
         }
         
@@ -797,18 +797,56 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('用例已拒绝');
+                    showToast('用例已拒绝', 'info');
                     loadPendingCases();
                 } else {
-                    alert('拒绝失败: ' + result.error);
+                    showToast('拒绝失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('拒绝失败:', error);
-                alert('拒绝失败');
+                showToast('拒绝失败', 'info');
             }
         }
         
         loadPendingCases();
-    </script>
-</body>
+    
+        let _toastTimer = null;
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; document.body.appendChild(container); }
+            var icons = {success:'&#x2713;', error:'&#x2717;', info:'&#x2139;', warning:'&#x26a0;'};
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() { toast.style.opacity='0'; setTimeout(function(){toast.remove();},200); }, 3000);
+        }
+
+        function showConfirmAsync(message) {
+            return new Promise(function(resolve) {
+                var modal = document.getElementById('confirmModal');
+                var msgEl = document.getElementById('confirmMessage');
+                if (modal && msgEl) {
+                    msgEl.textContent = message;
+                    modal.classList.add('active');
+                    window._confirmResolve = resolve;
+                } else {
+                    resolve(false);
+                }
+            });
+        }
+        function confirmAsyncOk() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(true); }
+        }
+        function confirmAsyncCancel() {
+            var modal = document.getElementById('confirmModal');
+            if (modal) modal.classList.remove('active');
+            if (window._confirmResolve) { var r = window._confirmResolve; window._confirmResolve = null; r(false); }
+        }
+</script>
+<div id="toastContainer"></div></body>
 </html>

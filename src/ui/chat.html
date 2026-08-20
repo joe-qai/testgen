@@ -23,7 +23,7 @@
         
         body {
             font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
@@ -50,8 +50,8 @@
         
         .sidebar {
             width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             padding: 30px 0;
             position: relative;
             display: flex;
@@ -65,7 +65,7 @@
             right: 0;
             width: 1px;
             height: 100%;
-            background: linear-gradient(180deg, transparent, var(--neon-cyan), transparent);
+            background: linear-gradient(180deg, transparent, var(--primary), transparent);
             opacity: 0.5;
         }
         
@@ -73,10 +73,10 @@
             padding: 0 30px 30px;
             font-size: 28px;
             font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
             letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .nav-menu {
@@ -103,8 +103,8 @@
         
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
         
         .nav-icon {
@@ -125,29 +125,29 @@
         /* Session Panel */
         .session-panel {
             width: 280px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
         }
         
         .session-header {
             padding: 20px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .session-header h3 {
             font-size: 16px;
             margin-bottom: 12px;
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
         
         .new-session-btn {
             width: 100%;
             padding: 10px;
             background: transparent;
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
+            border: 1px solid var(--primary);
+            color: var(--primary);
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
@@ -155,8 +155,8 @@
         }
         
         .new-session-btn:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
         }
         
         .session-list {
@@ -179,7 +179,7 @@
         
         .session-item.active {
             background: rgba(0, 245, 255, 0.1);
-            border-left-color: var(--neon-cyan);
+            border-left-color: var(--primary);
         }
         
         .session-title {
@@ -216,7 +216,7 @@
         }
         
         .session-delete:hover {
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         /* Main Chat Area */
@@ -229,7 +229,7 @@
         
         .chat-header {
             padding: 20px 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 20px;
@@ -237,14 +237,14 @@
         
         .chat-header h1 {
             font-size: 24px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
             letter-spacing: 2px;
         }
         
         .chat-header h1::before {
             content: '// ';
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .model-selector {
@@ -261,8 +261,8 @@
         
         .model-selector select {
             padding: 8px 12px;
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             color: var(--text-primary);
             border-radius: 6px;
             font-size: 14px;
@@ -271,7 +271,7 @@
         
         .model-selector select:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         /* Messages Area */
@@ -304,12 +304,12 @@
         }
         
         .message.user .message-avatar {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
         }
         
         .message.ai .message-avatar {
-            background: var(--neon-purple);
+            background: #7c3aed;
             color: white;
         }
         
@@ -326,8 +326,8 @@
         }
         
         .message.ai .message-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
         }
         
         .message-role {
@@ -366,7 +366,7 @@
             display: none;
             padding: 16px 20px;
             margin-bottom: 24px;
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
         
         .loading-indicator.active {
@@ -378,7 +378,7 @@
         .loading-spinner {
             width: 20px;
             height: 20px;
-            border: 2px solid var(--neon-cyan);
+            border: 2px solid var(--primary);
             border-top-color: transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -391,7 +391,7 @@
         /* Input Area */
         .input-area {
             padding: 20px 30px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             display: flex;
             gap: 12px;
         }
@@ -399,8 +399,8 @@
         .input-area textarea {
             flex: 1;
             padding: 14px 18px;
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             color: var(--text-primary);
             border-radius: 8px;
             font-size: 14px;
@@ -412,7 +412,7 @@
         
         .input-area textarea:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .input-area textarea::placeholder {
@@ -421,8 +421,8 @@
         
         .send-btn {
             padding: 14px 28px;
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             border: none;
             border-radius: 8px;
             font-weight: bold;
@@ -471,8 +471,8 @@
         }
         
         .confirm-dialog {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             max-width: 400px;
@@ -487,13 +487,13 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-pink), var(--neon-cyan));
+            background: linear-gradient(90deg, var(--danger), var(--primary));
         }
         
         .confirm-title {
             font-size: 18px;
             font-weight: 600;
-            color: var(--neon-pink);
+            color: var(--danger);
             margin-bottom: 12px;
         }
         
@@ -523,7 +523,7 @@
         .confirm-btn-cancel {
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .confirm-btn-cancel:hover {
@@ -533,13 +533,13 @@
         
         .confirm-btn-ok {
             background: transparent;
-            color: var(--neon-pink);
-            border: 1px solid var(--neon-pink);
+            color: var(--danger);
+            border: 1px solid var(--danger);
         }
         
         .confirm-btn-ok:hover {
-            background: var(--neon-pink);
-            color: var(--dark-bg);
+            background: var(--danger);
+            color: var(--bg-secondary);
         }
     </style>
 </head>
@@ -590,7 +590,7 @@
             <!-- Main Chat Area -->
             <div class="chat-main">
                 <div class="chat-header">
-                    <h1>Chat 对话 <span style="font-size:12px;color:var(--neon-green);opacity:0.6;">v3</span></h1>
+                    <h1>Chat 对话 <span style="font-size:12px;color:var(--success);opacity:0.6;">v3</span></h1>
                     <div class="model-selector">
                         <label for="modelSelect">LLM配置:</label>
                         <select id="modelSelect">
@@ -698,7 +698,7 @@
                 localStorage.setItem('current_session_id', currentSessionId);
             } catch (e) {
                 console.error('保存会话失败:', e);
-                alert('存储空间不足，请清理部分会话后重试');
+                showToast('存储空间不足，请清理部分会话后重试', 'info');
             }
         }
 
@@ -992,7 +992,21 @@
             document.getElementById('confirmOverlay').classList.add('active');
             confirmCallback = onOk;
         }
-    </script>
+    
+        let _toastTimer = null;
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; document.body.appendChild(container); }
+            var icons = {success:'&#x2713;', error:'&#x2717;', info:'&#x2139;', warning:'&#x26a0;'};
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() { toast.style.opacity='0'; setTimeout(function(){toast.remove();},200); }, 3000);
+        }
+</script>
 
     <!-- Custom Confirm Dialog -->
     <div class="confirm-overlay" id="confirmOverlay">
@@ -1005,5 +1019,5 @@
             </div>
         </div>
     </div>
-</body>
+<div id="toastContainer"></div></body>
 </html>

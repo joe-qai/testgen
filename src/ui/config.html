@@ -6,125 +6,122 @@
     <title>TestGen - AI测试用例生成平台</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
-            --neon-cyan: #00f5ff;
-            --neon-pink: #ff00ff;
-            --neon-purple: #b829dd;
-            --neon-green: #00ff88;
-            --neon-yellow: #ffee00;
-            --dark-bg: #0a0a0f;
-            --dark-sidebar: #08080c;
-            --dark-card: #12121a;
-            --dark-border: #1e1e2e;
-            --text-primary: #e0e0e0;
-            --text-secondary: #888;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-sidebar: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-elevated: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-light: rgba(59, 130, 246, 0.08);
+            --success: #16a34a;
+            --success-light: rgba(22, 163, 74, 0.08);
+            --danger: #dc2626;
+            --danger-light: rgba(220, 38, 38, 0.08);
+            --warning: #d97706;
+            --warning-light: rgba(217, 119, 6, 0.08);
+            --info: #0891b2;
+            --info-light: rgba(8, 145, 178, 0.08);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
-        }
-        
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 245, 255, 0.02) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 1000;
+            line-height: 1.5;
         }
         
         .layout {
             display: flex;
             min-height: 100vh;
         }
-        
+
         .sidebar {
-            width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
-            padding: 30px 0;
-            position: relative;
+            width: 240px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
         }
-        
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 1px;
-            height: 100%;
-            background: linear-gradient(180deg, transparent, var(--neon-cyan), transparent);
-            opacity: 0.5;
-        }
-        
+
         .logo {
-            padding: 0 30px 30px;
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
-            letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
-        }
-        
-        .nav-menu {
-            list-style: none;
-            padding: 20px 0;
-        }
-        
-        .nav-item {
-            padding: 16px 30px;
-            cursor: pointer;
-            transition: all 0.3s;
+            padding: 20px 24px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+        }
+
+        .logo span {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            letter-spacing: 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 12px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             color: var(--text-secondary);
-            border-left: 3px solid transparent;
-            position: relative;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            margin-bottom: 2px;
         }
-        
+
         .nav-item:hover {
-            background: rgba(0, 245, 255, 0.05);
-            color: var(--text-primary);
+            background: var(--primary-light);
+            color: var(--primary);
         }
-        
+
         .nav-item.active {
-            background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 500;
         }
-        
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 20px;
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan);
-        }
-        
+
         .nav-icon {
-            width: 24px;
+            width: 20px;
             text-align: center;
-            font-size: 18px;
+            font-size: 16px;
         }
         
         .main-content {
             flex: 1;
-            padding: 40px;
+            margin-left: 240px;
+            padding: 32px;
             overflow-y: auto;
+            background: var(--bg-secondary);
+            min-height: 100vh;
         }
         
         .header {
@@ -133,155 +130,124 @@
             align-items: center;
             margin-bottom: 40px;
         }
-        
         .header h1 {
-            font-size: 32px;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
-            letter-spacing: 2px;
-        }
-        
-        .header h1::before {
-            content: '// ';
-            color: var(--neon-pink);
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 24px;
             font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
         }
-        
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
         .btn-primary {
-            background: transparent;
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+            background: var(--primary);
+            color: #ffffff;
         }
-        
+
         .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
-            box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+            background: var(--primary-hover);
         }
-        
+
         .btn-secondary {
-            background: transparent;
+            background: var(--bg-card);
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
-        
+
         .btn-secondary:hover {
-            border-color: var(--neon-pink);
-            color: var(--neon-pink);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+            background: var(--bg-elevated);
         }
-        
+
         .btn-test {
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             font-size: 12px;
-            padding: 8px 14px;
+            padding: 6px 12px;
         }
-        
+
         .btn-test:hover {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
         }
-        
+
         .btn-test:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
         .btn-success {
-            background: transparent;
-            color: var(--neon-green);
-            border: 1px solid var(--neon-green);
+            background: var(--success);
+            color: #ffffff;
+            border: 1px solid var(--success);
         }
-        
+
         .btn-success:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+            background: #15803d;
+            border-color: #15803d;
         }
-        
+
         .btn-success:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        
+
         /* Loading spinner */
         .spinner {
             display: inline-block;
             width: 14px;
             height: 14px;
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            border-top-color: var(--neon-green);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-right: 6px;
             vertical-align: middle;
         }
-        
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
+
         .card {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
-            opacity: 0.5;
-        }
-        
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
             margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
             color: var(--text-primary);
-            letter-spacing: 1px;
         }
-        
-        .card-title::after {
-            content: '';
-            display: block;
-            width: 40px;
-            height: 2px;
-            background: var(--neon-cyan);
-            margin-top: 8px;
-        }
-        
+
         /* 信息框 */
         .info-box {
-            background: rgba(0, 245, 255, 0.05);
-            border: 1px solid rgba(0, 245, 255, 0.2);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            position: relative;
+            background: var(--info-light);
+            border: 1px solid rgba(8, 145, 178, 0.2);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 24px;
         }
-        
+
         .info-box::before {
             content: '';
             position: absolute;
@@ -289,52 +255,48 @@
             top: 0;
             bottom: 0;
             width: 3px;
-            background: var(--neon-cyan);
+            background: var(--info);
+            border-radius: 3px 0 0 3px;
         }
-        
+
         .info-box p {
             margin: 0;
             font-size: 14px;
             color: var(--text-secondary);
             padding-left: 12px;
         }
-        
+
         .info-box strong {
-            color: var(--neon-cyan);
+            color: var(--info);
         }
-        
+
         /* 配置列表 */
         .config-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
-        
+
         .config-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 24px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
-            border-radius: 10px;
-            position: relative;
-            transition: all 0.3s;
+            padding: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            transition: all 0.15s;
         }
-        
+
         .config-item:hover {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 245, 255, 0.1);
+            border-color: var(--border-strong);
+            box-shadow: var(--shadow-md);
         }
-        
-        .config-item::before {
-            content: '';
-            position: absolute;
             left: 0;
             top: 0;
             bottom: 0;
             width: 3px;
-            background: var(--neon-cyan);
+            background: var(--primary);
             opacity: 0;
             transition: opacity 0.3s;
         }
@@ -362,31 +324,26 @@
         }
         
         .badge {
-            padding: 4px 12px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
             font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 1px solid;
+            font-weight: 500;
+            display: inline-block;
         }
-        
+
         .badge-provider {
-            background: rgba(0, 245, 255, 0.1);
-            color: var(--neon-cyan);
-            border-color: rgba(0, 245, 255, 0.3);
+            background: var(--info-light);
+            color: var(--info);
         }
-        
+
         .badge-model {
-            background: rgba(184, 41, 221, 0.1);
-            color: var(--neon-purple);
-            border-color: rgba(184, 41, 221, 0.3);
+            background: rgba(139, 92, 246, 0.08);
+            color: #7c3aed;
         }
-        
+
         .badge-default {
-            background: rgba(255, 238, 0, 0.1);
-            color: var(--neon-yellow);
-            border-color: rgba(255, 238, 0, 0.3);
+            background: var(--warning-light);
+            color: var(--warning);
         }
         
         .config-actions {
@@ -403,34 +360,34 @@
         }
 
         .provider-option {
-            padding: 16px 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
-            border-radius: 10px;
+            padding: 14px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             cursor: pointer;
             text-align: center;
-            transition: all 0.3s;
+            transition: all 0.15s;
             position: relative;
         }
 
         .provider-option:hover {
-            border-color: var(--neon-cyan);
-            transform: translateY(-2px);
+            border-color: var(--primary);
+            transform: translateY(-1px);
         }
 
         .provider-option.selected {
-            border-color: var(--neon-cyan);
-            background: rgba(0, 245, 255, 0.1);
-            box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+            border-color: var(--primary);
+            background: var(--primary-light);
         }
 
         .provider-option.selected::before {
-            content: '◉';
+            content: '✓';
             position: absolute;
             top: 6px;
             right: 6px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 12px;
+            font-weight: 700;
         }
 
         .provider-option .icon {
@@ -457,42 +414,40 @@
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
-            color: var(--neon-cyan);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-size: 13px;
         }
         
         .form-control {
             width: 100%;
-            padding: 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
-            border-radius: 8px;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             font-size: 14px;
             color: var(--text-primary);
-            transition: all 0.3s;
+            transition: all 0.15s;
         }
-        
+
         .form-control:focus {
             outline: none;
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
-        
+
         /* 密码输入框包装器 */
         .password-input-wrapper {
             position: relative;
             display: flex;
             align-items: center;
         }
-        
+
         .password-input-wrapper .form-control {
             padding-right: 45px;
         }
-        
+
         .toggle-password-btn {
             position: absolute;
             right: 12px;
@@ -503,16 +458,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
-            border-radius: 4px;
+            transition: all 0.15s;
+            border-radius: var(--radius-sm);
+            color: var(--text-tertiary);
         }
-        
+
         .toggle-password-btn:hover {
-            background: rgba(0, 245, 255, 0.1);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
         }
         
         .toggle-password-btn:hover .eye-icon {
-            stroke: var(--neon-cyan);
+            stroke: var(--primary);
         }
         
         .eye-icon {
@@ -534,21 +491,21 @@
             align-items: center;
             gap: 10px;
             padding: 16px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
         }
         
         .checkbox-group:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .checkbox-group input[type="checkbox"] {
             width: 20px;
             height: 20px;
-            accent-color: var(--neon-cyan);
+            accent-color: var(--primary);
         }
         
         .checkbox-group label {
@@ -568,7 +525,7 @@
         .test-result.success {
             display: block;
             background: rgba(0, 255, 136, 0.1);
-            color: var(--neon-green);
+            color: var(--success);
             border-color: rgba(0, 255, 136, 0.3);
         }
         
@@ -599,8 +556,8 @@
         }
         
         .modal-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 600px;
@@ -616,19 +573,19 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
         }
         
         .modal-header {
             padding: 24px 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .modal-header h3 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 20px;
             letter-spacing: 2px;
         }
@@ -639,7 +596,7 @@
         
         .modal-footer {
             padding: 20px 30px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -655,7 +612,7 @@
         }
         
         .close-btn:hover {
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .empty-state {
@@ -681,8 +638,8 @@
         .confirm-modal.active { display: flex; }
 
         .confirm-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 420px;
@@ -703,7 +660,7 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: linear-gradient(90deg, var(--neon-pink), var(--neon-cyan));
+            background: linear-gradient(90deg, var(--danger), var(--primary));
         }
 
         .confirm-header {
@@ -761,7 +718,7 @@
 
         .confirm-btn-cancel {
             background: transparent;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             color: var(--text-secondary);
         }
 
@@ -782,74 +739,63 @@
             box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
         }
 
-        /* 提示弹窗 */
-        .toast-modal {
-            display: none;
+        /* 提示通知 */
+        #toastContainer {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
         }
 
-        .toast-modal.active { display: flex; }
-
-        .toast-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 380px;
-            position: relative;
-            overflow: hidden;
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            min-width: 280px;
+            max-width: 400px;
+            pointer-events: auto;
             animation: toastSlideIn 0.2s ease-out;
-            text-align: center;
-            padding: 40px 30px;
+            font-size: 14px;
         }
 
         @keyframes toastSlideIn {
-            from { opacity: 0; transform: scale(0.95) translateY(-20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
-        .toast-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+        @keyframes toastFadeOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
         }
 
-        .toast-box.success { border-color: var(--neon-green); }
-        .toast-box.success::before { background: var(--neon-green); }
-        .toast-box.error { border-color: #ff0055; }
-        .toast-box.error::before { background: #ff0055; }
-        .toast-box.info { border-color: var(--neon-cyan); }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--info); }
+        .toast.warning { border-left: 3px solid var(--warning); }
 
-        .toast-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin: 0 auto 20px;
-            background: rgba(0, 245, 255, 0.15);
+        .toast-icon { font-size: 18px; flex-shrink: 0; }
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.info .toast-icon { color: var(--info); }
+        .toast.warning .toast-icon { color: var(--warning); }
+        .toast-message { flex: 1; color: var(--text-primary); line-height: 1.4; }
             border: 2px solid rgba(0, 245, 255, 0.4);
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
 
         .toast-box.success .toast-icon {
             background: rgba(0, 255, 136, 0.15);
             border-color: rgba(0, 255, 136, 0.4);
-            color: var(--neon-green);
+            color: var(--success);
         }
 
         .toast-box.error .toast-icon {
@@ -876,13 +822,13 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             background: transparent;
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
+            border: 1px solid var(--primary);
+            color: var(--primary);
         }
 
         .toast-btn:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
         }
 
@@ -898,13 +844,13 @@
         }
 
         .toast-box.success .toast-btn {
-            border-color: var(--neon-green);
-            color: var(--neon-green);
+            border-color: var(--success);
+            color: var(--success);
         }
 
         .toast-box.success .toast-btn:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
+            background: var(--success);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
         }
         
@@ -945,7 +891,7 @@
 
         body.theme-minimal .btn-primary {
             background: var(--text-primary);
-            color: var(--dark-bg);
+            color: var(--bg-secondary);
             border-color: var(--text-primary);
             box-shadow: none;
         }
@@ -972,35 +918,35 @@
         }
 
         body.theme-ocean .logo {
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
         }
 
         body.theme-ocean .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 180, 216, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
 
         body.theme-ocean .nav-item.active::before {
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan);
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
         }
 
         body.theme-ocean .header h1 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
         }
 
         body.theme-ocean .btn-primary {
-            color: var(--neon-cyan);
-            border-color: var(--neon-cyan);
+            color: var(--primary);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 180, 216, 0.2);
         }
 
         body.theme-ocean .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 30px rgba(0, 180, 216, 0.5);
         }
 
@@ -1183,13 +1129,7 @@
     </div>
 
     <!-- 提示弹窗 -->
-    <div class="toast-modal" id="toastModal">
-        <div class="toast-box" id="toastBox">
-            <div class="toast-icon" id="toastIcon">✓</div>
-            <div class="toast-message" id="toastMessage">操作成功</div>
-            <button class="toast-btn" onclick="closeToast()">确定</button>
-        </div>
-    </div>
+    <div id="toastContainer"></div>
 
     <script>
         let selectedProvider = 'qwen';
@@ -1242,22 +1182,26 @@
             }
         }
 
-        // 提示弹窗
+        // 提示通知
+        let _toastTimer = null;
+
         function showToast(message, type = 'info') {
-            const toastModal = document.getElementById('toastModal');
-            const toastBox = document.getElementById('toastBox');
-            const toastIcon = document.getElementById('toastIcon');
-            const toastMessage = document.getElementById('toastMessage');
-
-            toastBox.className = 'toast-box ' + type;
-            toastIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
-            toastMessage.textContent = message;
-
-            toastModal.classList.add('active');
-        }
-
-        function closeToast() {
-            document.getElementById('toastModal').classList.remove('active');
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                document.body.appendChild(container);
+            }
+            const icons = { success: '✓', error: '✗', info: 'ℹ', warning: '⚠' };
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || 'ℹ') + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() {
+                toast.style.animation = 'toastFadeOut 0.2s ease forwards';
+                setTimeout(function() { toast.remove(); }, 200);
+            }, 3000);
         }
 
         function toggleCheckbox(event) {
@@ -1291,7 +1235,7 @@
             container.innerHTML = configs.map(c => `
                 <div class="config-item">
                     <div class="config-info">
-                        <h4>${c.name} ${c.is_default ? '<span style="color: var(--neon-yellow);">★</span>' : ''}</h4>
+                        <h4>${c.name} ${c.is_default ? '<span style="color: var(--warning);">★</span>' : ''}</h4>
                         <p>${c.model_id}</p>
                         <div class="config-badges">
                             <span class="badge badge-provider">${getProviderName(c.provider)}</span>
@@ -1300,9 +1244,9 @@
                         </div>
                     </div>
                     <div class="config-actions">
-                        <button class="btn btn-secondary" onclick="testConfigFromList(${c.id})" title="测试连接" aria-label="测试连接">🔗</button>
+                        <button class="btn btn-secondary" onclick="testConfigFromList(${c.id}, event)" title="测试连接" aria-label="测试连接">🔗</button>
                         <button class="btn btn-secondary" onclick="editConfig(${c.id})" title="编辑" aria-label="编辑">✏️</button>
-                        ${!c.is_default ? `<button class="btn btn-secondary" onclick="setDefault(${c.id})" title="设为默认" aria-label="设为默认">☆</button>` : `<button class="btn btn-secondary" onclick="unsetDefault(${c.id})" title="取消默认" aria-label="取消默认" style="color: var(--neon-yellow);">★</button>`}
+                        ${!c.is_default ? `<button class="btn btn-secondary" onclick="setDefault(${c.id})" title="设为默认" aria-label="设为默认">☆</button>` : `<button class="btn btn-secondary" onclick="unsetDefault(${c.id})" title="取消默认" aria-label="取消默认" style="color: var(--warning);">★</button>`}
                         <button class="btn btn-secondary" onclick="deleteConfig(${c.id})" title="删除" aria-label="删除">🗑️</button>
                     </div>
                 </div>
@@ -1405,9 +1349,9 @@
             }
         }
 
-        async function testConnection() {
+        async function testConnection(event) {
             const resultDiv = document.getElementById('testResult');
-            const testBtn = event.target;
+            const testBtn = event ? (event.target.closest('button') || event.target) : null;
             const apiKey = document.getElementById('apiKey').value.trim();
             const modelId = document.getElementById('modelId').value.trim();
             const baseUrl = document.getElementById('baseUrl').value.trim();
@@ -1539,15 +1483,14 @@
             }
         }
 
-        async function testConfigFromList(id) {
+        async function testConfigFromList(id, event) {
             const config = configs.find(c => c.id === id);
             if (!config) {
                 showToast('配置不存在', 'error');
                 return;
             }
 
-            // 通过event.target直接获取点击的测试按钮
-            const testBtn = event.target.closest('button[title="测试连接"]') || event.target.closest('button[aria-label="测试连接"]');
+            const testBtn = event ? (event.target.closest('button') || event.target) : null;
             if (!testBtn) return;
 
             // 设置loading状态

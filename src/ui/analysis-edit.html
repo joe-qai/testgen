@@ -22,7 +22,7 @@
         
         body {
             font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -34,8 +34,8 @@
         
         .sidebar {
             width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             padding: 30px 0;
         }
         
@@ -43,10 +43,10 @@
             padding: 0 30px 30px;
             font-size: 28px;
             font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
             letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .nav-menu {
@@ -72,8 +72,8 @@
         
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
         
         .nav-icon {
@@ -97,19 +97,19 @@
         
         .header h1 {
             font-size: 32px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
             letter-spacing: 2px;
         }
         
         .header h1::before {
             content: '// ';
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
             border: none;
             border-radius: 8px;
             color: white;
@@ -126,12 +126,12 @@
         }
         
         .btn-secondary {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
         }
         
         .btn-secondary:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -142,8 +142,8 @@
         }
         
         .requirement-list {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 20px;
         }
@@ -159,17 +159,17 @@
         
         .requirement-item:hover {
             background: rgba(0, 245, 255, 0.05);
-            border-color: var(--dark-border);
+            border-color: var(--border);
         }
         
         .requirement-item.selected {
             background: rgba(0, 245, 255, 0.1);
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .edit-panel {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
         }
@@ -178,7 +178,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .tab {
@@ -194,8 +194,8 @@
         }
         
         .tab.active {
-            color: var(--neon-cyan);
-            border-bottom-color: var(--neon-cyan);
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
         
         .tab-content {
@@ -220,15 +220,15 @@
         .form-input {
             width: 100%;
             padding: 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text-primary);
             font-size: 14px;
         }
         
         .form-input:focus {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             outline: none;
         }
         
@@ -245,27 +245,27 @@
         
         .array-item {
             padding: 8px 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s;
         }
         
         .array-item:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .array-item .remove-btn {
             margin-left: 8px;
-            color: var(--neon-pink);
+            color: var(--danger);
             cursor: pointer;
         }
         
         .add-item-btn {
             padding: 8px 12px;
             background: transparent;
-            border: 1px dashed var(--dark-border);
+            border: 1px dashed var(--border);
             border-radius: 6px;
             color: var(--text-secondary);
             cursor: pointer;
@@ -273,8 +273,8 @@
         }
         
         .add-item-btn:hover {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
         }
         
         .save-btn {
@@ -289,7 +289,7 @@
         }
         
         .error {
-            color: var(--neon-pink);
+            color: var(--danger);
             padding: 20px;
             background: rgba(255, 0, 255, 0.1);
             border-radius: 8px;
@@ -302,7 +302,7 @@
         <div class="sidebar">
             <div class="logo">TestGen</div>
             <ul class="nav-menu">
-                <li class="nav-item" onclick="window.location.href='index.html'">
+                <li class="nav-item" onclick="window.location.href='/'">
                     <span class="nav-icon">📊</span>
                     <span>仪表盘</span>
                 </li>
@@ -349,7 +349,7 @@
             
             <div class="content-grid">
                 <div class="requirement-list">
-                    <h3 style="margin-bottom: 20px; color: var(--neon-cyan);">需求列表</h3>
+                    <h3 style="margin-bottom: 20px; color: var(--primary);">需求列表</h3>
                     <div id="requirement-list-content">
                         <div class="loading">加载中...</div>
                     </div>
@@ -496,7 +496,7 @@
                 renderRAGParams();
             } catch (error) {
                 console.error('加载分析详情失败:', error);
-                alert('加载分析详情失败');
+                showToast('加载分析详情失败', 'info');
             }
         }
         
@@ -615,7 +615,7 @@
         
         async function saveAnalysisContent() {
             if (!selectedRequirementId) {
-                alert('请先选择需求');
+                showToast('请先选择需求', 'info');
                 return;
             }
             
@@ -636,19 +636,19 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('分析内容保存成功');
+                    showToast('分析内容保存成功', 'info');
                 } else {
-                    alert('保存失败: ' + result.error);
+                    showToast('保存失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('保存分析内容失败:', error);
-                alert('保存失败');
+                showToast('保存失败', 'info');
             }
         }
         
         async function saveTestPlan() {
             if (!selectedRequirementId) {
-                alert('请先选择需求');
+                showToast('请先选择需求', 'info');
                 return;
             }
             
@@ -669,19 +669,19 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('测试规划保存成功');
+                    showToast('测试规划保存成功', 'info');
                 } else {
-                    alert('保存失败: ' + result.error);
+                    showToast('保存失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('保存测试规划失败:', error);
-                alert('保存失败');
+                showToast('保存失败', 'info');
             }
         }
         
         async function saveGenerationParams() {
             if (!selectedRequirementId) {
-                alert('请先选择需求');
+                showToast('请先选择需求', 'info');
                 return;
             }
             
@@ -702,19 +702,19 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('生成参数保存成功');
+                    showToast('生成参数保存成功', 'info');
                 } else {
-                    alert('保存失败: ' + result.error);
+                    showToast('保存失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('保存生成参数失败:', error);
-                alert('保存失败');
+                showToast('保存失败', 'info');
             }
         }
         
         async function saveRAGParams() {
             if (!selectedRequirementId) {
-                alert('请先选择需求');
+                showToast('请先选择需求', 'info');
                 return;
             }
             
@@ -735,13 +735,13 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    alert('RAG参数保存成功');
+                    showToast('RAG参数保存成功', 'info');
                 } else {
-                    alert('保存失败: ' + result.error);
+                    showToast('保存失败: ' + result.error, 'info');
                 }
             } catch (error) {
                 console.error('保存RAG参数失败:', error);
-                alert('保存失败');
+                showToast('保存失败', 'info');
             }
         }
         
@@ -755,6 +755,20 @@
         }
         
         loadRequirements();
-    </script>
-</body>
+    
+        let _toastTimer = null;
+        function showToast(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('toastContainer');
+            if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; document.body.appendChild(container); }
+            var icons = {success:'&#x2713;', error:'&#x2717;', info:'&#x2139;', warning:'&#x26a0;'};
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message">' + message + '</span>';
+            container.appendChild(toast);
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function() { toast.style.opacity='0'; setTimeout(function(){toast.remove();},200); }, 3000);
+        }
+</script>
+<div id="toastContainer"></div></body>
 </html>

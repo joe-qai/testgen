@@ -26,7 +26,7 @@
         
         body {
             font-family: 'Segoe UI', Roboto, monospace;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -51,8 +51,8 @@
         
         .sidebar {
             width: 260px;
-            background: var(--dark-sidebar);
-            border-right: 1px solid var(--dark-border);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             padding: 30px 0;
             position: relative;
             padding-bottom: 220px;
@@ -65,7 +65,7 @@
             right: 0;
             width: 1px;
             height: 100%;
-            background: linear-gradient(180deg, transparent, var(--neon-cyan), transparent);
+            background: linear-gradient(180deg, transparent, var(--primary), transparent);
             opacity: 0.5;
         }
         
@@ -73,10 +73,10 @@
             padding: 0 30px 30px;
             font-size: 28px;
             font-weight: 900;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 20px var(--neon-cyan);
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
             letter-spacing: 4px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
         }
         
         .nav-menu {
@@ -103,8 +103,8 @@
         
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent);
-            color: var(--neon-cyan);
-            border-left-color: var(--neon-cyan);
+            color: var(--primary);
+            border-left-color: var(--primary);
         }
         
         .nav-item.active::before {
@@ -115,8 +115,8 @@
             transform: translateY(-50%);
             width: 4px;
             height: 20px;
-            background: var(--neon-cyan);
-            box-shadow: 0 0 10px var(--neon-cyan);
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
         }
         
         .nav-icon {
@@ -140,14 +140,14 @@
         
         .header h1 {
             font-size: 32px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
             letter-spacing: 2px;
         }
         
         .header h1::before {
             content: '// ';
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .btn {
@@ -164,21 +164,21 @@
         
         .btn-primary {
             background: transparent;
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
+            color: var(--primary);
+            border: 1px solid var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
         }
         
         .btn-primary:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
         }
         
         .btn-secondary {
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .btn-secondary:hover {
@@ -187,8 +187,8 @@
         }
         
         .card {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
@@ -203,7 +203,7 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
             opacity: 0.5;
         }
         
@@ -220,7 +220,7 @@
             display: block;
             width: 40px;
             height: 2px;
-            background: var(--neon-cyan);
+            background: var(--primary);
             margin-top: 8px;
         }
         
@@ -233,8 +233,8 @@
         }
         
         .stat-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             text-align: center;
@@ -251,9 +251,9 @@
             height: 2px;
         }
         
-        .stat-box:nth-child(1)::before { background: var(--neon-cyan); }
-        .stat-box:nth-child(2)::before { background: var(--neon-pink); }
-        .stat-box:nth-child(3)::before { background: var(--neon-green); }
+        .stat-box:nth-child(1)::before { background: var(--primary); }
+        .stat-box:nth-child(2)::before { background: var(--danger); }
+        .stat-box:nth-child(3)::before { background: var(--success); }
         
         .stat-number {
             font-size: 48px;
@@ -262,9 +262,9 @@
             margin-bottom: 8px;
         }
         
-        .stat-box:nth-child(1) .stat-number { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0, 245, 255, 0.5); }
-        .stat-box:nth-child(2) .stat-number { color: var(--neon-pink); text-shadow: 0 0 20px rgba(255, 0, 255, 0.5); }
-        .stat-box:nth-child(3) .stat-number { color: var(--neon-green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        .stat-box:nth-child(1) .stat-number { color: var(--primary); text-shadow: 0 0 20px rgba(0, 245, 255, 0.5); }
+        .stat-box:nth-child(2) .stat-number { color: var(--danger); text-shadow: 0 0 20px rgba(255, 0, 255, 0.5); }
+        .stat-box:nth-child(3) .stat-number { color: var(--success); text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
         
         .stat-label {
             color: var(--text-secondary);
@@ -283,8 +283,8 @@
         .search-input {
             flex: 1;
             padding: 14px 20px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
             color: var(--text-primary);
@@ -293,7 +293,7 @@
         
         .search-input:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
         }
         
@@ -304,8 +304,8 @@
         /* 结果项 */
         .result-item {
             padding: 20px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             margin-bottom: 12px;
             position: relative;
@@ -313,7 +313,7 @@
         }
         
         .result-item:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.1);
             cursor: pointer;
         }
@@ -330,15 +330,15 @@
             border: 1px solid;
         }
         
-        .type-case { background: rgba(0, 245, 255, 0.1); color: var(--neon-cyan); border-color: rgba(0, 245, 255, 0.3); }
+        .type-case { background: rgba(0, 245, 255, 0.1); color: var(--primary); border-color: rgba(0, 245, 255, 0.3); }
         .type-defect { background: rgba(255, 0, 85, 0.1); color: #ff0055; border-color: rgba(255, 0, 85, 0.3); }
-        .type-requirement { background: rgba(0, 255, 136, 0.1); color: var(--neon-green); border-color: rgba(0, 255, 136, 0.3); }
+        .type-requirement { background: rgba(0, 255, 136, 0.1); color: var(--success); border-color: rgba(0, 255, 136, 0.3); }
         
         .result-score {
             position: absolute;
             top: 20px;
             right: 20px;
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-weight: bold;
             font-family: monospace;
             font-size: 18px;
@@ -355,7 +355,7 @@
             color: var(--text-secondary);
             margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             font-family: monospace;
         }
         
@@ -365,9 +365,9 @@
             gap: 4px;
             margin-bottom: 24px;
             padding: 4px;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
             border-radius: 8px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .tab {
@@ -387,8 +387,8 @@
         }
         
         .tab.active {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
         
@@ -401,7 +401,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -410,8 +410,8 @@
         .form-control {
             width: 100%;
             padding: 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
             color: var(--text-primary);
@@ -420,7 +420,7 @@
         
         .form-control:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
         }
         
@@ -440,20 +440,20 @@
         
         .type-option {
             padding: 20px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
             text-align: center;
             transition: all 0.3s;
-            background: var(--dark-bg);
+            background: var(--bg-secondary);
         }
         
         .type-option:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .type-option.selected {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             background: rgba(0, 245, 255, 0.1);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
         }
@@ -487,8 +487,8 @@
         }
         
         .modal-content {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 600px;
@@ -504,19 +504,19 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
         }
         
         .modal-header {
             padding: 24px 30px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .modal-header h3 {
-            color: var(--neon-cyan);
+            color: var(--primary);
             font-size: 20px;
             letter-spacing: 2px;
         }
@@ -527,7 +527,7 @@
         
         .modal-footer {
             padding: 20px 30px;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -543,7 +543,7 @@
         }
         
         .close-btn:hover {
-            color: var(--neon-pink);
+            color: var(--danger);
         }
         
         .empty-state {
@@ -569,8 +569,8 @@
         .toast-modal.active { display: flex; }
 
         .toast-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             width: 90%;
             max-width: 380px;
@@ -593,14 +593,14 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            background: linear-gradient(90deg, var(--primary), var(--danger));
         }
 
-        .toast-box.success { border-color: var(--neon-green); }
-        .toast-box.success::before { background: var(--neon-green); }
+        .toast-box.success { border-color: var(--success); }
+        .toast-box.success::before { background: var(--success); }
         .toast-box.error { border-color: #ff0055; }
         .toast-box.error::before { background: #ff0055; }
-        .toast-box.info { border-color: var(--neon-cyan); }
+        .toast-box.info { border-color: var(--primary); }
 
         .toast-icon {
             width: 60px;
@@ -613,13 +613,13 @@
             margin: 0 auto 20px;
             background: rgba(0, 245, 255, 0.15);
             border: 2px solid rgba(0, 245, 255, 0.4);
-            color: var(--neon-cyan);
+            color: var(--primary);
         }
 
         .toast-box.success .toast-icon {
             background: rgba(0, 255, 136, 0.15);
             border-color: rgba(0, 255, 136, 0.4);
-            color: var(--neon-green);
+            color: var(--success);
         }
 
         .toast-box.error .toast-icon {
@@ -646,13 +646,13 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             background: transparent;
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
+            border: 1px solid var(--primary);
+            color: var(--primary);
         }
 
         .toast-btn:hover {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
+            background: var(--primary);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
         }
 
@@ -668,13 +668,13 @@
         }
 
         .toast-box.success .toast-btn {
-            border-color: var(--neon-green);
-            color: var(--neon-green);
+            border-color: var(--success);
+            color: var(--success);
         }
 
         .toast-box.success .toast-btn:hover {
-            background: var(--neon-green);
-            color: var(--dark-bg);
+            background: var(--success);
+            color: var(--bg-secondary);
             box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
         }
         
@@ -697,8 +697,8 @@
         }
         
         .confirm-box {
-            background: var(--dark-card);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
             max-width: 420px;
@@ -714,13 +714,13 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, var(--neon-pink), #ff0055);
+            background: linear-gradient(90deg, var(--danger), #ff0055);
         }
         
         .confirm-title {
             font-size: 18px;
             font-weight: 600;
-            color: var(--neon-pink);
+            color: var(--danger);
             margin-bottom: 12px;
         }
         
@@ -750,7 +750,7 @@
         .confirm-btn-cancel {
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
         }
         
         .confirm-btn-cancel:hover {
@@ -766,7 +766,7 @@
         
         .confirm-btn-ok:hover {
             background: #ff0055;
-            color: var(--dark-bg);
+            color: var(--bg-secondary);
         }
         
         /* Delete button */
@@ -805,7 +805,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 0;
-            border-top: 1px solid var(--dark-border);
+            border-top: 1px solid var(--border);
         }
         
         .pagination-left {
@@ -818,8 +818,8 @@
         
         .page-size-select {
             padding: 8px 12px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
             font-size: 13px;
@@ -828,12 +828,12 @@
         }
         
         .page-size-select:hover {
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
         }
         
         .page-size-select:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -853,7 +853,7 @@
         
         .page-btn {
             padding: 8px 14px;
-            border: 1px solid var(--dark-border);
+            border: 1px solid var(--border);
             background: transparent;
             color: var(--text-secondary);
             cursor: pointer;
@@ -865,14 +865,14 @@
         }
         
         .page-btn:hover:not(.disabled) {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
+            border-color: var(--primary);
+            color: var(--primary);
         }
         
         .page-btn.active {
-            background: var(--neon-cyan);
-            color: var(--dark-bg);
-            border-color: var(--neon-cyan);
+            background: var(--primary);
+            color: var(--bg-secondary);
+            border-color: var(--primary);
             box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
         }
         
@@ -889,8 +889,8 @@
         .page-jump-input {
             width: 60px;
             padding: 8px 10px;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
             font-size: 13px;
@@ -901,7 +901,7 @@
         
         .page-jump-input:focus {
             outline: none;
-            border-color: var(--neon-cyan);
+            border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
         }
         
@@ -1107,8 +1107,8 @@
             </div>
             
             <!-- RAG数据说明 -->
-            <!-- <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                <p style="color: var(--neon-cyan); margin: 0; font-size: 14px; line-height: 1.6;">
+            <!-- <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid var(--primary); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <p style="color: var(--primary); margin: 0; font-size: 14px; line-height: 1.6;">
                     ◉ <strong>RAG向量库数据独立于管理系统</strong><br>
                     • 历史用例：仅包含<strong>已评审</strong>的用例（状态=已评审）<br>
                     • 需求文档：仅包含<strong>已完成</strong>的需求（已生成测试用例）<br>
@@ -1181,8 +1181,8 @@
                     <textarea class="form-control" id="dataMetadata" rows="10"
                               placeholder="输入可选的详细信息，如：&#10;前置条件：系统已启动，存在有效用户账号&#10;操作步骤：&#10;1. 打开登录页面&#10;2. 输入用户名和密码&#10;3. 点击登录按钮&#10;&#10;预期结果：&#10;登录成功，跳转到首页"></textarea>
                 </div>
-                <!-- <div style="background: rgba(0, 245, 255, 0.1); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 16px; margin-top: 20px;">
-                    <p style="color: var(--neon-cyan); margin: 0; font-size: 14px;" id="formHint">
+                <!-- <div style="background: rgba(0, 245, 255, 0.1); border: 1px solid var(--primary); border-radius: 8px; padding: 16px; margin-top: 20px;">
+                    <p style="color: var(--primary); margin: 0; font-size: 14px;" id="formHint">
                         ◉ 提示：数据ID将自动生成。历史用例的标题作为主要检索内容，元数据包含前置条件、操作步骤和预期结果。
                     </p>
                 </div> -->
@@ -1202,8 +1202,8 @@
                 <button class="close-btn" onclick="closeImportModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-                    <p style="color: var(--neon-cyan); margin: 0; font-size: 13px;">
+                <!-- <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid var(--primary); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <p style="color: var(--primary); margin: 0; font-size: 13px;">
                         ◉ 自动加载用例管理中<strong>已评审</strong>的用例（状态=已评审），搜索支持按需求标题、用例标题模糊匹配
                     </p>
                 </div> -->
@@ -1213,7 +1213,7 @@
                 </div>
                 <div class="form-group">
                     <label>可导入的用例列表 (<span id="selectedCount">0</span> 已选择)</label>
-                    <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--dark-border); border-radius: 8px; background: var(--dark-bg);" id="databaseItemsList">
+                    <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary);" id="databaseItemsList">
                         <div class="empty-state" style="padding: 40px;">
                             <p>加载中...</p>
                         </div>
@@ -1237,7 +1237,7 @@
             align-items: flex-start;
             gap: 12px;
             padding: 12px;
-            border-bottom: 1px solid var(--dark-border);
+            border-bottom: 1px solid var(--border);
             transition: background 0.2s;
             cursor: pointer;
         }
@@ -1436,7 +1436,7 @@
                         <div class="result-meta">
                             ID: ${item.id}
                             ${briefInfo.length > 0 ? ' | ' + briefInfo.join(' | ') : ''}
-                            <span style="color: var(--neon-cyan); margin-left: 10px;">点击查看详情 →</span>
+                            <span style="color: var(--primary); margin-left: 10px;">点击查看详情 →</span>
                         </div>
                     </div>
                 `;
@@ -1863,7 +1863,7 @@
             // 显示元数据信息
             if (item.metadata && Object.keys(item.metadata).length > 0) {
                 html += '<div style="margin-bottom: 20px;">';
-                html += '<h4 style="color: var(--neon-cyan); margin-bottom: 10px;">元数据信息</h4>';
+                html += '<h4 style="color: var(--primary); margin-bottom: 10px;">元数据信息</h4>';
                 for (const [key, value] of Object.entries(item.metadata)) {
                     if (value) {
                         html += `<div style="margin-bottom: 8px;"><span style="color: var(--text-secondary);">${key}:</span> <span style="color: var(--text-primary);">${value}</span></div>`;
@@ -1874,7 +1874,7 @@
             
             // 显示完整内容
             html += '<div>';
-            html += '<h4 style="color: var(--neon-cyan); margin-bottom: 10px;">完整内容</h4>';
+            html += '<h4 style="color: var(--primary); margin-bottom: 10px;">完整内容</h4>';
             html += `<pre style="white-space: pre-wrap; word-wrap: break-word; line-height: 1.8; color: var(--text-primary);">${item.content}</pre>`;
             html += '</div>';
             
