@@ -41,6 +41,10 @@ sitecustomize.py
 # Local worktrees
 .worktrees/
 
+# Monorepo build outputs
+**/dist/
+*.tsbuildinfo
+
 # Ad-hoc / temporary debug scripts (not part of project)
 test_phase1_async.py
 test_phase1_async2.py
@@ -52,3 +56,8 @@ fix_nav.py
 modles.txt
 multiplication_table.py
 server.err
+
+# Environment / secrets
+.env
+.env.*
+!.env.example

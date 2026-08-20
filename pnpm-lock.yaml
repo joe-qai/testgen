@@ -41,6 +41,9 @@ importers:
       bullmq:
         specifier: ^5.34.8
         version: 5.81.3(redis@4.7.1)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -87,6 +90,9 @@ importers:
       argon2:
         specifier: ^0.41.1
         version: 0.41.1
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1707,6 +1713,10 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
 
   drizzle-kit@0.30.6:
     resolution: {integrity: sha512-U4wWit0fyZuGuP7iNmRleQyK2V8wCuv57vf5l3MnG4z4fzNTjY/U13M8owyQ5RavqvqxBifWORaR3wIUzlN64g==}
@@ -3701,6 +3711,8 @@ snapshots:
 
   detect-libc@2.1.2:
     optional: true
+
+  dotenv@17.4.2: {}
 
   drizzle-kit@0.30.6:
     dependencies:

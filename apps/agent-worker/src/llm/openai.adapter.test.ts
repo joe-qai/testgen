@@ -45,4 +45,11 @@ describe('openai llm adapter', () => {
     const adapter = new OpenAILLMAdapter({ apiKey: 'sk-test', fetch: fetchMock });
     await expect(adapter.complete({ prompt: 'hi' })).rejects.toThrow('network down');
   });
+
+  it('falls back to reasoning_content when content is empty (reasoning models)', async () => {
+    const fetchMock = mockFetch(async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: '', reasoning_content: '推理内容：应总结测试要点' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }) }));
+    const adapter = new OpenAILLMAdapter({ apiKey: 'sk-test', fetch: fetchMock });
+    const result = await adapter.complete({ prompt: '分析需求' });
+    expect(result.text).toContain('推理内容');
+  });
 });

@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env') });
 import 'reflect-metadata';
 import { Controller, Get, Injectable, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
