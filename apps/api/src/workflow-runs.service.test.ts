@@ -1,22 +1,122 @@
 import { describe, expect, it } from 'vitest';
-import { InMemoryWorkflowRunService } from './workflow-runs.service.js';
+import type { WorkflowRunStore, WorkflowRunRecord, WorkflowEventRecord, WorkflowRunQuery } from '@testgen/workflow';
+import { WorkflowRunService } from './workflow-runs.service.js';
+
+class InMemoryStore implements WorkflowRunStore {
+  runs = new Map<string, WorkflowRunRecord>();
+  events = new Map<string, WorkflowEventRecord[]>();
+
+  async create(run: WorkflowRunRecord): Promise<WorkflowRunRecord> {
+    this.runs.set(run.id, run);
+    return run;
+  }
+  async update(id: string, patch: Partial<Omit<WorkflowRunRecord, 'id' | 'createdAt'>>): Promise<WorkflowRunRecord> {
+    const existing = this.runs.get(id);
+    if (!existing) throw new Error(`Run not found: ${id}`);
+    const updated = { ...existing, ...patch, updatedAt: new Date().toISOString() };
+    this.runs.set(id, updated);
+    return updated;
+  }
+  async findById(id: string): Promise<WorkflowRunRecord | null> {
+    return this.runs.get(id) ?? null;
+  }
+  async findByIdempotencyKey(organizationId: string, requestedBy: string, idempotencyKey: string): Promise<WorkflowRunRecord | null> {
+    for (const run of this.runs.values()) {
+      if (run.organizationId === organizationId && run.requestedBy === requestedBy && run.idempotencyKey === idempotencyKey) return run;
+    }
+    return null;
+  }
+  async findByQuery(query: WorkflowRunQuery): Promise<{ items: WorkflowRunRecord[]; total: number }> {
+    const all = [...this.runs.values()].filter((run) => run.organizationId === query.organizationId && (!query.projectId || run.projectId === query.projectId));
+    const total = all.length;
+    const items = all.slice((query.page - 1) * query.limit, query.page * query.limit);
+    return { items, total };
+  }
+  async listEvents(runId: string): Promise<WorkflowEventRecord[]> {
+    return this.events.get(runId) ?? [];
+  }
+  async appendEvent(event: WorkflowEventRecord): Promise<WorkflowEventRecord> {
+    const list = this.events.get(event.runId) ?? [];
+    list.push(event);
+    this.events.set(event.runId, list);
+    return event;
+  }
+  async nextSequence(runId: string): Promise<number> {
+    return (this.events.get(runId) ?? []).length;
+  }
+}
+
+function makeInput(overrides: Partial<{ organizationId: string; projectId: string; requestedBy: string; workflowCode: string; idempotencyKey: string; input: Record<string, unknown> }> = {}) {
+  return {
+    organizationId: 'org-1',
+    projectId: 'project-1',
+    requestedBy: 'user-1',
+    workflowCode: 'demo-agent',
+    idempotencyKey: 'idem-12345678',
+    input: { title: 'Demo', content: 'Content' },
+    ...overrides,
+  };
+}
 
 describe('workflow run service', () => {
-  it('creates an idempotent queued run and emits an event', () => {
-    const service = new InMemoryWorkflowRunService();
-    const input = { organizationId: 'org-1', projectId: 'project-1', requestedBy: 'user-1', workflowCode: 'demo-agent', idempotencyKey: 'idem-12345678', input: { title: 'Demo', content: 'Content' } };
-    const first = service.create(input);
-    const second = service.create(input);
+  it('creates an idempotent queued run and emits RUN_STARTED', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const input = makeInput();
+    const first = await service.create(input);
+    const second = await service.create(input);
     expect(first.id).toBe(second.id);
     expect(first.status).toBe('QUEUED');
-    expect(service.events(first.id)).toHaveLength(1);
+    const events = await service.events(first.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].eventType).toBe('RUN_STARTED');
   });
 
-  it('rejects cancellation of a completed run', () => {
-    const service = new InMemoryWorkflowRunService();
-    const run = service.create({ organizationId: 'org-1', projectId: 'project-1', requestedBy: 'user-1', workflowCode: 'demo-agent', idempotencyKey: 'idem-87654321', input: {} });
-    service.transition(run.id, 'RUNNING');
-    service.transition(run.id, 'SUCCEEDED');
-    expect(() => service.cancel(run.id)).toThrow('terminal');
+  it('transitions through statuses emitting events with increasing sequence', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-abcdef01' }));
+    await service.transition(run.id, 'RUNNING');
+    await service.transition(run.id, 'SUCCEEDED');
+    const events = await service.events(run.id);
+    expect(events.map((event) => event.eventType)).toEqual(['RUN_STARTED', 'NODE_STARTED', 'RUN_COMPLETED']);
+    expect(events.map((event) => event.sequence)).toEqual([0, 1, 2]);
+    const final = await service.get(run.id);
+    expect(final.status).toBe('SUCCEEDED');
+    expect(final.progress).toBe(100);
+  });
+
+  it('rejects cancellation of a completed run', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-87654321' }));
+    await service.transition(run.id, 'RUNNING');
+    await service.transition(run.id, 'SUCCEEDED');
+    await expect(service.cancel(run.id)).rejects.toThrow('terminal');
+  });
+
+  it('filters runs by organization and project with pagination', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    await service.create(makeInput({ idempotencyKey: 'idem-aaaa0001' }));
+    await service.create(makeInput({ idempotencyKey: 'idem-aaaa0002', projectId: 'project-2' }));
+    await service.create(makeInput({ idempotencyKey: 'idem-aaaa0003', organizationId: 'org-2' }));
+    const org1All = await service.findByQuery({ organizationId: 'org-1', page: 1, limit: 10 });
+    expect(org1All.total).toBe(2);
+    const org1Project1 = await service.findByQuery({ organizationId: 'org-1', projectId: 'project-1', page: 1, limit: 10 });
+    expect(org1Project1.total).toBe(1);
+    expect(org1Project1.items[0].projectId).toBe('project-1');
+  });
+
+  it('marks a cancel as CANCELLED at 100% progress and emits event', async () => {
+    const store = new InMemoryStore();
+    const service = new WorkflowRunService(store);
+    const run = await service.create(makeInput({ idempotencyKey: 'idem-bbbb0001' }));
+    await service.transition(run.id, 'RUNNING');
+    const cancelled = await service.cancel(run.id);
+    expect(cancelled.status).toBe('CANCELLED');
+    expect(cancelled.progress).toBe(100);
+    const events = await service.events(run.id);
+    expect(events[events.length - 1].eventType).toBe('RUN_CANCELED');
   });
 });
