@@ -1,15 +1,34 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { createOpaqueToken, encodeAccessClaims } from '@testgen/auth';
+import { AuthService } from './auth.service.js';
 
 @Controller('api/v1/auth')
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
   @Post('login')
-  login(@Body() body: { email?: string }) {
-    if (!body.email) return { data: null, error: { code: 'VALIDATION_ERROR', message: 'email is required' } };
-    const userId = createOpaqueToken(16);
-    const accessToken = encodeAccessClaims({ sub: userId, exp: Math.floor(Date.now() / 1000) + 900 }, process.env.JWT_ACCESS_SECRET ?? 'development-access-secret-please-change-32');
-    return { data: { accessToken, refreshToken: createOpaqueToken(), user: { id: userId, email: body.email } }, meta: { requestId: createOpaqueToken(8) }, error: null };
+  async login(@Body() body: { email?: string; password?: string }) {
+    if (!body.email || !body.password) return { data: null, meta: {}, error: { code: 'VALIDATION_ERROR', message: 'email and password are required' } };
+    try {
+      const result = await this.authService.login(body.email, body.password);
+      return { data: result, meta: {}, error: null };
+    } catch (error) {
+      return { data: null, meta: {}, error: { code: 'INVALID_CREDENTIALS', message: error instanceof Error ? error.message : 'Login failed' } };
+    }
   }
 
-  @Get('me') me() { return { data: { authenticated: true }, meta: { requestId: createOpaqueToken(8) }, error: null }; }
+  @Post('refresh')
+  async refresh(@Body() body: { refreshToken?: string }) {
+    if (!body.refreshToken) return { data: null, meta: {}, error: { code: 'VALIDATION_ERROR', message: 'refreshToken is required' } };
+    try {
+      const result = await this.authService.refresh(body.refreshToken);
+      return { data: result, meta: {}, error: null };
+    } catch {
+      return { data: null, meta: {}, error: { code: 'INVALID_REFRESH_TOKEN', message: 'Invalid refresh token' } };
+    }
+  }
+
+  @Get('me')
+  me() {
+    return { data: { authenticated: true }, meta: {}, error: null };
+  }
 }

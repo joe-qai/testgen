@@ -1,6 +1,6 @@
 import { createHmac, randomBytes } from 'node:crypto';
 
-export type AccessClaims = { sub: string; organizationId?: string; isPlatformAdmin?: boolean; exp: number };
+export type AccessClaims = { sub: string; organizationId?: string; projectId?: string; isPlatformAdmin?: boolean; exp: number };
 
 export function hashToken(token: string, secret: string): string {
   return createHmac('sha256', secret).update(token).digest('hex');

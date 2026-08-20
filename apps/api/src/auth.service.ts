@@ -6,9 +6,21 @@ export type LoginResult = { accessToken: string; refreshToken: string; user: Omi
 
 export class AuthService {
   private readonly users = new Map<string, LocalUser>();
-  private readonly refreshes = new Set<string>();
+  private readonly refreshes = new Map<string, string>();
   constructor(private readonly accessSecret: string, private readonly refreshSecret: string) {}
   async createUser(input: { email: string; password: string; displayName: string }) { const user: LocalUser = { id: crypto.randomUUID(), email: input.email, displayName: input.displayName, passwordHash: await argon2.hash(input.password), status: 'ACTIVE' }; this.users.set(input.email.toLowerCase(), user); return user; }
-  async login(email: string, password: string): Promise<LoginResult> { const user = this.users.get(email.toLowerCase()); if (!user || user.status !== 'ACTIVE' || !(await argon2.verify(user.passwordHash, password))) throw new Error('Invalid credentials'); const refreshToken = createOpaqueToken(); this.refreshes.add(hashToken(refreshToken, this.refreshSecret)); const accessToken = encodeAccessClaims({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 900 }, this.accessSecret); const { passwordHash: _, ...safeUser } = user; return { accessToken, refreshToken, user: safeUser }; }
+  async login(email: string, password: string): Promise<LoginResult> { const user = this.users.get(email.toLowerCase()); if (!user || user.status !== 'ACTIVE' || !(await argon2.verify(user.passwordHash, password))) throw new Error('Invalid credentials'); const refreshToken = createOpaqueToken(); this.refreshes.set(hashToken(refreshToken, this.refreshSecret), user.id); const accessToken = encodeAccessClaims({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 900 }, this.accessSecret); const { passwordHash: _, ...safeUser } = user; return { accessToken, refreshToken, user: safeUser }; }
+  async refresh(refreshToken: string): Promise<LoginResult> {
+    const userId = this.refreshes.get(hashToken(refreshToken, this.refreshSecret));
+    if (!userId) throw new Error('Invalid refresh token');
+    const user = [...this.users.values()].find((item) => item.id === userId);
+    if (!user) throw new Error('Invalid refresh token');
+    this.refreshes.delete(hashToken(refreshToken, this.refreshSecret));
+    const newRefreshToken = createOpaqueToken();
+    this.refreshes.set(hashToken(newRefreshToken, this.refreshSecret), user.id);
+    const accessToken = encodeAccessClaims({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 900 }, this.accessSecret);
+    const { passwordHash: _, ...safeUser } = user;
+    return { accessToken, refreshToken: newRefreshToken, user: safeUser };
+  }
   revoke(refreshToken: string) { this.refreshes.delete(hashToken(refreshToken, this.refreshSecret)); }
 }
