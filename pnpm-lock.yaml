@@ -78,6 +78,9 @@ importers:
       '@testgen/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@testgen/queue':
+        specifier: workspace:^
+        version: link:../../packages/queue
       '@testgen/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow

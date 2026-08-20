@@ -12,6 +12,8 @@ import { createMemoryWorkflowRunStore } from './workflow-runs.memory-store.js';
 import { createMemoryOrganizationStore, createMemoryProjectStore } from './org-project.memory-store.js';
 import { createDatabase, runMigrations, runSeed, PostgresWorkflowRunStore, PostgresOrganizationStore, PostgresProjectStore, type Database, type OrganizationStore, type ProjectStore } from '@testgen/database';
 import type { WorkflowRunStore } from '@testgen/workflow';
+import type { QueueAdapter } from '@testgen/queue';
+import { BullMQQueueAdapter } from '@testgen/queue';
 
 let databaseInstance: { db: Database; pool: { end(): Promise<unknown> } } | null = null;
 
@@ -29,6 +31,14 @@ function resolveRunStore(): WorkflowRunStore {
     return new PostgresWorkflowRunStore(getDatabase().db);
   }
   return createMemoryWorkflowRunStore();
+}
+
+function resolveQueue(): QueueAdapter | undefined {
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    return new BullMQQueueAdapter(redisUrl);
+  }
+  return undefined;
 }
 
 function resolveOrganizationStore(): OrganizationStore {
@@ -60,7 +70,7 @@ export class HealthController {
   controllers: [HealthController, AuthController, OrganizationsController, ProjectsController, WorkflowRunsController],
   providers: [
     AppService,
-    { provide: WorkflowRunService, useFactory: () => new WorkflowRunService(resolveRunStore()) },
+    { provide: WorkflowRunService, useFactory: () => new WorkflowRunService(resolveRunStore(), undefined, undefined, resolveQueue()) },
     { provide: OrganizationsService, useFactory: () => new OrganizationsService(resolveOrganizationStore()) },
     { provide: ProjectsService, useFactory: () => new ProjectsService(resolveProjectStore()) },
   ],

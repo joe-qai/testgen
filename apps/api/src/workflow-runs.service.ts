@@ -1,5 +1,6 @@
-import { assertTransition, type WorkflowRunStore } from '@testgen/workflow';
+import { assertTransition, type WorkflowRunStore, type WorkflowRunRecord } from '@testgen/workflow';
 import { WorkflowRunStatus, WorkflowEventType } from '@testgen/contracts';
+import type { QueueAdapter } from '@testgen/queue';
 
 export type WorkflowRunInput = { organizationId: string; projectId: string; requestedBy: string; workflowCode: string; idempotencyKey: string; input: Record<string, unknown> };
 
@@ -8,6 +9,7 @@ export class WorkflowRunService {
     private readonly store: WorkflowRunStore,
     private readonly now: () => Date = () => new Date(),
     private readonly idGenerator: () => string = () => crypto.randomUUID(),
+    private readonly queue?: QueueAdapter,
   ) {}
 
   async create(input: WorkflowRunInput) {
@@ -37,6 +39,14 @@ export class WorkflowRunService {
     };
     await this.store.create(run);
     await this.emit(run.id, 'RUN_STARTED', { status: run.status });
+    if (this.queue) {
+      try {
+        await this.queue.enqueueWorkflowRun({ runId: run.id, organizationId: run.organizationId, projectId: run.projectId });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown queue error';
+        await this.emit(run.id, 'RUN_FAILED', { status: run.status, error: `queue enqueue failed: ${message}` });
+      }
+    }
     return run;
   }
 
@@ -72,6 +82,22 @@ export class WorkflowRunService {
     if (['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(run.status)) throw new Error('Workflow run is terminal');
     const updated = await this.store.update(id, { status: 'CANCELLED', progress: 100, completedAt: this.now().toISOString() });
     await this.emit(id, 'RUN_CANCELED', { status: 'CANCELLED', progress: 100 });
+    return updated;
+  }
+
+  async complete(id: string, output: Record<string, unknown>): Promise<WorkflowRunRecord> {
+    const run = await this.get(id);
+    assertTransition(run.status, 'SUCCEEDED');
+    const updated = await this.store.update(id, { status: 'SUCCEEDED', progress: 100, outputData: output, completedAt: this.now().toISOString() });
+    await this.emit(id, 'RUN_COMPLETED', { status: 'SUCCEEDED', progress: 100 });
+    return updated;
+  }
+
+  async fail(id: string, error: string): Promise<WorkflowRunRecord> {
+    const run = await this.get(id);
+    assertTransition(run.status, 'FAILED');
+    const updated = await this.store.update(id, { status: 'FAILED', progress: 100, errorData: { message: error }, completedAt: this.now().toISOString() });
+    await this.emit(id, 'RUN_FAILED', { status: 'FAILED', progress: 100, error });
     return updated;
   }
 
