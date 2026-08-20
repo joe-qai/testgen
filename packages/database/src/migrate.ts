@@ -1,21 +1,18 @@
-import { sql } from 'drizzle-orm';
-import { createDatabase } from './client.js';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { createDatabase, type Database } from './client.js';
+import { rlsPolicySql } from './rls.sql.js';
 
-const { db, pool } = createDatabase();
+export async function runMigrations(db: Database): Promise<void> {
+  await migrate(db as never, { migrationsFolder: new URL('../migrations', import.meta.url).pathname });
+  await db.execute(rlsPolicySql);
+}
 
-try {
-  await db.execute(sql`
-    create or replace function app_user_id() returns uuid language sql stable as $$
-      select nullif(current_setting('app.user_id', true), '')::uuid
-    $$;
-    create or replace function app_organization_id() returns uuid language sql stable as $$
-      select nullif(current_setting('app.organization_id', true), '')::uuid
-    $$;
-    create or replace function app_is_platform_admin() returns boolean language sql stable as $$
-      select coalesce(current_setting('app.is_platform_admin', true), 'false') = 'true'
-    $$;
-  `);
-  console.log('RLS helper functions installed. Run drizzle migrations before enabling table policies.');
-} finally {
-  await pool.end();
+if (process.argv[1]?.endsWith('migrate.ts') || process.env.RUN_MIGRATE === 'true') {
+  const { db, pool } = createDatabase();
+  try {
+    await runMigrations(db);
+    console.log('Migrations applied and RLS policies enabled.');
+  } finally {
+    await pool.end();
+  }
 }

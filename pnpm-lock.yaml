@@ -181,6 +181,12 @@ importers:
 
   packages/database:
     dependencies:
+      '@testgen/contracts':
+        specifier: workspace:^
+        version: link:../contracts
+      '@testgen/workflow':
+        specifier: workspace:^
+        version: link:../workflow
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@types/pg@8.23.1)(@types/react@19.2.18)(pg@8.23.0)(react@19.2.8)
