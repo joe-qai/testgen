@@ -189,7 +189,7 @@ class TestDocumentChunker:
     def test_long_requirement_chunking(self):
         """测试长需求分块"""
         # 创建一个长需求文档（超过512 tokens）
-        content = "功能描述：" + "这是测试内容。" * 100
+        content = "功能描述：" + "这是测试内容。" * 120
 
         chunks = self.chunker.chunk_requirement(content, "REQ-002")
 
